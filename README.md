@@ -1,29 +1,14 @@
 # Opytimizer: A Nature-Inspired Python Optimizer
 
 <div align="center">
-    <img src="assets/logo.png" width="400">
+    <img src="/assets/logo.png" width="400">
 </div>
 
-<!-- Última versão (release) -->
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/recogna-lab/opytimizer?style=flat-square&color=blueviolet)](https://github.com/recogna-lab/opytimizer/releases)
-
-<!-- Build status (GitHub Actions) -->
-[![Build Status](https://img.shields.io/github/actions/workflow/status/recogna-lab/opytimizer/ci.yml?branch=master&style=flat-square&color=success)](https://github.com/recogna-lab/opytimizer/actions)
-
-<!-- DOI (Zenodo) -->
-[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.4594294-blue?style=flat-square)](https://doi.org/10.5281/zenodo.4594294)
-
-<!-- Issues abertas -->
-[![GitHub issues](https://img.shields.io/github/issues/recogna-lab/opytimizer?style=flat-square&color=orange)](https://github.com/recogna-lab/opytimizer/issues)
-
-<!-- Licença -->
-[![GitHub license](https://img.shields.io/github/license/recogna-lab/opytimizer?style=flat-square&color=informational)](https://github.com/recogna-lab/opytimizer/blob/master/LICENSE)
-
-<!-- Stars -->
-[![GitHub stars](https://img.shields.io/github/stars/recogna-lab/opytimizer?style=flat-square&color=yellow)](https://github.com/recogna-lab/opytimizer/stargazers)
-
-<!-- Forks -->
-[![GitHub forks](https://img.shields.io/github/forks/recogna-lab/opytimizer?style=flat-square&color=lightgrey)](https://github.com/recogna-lab/opytimizer/network)
+[![Latest release](https://img.shields.io/github/release/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/releases)
+[![DOI](http://img.shields.io/badge/DOI-10.5281/zenodo.4594294-006DB9.svg)](https://doi.org/10.5281/zenodo.4594294)
+[![Build status](https://img.shields.io/travis/com/gugarosa/opytimizer/master.svg)](https://github.com/gugarosa/opytimizer/releases)
+[![Open issues](https://img.shields.io/github/issues/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/issues)
+[![License](https://img.shields.io/github/license/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/blob/master/LICENSE)
 
 ## Welcome to Opytimizer.
 Did you ever reach a bottleneck in your computational experiments? Are you tired of selecting suitable parameters for a chosen technique? If yes, Opytimizer is the real deal! This package provides an easy-to-go implementation of meta-heuristic optimizations. From agents to search space, from internal functions to external communication, we will foster all research related to optimizing stuff.
