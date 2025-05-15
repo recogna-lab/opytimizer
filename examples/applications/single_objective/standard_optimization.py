@@ -3,7 +3,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 # Random seed for experimental consistency

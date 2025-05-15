@@ -25,6 +25,7 @@ class Function:
         logger.info("Creating class: Function.")
 
         self.pointer = pointer
+        self.n_objectives = 1
 
         if hasattr(pointer, "__name__"):
             self.name = pointer.__name__
@@ -36,18 +37,21 @@ class Function:
         logger.debug("Function: %s | Built: %s.", self.name, self.built)
         logger.info("Class created.")
 
-    def __call__(self, x: np.ndarray) -> float:
+    def __call__(self, x: np.ndarray) -> np.ndarray:
         """Callable to avoid using the `pointer` property.
 
         Args:
             x: Array of positions.
 
         Returns:
-            (float): Single-objective function fitness.
+            (np.ndarray): Function fitness value(s).
 
         """
 
-        return self.pointer(x)
+        result = self.pointer(x)
+        if isinstance(result, (int, float)):
+            return np.array([result])
+        return np.array(result)
 
     @property
     def pointer(self) -> callable:
@@ -63,6 +67,21 @@ class Function:
             raise e.ArgumentError("`pointer` should only have 1 argument")
 
         self._pointer = pointer
+
+    @property
+    def n_objectives(self) -> int:
+        """int: Number of objectives."""
+
+        return self._n_objectives
+
+    @n_objectives.setter
+    def n_objectives(self, n_objectives: int) -> None:
+        if not isinstance(n_objectives, int):
+            raise e.TypeError("`n_objectives` should be an integer")
+        if n_objectives <= 0:
+            raise e.ValueError("`n_objectives` should be > 0")
+
+        self._n_objectives = n_objectives
 
     @property
     def name(self) -> str:

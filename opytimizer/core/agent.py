@@ -40,7 +40,7 @@ class Agent:
         self.n_dimensions = n_dimensions
 
         self.position = np.zeros((n_variables, n_dimensions))
-        self.fit = c.FLOAT_MAX
+        self._fit = np.array([c.FLOAT_MAX])
 
         self.lb = np.asarray(lower_bound)
         self.ub = np.asarray(upper_bound)
@@ -93,17 +93,21 @@ class Agent:
         self._position = position
 
     @property
-    def fit(self) -> Union[int, float]:
-        """float: Fitness value."""
+    def fit(self) -> Union[float, np.ndarray]:
+        """Fitness value(s).
+
+        Returns:
+            Union[float, np.ndarray]: Single value for mono-objective or array for multi-objective.
+        """
 
         return self._fit
 
     @fit.setter
-    def fit(self, fit: Union[int, float]) -> None:
-        if not isinstance(fit, (float, int, np.int32, np.int64)):
-            raise e.TypeError("`fit` should be a float or integer")
-
-        self._fit = fit
+    def fit(self, fit: Union[int, float, np.ndarray]) -> None:
+        if isinstance(fit, (float, int)):
+            self._fit = np.array([fit])
+        else:
+            self._fit = np.array(fit)
 
     @property
     def lb(self) -> np.ndarray:
@@ -215,3 +219,16 @@ class Agent:
             self.position[j] = r.generate_uniform_random_number(
                 lb, ub, self.n_dimensions
             )
+
+    def dominates(self, other: 'Agent') -> bool:
+        """Checks if this agent dominates another agent.
+
+        Args:
+            other: Another agent to be compared.
+
+        Returns:
+            (bool): Whether this agent dominates the other.
+
+        """
+
+        return np.all(self._fit <= other._fit) and np.any(self._fit < other._fit)

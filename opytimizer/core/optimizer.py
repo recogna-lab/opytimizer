@@ -3,7 +3,7 @@
 
 import copy
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
@@ -134,3 +134,49 @@ class Optimizer:
         """
 
         pass
+
+
+class MultiObjectiveOptimizer(Optimizer):
+    """A MultiObjectiveOptimizer class that holds multi-objective meta-heuristics-related
+    properties and methods.
+
+    """
+
+    def __init__(self) -> None:
+        """Initialization method."""
+
+        super().__init__()
+        self.pareto_front = []
+
+    def evaluate(self, space: Space, function: Function) -> None:
+        """Evaluates the search space according to the objective function.
+
+        Args:
+            space: A Space object that will be evaluated.
+            function: A Function object serving as an objective function.
+
+        """
+
+        for agent in space.agents:
+            agent.fit = function(agent.position)
+
+        self.update_pareto_front(space.agents)
+
+    def update_pareto_front(self, agents: List['Agent']) -> None:
+        """Updates the Pareto front with non-dominated solutions.
+
+        Args:
+            agents: List of agents to be evaluated.
+
+        """
+
+        self.pareto_front = []
+        for agent in agents:
+            is_dominated = False
+            for pareto_agent in self.pareto_front:
+                if pareto_agent.dominates(agent):
+                    is_dominated = True
+                    break
+            if not is_dominated:
+                self.pareto_front = [a for a in self.pareto_front if not agent.dominates(a)]
+                self.pareto_front.append(agent)
