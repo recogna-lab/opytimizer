@@ -1,0 +1,118 @@
+"""Multi-objective visualization plots.
+"""
+
+from typing import List, Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import opytimizer.utils.exception as e
+
+
+def plot_pareto_front(
+    pareto_front: List,
+    title: str = "Pareto Front",
+    subtitle: str = "",
+    xlabel: str = "f1",
+    ylabel: str = "f2",
+    grid: bool = True,
+    scatter: bool = True,
+    line: bool = True,
+    all_solutions: Optional[List] = None,
+) -> None:
+    """Plots the Pareto front, optionally showing all non-dominated solutions.
+
+    Args:
+        pareto_front: List of agents in the Pareto front.
+        all_solutions: (opcional) Lista de todos os agentes da população.
+        title: Title of the plot.
+        subtitle: Subtitle of the plot.
+        xlabel: Axis `x` label.
+        ylabel: Axis `y` label.
+        grid: If grid should be used or not.
+        scatter: If scatter plot should be used or not.
+        line: If line plot should be used or not.
+
+    """
+
+    _, ax = plt.subplots(figsize=(7, 5))
+
+    # Se fornecido, plota todas as soluções (em cinza claro)
+    if all_solutions is not None:
+        f1_all = [agent.fit[0] for agent in all_solutions]
+        f2_all = [agent.fit[1] for agent in all_solutions]
+        ax.scatter(f1_all, f2_all, c='lightgray', alpha=0.5, label='All Solutions')
+
+    # Extrai os valores de fitness
+    f1 = [agent.fit[0] for agent in pareto_front]
+    f2 = [agent.fit[1] for agent in pareto_front]
+
+    # Ordena os pontos para melhor visualização
+    idx = np.argsort(f1)
+    f1 = np.array(f1)[idx]
+    f2 = np.array(f2)[idx]
+
+    ax.set(xlabel=xlabel, ylabel=ylabel)
+    ax.set_title(title, loc="left", fontsize=14)
+    ax.set_title(subtitle, loc="right", fontsize=8, color="grey")
+
+    if grid:
+        ax.grid()
+
+    if scatter:
+        ax.scatter(f1, f2, c='blue', alpha=0.8, label='Pareto Front')
+    
+    if line:
+        ax.plot(f1, f2, 'r--', alpha=0.4, label='Pareto Line')
+
+    ax.legend()
+    plt.show()
+
+
+def plot_pareto_evolution(
+    pareto_fronts: List[List],
+    iterations: List[int],
+    title: str = "Pareto Front Evolution",
+    subtitle: str = "",
+    xlabel: str = "f1",
+    ylabel: str = "f2",
+    grid: bool = True,
+) -> None:
+    """Plots the evolution of Pareto front over iterations.
+
+    Args:
+        pareto_fronts: List of Pareto fronts at different iterations.
+        iterations: List of iteration numbers.
+        title: Title of the plot.
+        subtitle: Subtitle of the plot.
+        xlabel: Axis `x` label.
+        ylabel: Axis `y` label.
+        grid: If grid should be used or not.
+
+    """
+
+    _, ax = plt.subplots(figsize=(7, 5))
+
+    ax.set(xlabel=xlabel, ylabel=ylabel)
+    ax.set_title(title, loc="left", fontsize=14)
+    ax.set_title(subtitle, loc="right", fontsize=8, color="grey")
+
+    if grid:
+        ax.grid()
+
+    colors = plt.cm.viridis(np.linspace(0, 1, len(iterations)))
+    
+    for i, (front, it) in enumerate(zip(pareto_fronts, iterations)):
+        f1 = [agent.fit[0] for agent in front]
+        f2 = [agent.fit[1] for agent in front]
+        
+        # Ordena os pontos
+        idx = np.argsort(f1)
+        f1 = np.array(f1)[idx]
+        f2 = np.array(f2)[idx]
+        
+        ax.plot(f1, f2, '--', alpha=0.4, color=colors[i], 
+                label=f'Iteration {it}')
+
+    ax.legend()
+    plt.show()

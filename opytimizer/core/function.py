@@ -12,25 +12,32 @@ logger = logging.get_logger(__name__)
 
 
 class Function:
-    """A Function class used to hold single-objective functions."""
+    """A Function class used to hold single-objective or multi-objective functions."""
 
     def __init__(self, pointer: callable) -> None:
         """Initialization method.
 
         Args:
-            pointer: Pointer to a function that will return the fitness value.
-
+            pointer: Pointer to a function or list of functions that will return the fitness value(s).
         """
 
         logger.info("Creating class: Function.")
 
-        self.pointer = pointer
-        self.n_objectives = 1
-
-        if hasattr(pointer, "__name__"):
-            self.name = pointer.__name__
+        # Permite lista de funções para multiobjetivo
+        if isinstance(pointer, list):
+            for f in pointer:
+                if not callable(f):
+                    raise e.TypeError("All elements in the list must be callable")
+            self.pointer = lambda x: [f(x) for f in pointer]
+            self.n_objectives = len(pointer)
+            self.name = "MultiObjectiveFunction"
         else:
-            self.name = pointer.__class__.__name__
+            self.pointer = pointer
+            self.n_objectives = 1
+            if hasattr(pointer, "__name__"):
+                self.name = pointer.__name__
+            else:
+                self.name = pointer.__class__.__name__
 
         self.built = True
 
