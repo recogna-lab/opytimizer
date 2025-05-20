@@ -1,4 +1,4 @@
-from opytimizer.optimizers.population import epo
+from opytimizer.optimizers.single_objective.population import epo
 from opytimizer.spaces import search
 
 

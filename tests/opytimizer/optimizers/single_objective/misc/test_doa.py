@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.misc import doa
+from opytimizer.optimizers.single_objective.misc import doa
 from opytimizer.spaces import search
 
 

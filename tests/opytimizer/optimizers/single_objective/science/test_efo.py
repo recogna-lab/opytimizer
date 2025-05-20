@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.science import efo
+from opytimizer.optimizers.single_objective.science import efo
 from opytimizer.spaces import search
 
 np.random.seed(0)

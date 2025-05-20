@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.science import cdo
+from opytimizer.optimizers.single_objective.science import cdo
 from opytimizer.spaces import search
 
 
@@ -14,4 +14,6 @@ def test_cdo_update():
         n_agents=20, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
-    new_cdo.update(search_space, square)
+    new_cdo.compile(search_space)
+
+    new_cdo.update(search_space, square, iteration=1, n_iterations=20)

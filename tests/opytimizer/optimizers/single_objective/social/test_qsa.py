@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.social import qsa
+from opytimizer.optimizers.single_objective.social import qsa
 from opytimizer.spaces import search
 from opytimizer.utils import constant
 

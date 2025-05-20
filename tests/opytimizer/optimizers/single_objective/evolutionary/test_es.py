@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.evolutionary import es
+from opytimizer.optimizers.single_objective.evolutionary import es
 from opytimizer.spaces import search
 
 

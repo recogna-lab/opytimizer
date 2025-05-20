@@ -2,7 +2,7 @@ from types import new_class
 
 import numpy as np
 
-from opytimizer.optimizers.population import loa
+from opytimizer.optimizers.single_objective.population import loa
 from opytimizer.spaces import search
 
 np.random.seed(0)

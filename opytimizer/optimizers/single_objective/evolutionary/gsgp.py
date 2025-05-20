@@ -10,7 +10,7 @@ import numpy as np
 import opytimizer.math.general as g
 import opytimizer.math.random as r
 from opytimizer.core.node import Node
-from opytimizer.optimizers.evolutionary.gp import GP
+from opytimizer.optimizers.single_objective.evolutionary.gp import GP
 from opytimizer.spaces.tree import TreeSpace
 from opytimizer.utils import logging
 

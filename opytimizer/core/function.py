@@ -23,7 +23,6 @@ class Function:
 
         logger.info("Creating class: Function.")
 
-        # Permite lista de funções para multiobjetivo
         if isinstance(pointer, list):
             for f in pointer:
                 if not callable(f):

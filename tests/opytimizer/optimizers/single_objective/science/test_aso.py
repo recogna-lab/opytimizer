@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.science import aso
+from opytimizer.optimizers.single_objective.science import aso
 from opytimizer.spaces import search
 
 

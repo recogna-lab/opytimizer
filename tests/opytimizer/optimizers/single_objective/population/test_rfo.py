@@ -1,7 +1,7 @@
 import numpy as np
 
 import opytimizer.math.random as r
-from opytimizer.optimizers.population import rfo
+from opytimizer.optimizers.single_objective.population import rfo
 from opytimizer.spaces import search
 
 np.random.seed(1)

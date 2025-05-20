@@ -1,7 +1,7 @@
 import numpy as np
 
 from opytimizer.core import function
-from opytimizer.optimizers.misc import cem
+from opytimizer.optimizers.single_objective.misc import cem
 from opytimizer.spaces import search
 
 

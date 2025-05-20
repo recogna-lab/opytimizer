@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.swarm import eho
+from opytimizer.optimizers.single_objective.swarm import eho
 from opytimizer.spaces import search
 
 

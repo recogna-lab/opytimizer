@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.social import ci
+from opytimizer.optimizers.single_objective.social import ci
 from opytimizer.spaces import search
 
 

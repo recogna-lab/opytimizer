@@ -1,4 +1,4 @@
-from opytimizer.optimizers.misc import aoa
+from opytimizer.optimizers.single_objective.misc import aoa
 from opytimizer.spaces import search
 
 

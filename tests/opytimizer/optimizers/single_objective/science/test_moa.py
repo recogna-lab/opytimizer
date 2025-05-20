@@ -1,4 +1,4 @@
-from opytimizer.optimizers.science import moa
+from opytimizer.optimizers.single_objective.science import moa
 from opytimizer.spaces import search
 
 

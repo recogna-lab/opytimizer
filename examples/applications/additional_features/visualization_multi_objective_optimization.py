@@ -16,9 +16,6 @@ np.random.seed(0)
 
 # ZDT1 function
 def zdt1(x):
-    # Ensures that x is a 1D array
-    x = np.asarray(x).flatten()
-    
     # Calculates f1 and f2
     f1 = x[0]
     g = 1 + 9 * np.sum(x[1:]) / (len(x) - 1)
@@ -51,7 +48,7 @@ function = Function(zdt1)
 
 # List to store the Pareto fronts at different iterations
 pareto_fronts = []
-iterations = [1, 250, 500, 750, 1000]
+iterations = [1, 50, 100, 150, 200, 250]
 
 class ParetoFrontSaver(Callback):
     def __init__(self, optimizer, pareto_fronts, iterations):
@@ -60,23 +57,19 @@ class ParetoFrontSaver(Callback):
         self.pareto_fronts = pareto_fronts
         self.iterations = iterations
 
-    def on_task_begin(self, opt_model):
-        print("Salvando frente na iteração 0 (inicial)")
-        self.pareto_fronts.append(self.optimizer.pareto_front.copy())
-
     def on_iteration_end(self, iteration, opt_model):
         if iteration in self.iterations:
-            print(f"Salvando frente na iteração {iteration}")
-            self.pareto_fronts.append(self.optimizer.pareto_front.copy())
+            if hasattr(self.optimizer, 'pareto_front') and self.optimizer.pareto_front:
+                print(f"Salvando frente na iteração {iteration} - tamanho: {len(self.optimizer.pareto_front)}")
+                self.pareto_fronts.append(self.optimizer.pareto_front.copy())
+            else:
+                print(f"Pareto front in iteration {iteration} is empty.")
 
 # Bundles every piece into Opytimizer class
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
-# Adds the callback as an object
-opt.callbacks = [ParetoFrontSaver(optimizer, pareto_fronts, iterations)]
-
-# Executes the optimization
-opt.start(n_iterations=1000)
+# Runs the optimization passing the callback
+opt.start(n_iterations=250, callbacks=[ParetoFrontSaver(optimizer, pareto_fronts, iterations)])
 
 # Plots the final Pareto front
 plot_pareto_front(
@@ -91,7 +84,7 @@ plot_pareto_front(
 # Plots the evolution of the Pareto front
 plot_pareto_evolution(
     pareto_fronts,
-    iterations,
+    iterations[:len(pareto_fronts)],
     title="ZDT1 Pareto Front Evolution",
     subtitle="NSGA-II"
 )

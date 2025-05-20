@@ -1,4 +1,4 @@
-from opytimizer.optimizers.science import teo
+from opytimizer.optimizers.single_objective.science import teo
 from opytimizer.spaces import search
 
 

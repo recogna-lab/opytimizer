@@ -1,6 +1,6 @@
 import opytimizer
 from opytimizer.core import function
-from opytimizer.optimizers.swarm import pso
+from opytimizer.optimizers.single_objective.swarm import pso
 from opytimizer.spaces import search
 from opytimizer.utils import callback, history
 

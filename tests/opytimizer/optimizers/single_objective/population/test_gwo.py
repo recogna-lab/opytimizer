@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.population import gwo
+from opytimizer.optimizers.single_objective.population import gwo
 from opytimizer.spaces import search
 
 np.random.seed(0)

@@ -2,25 +2,31 @@ from opytimizer.functions.multi_objective import weighted
 
 
 def test_weighted_weights():
-    new_weighted = weighted.MultiObjectiveWeightedFunction([], [])
+    def square(x):
+        return x**2
+
+    new_weighted = weighted.WeightedFunction([square], [1.0])
 
     assert type(new_weighted.weights) == list
 
 
 def test_weighted_weights_setter():
-    new_weighted = weighted.MultiObjectiveWeightedFunction([], [])
+    def square(x):
+        return x**2
+
+    new_weighted = weighted.WeightedFunction([square], [1.0])
 
     try:
         new_weighted.weights = None
     except:
-        new_weighted.weights = []
+        new_weighted.weights = [1.0]
 
     try:
-        new_weighted.weights = [1.0]
+        new_weighted.weights = [1.0, 2.0]  # Tenta adicionar mais pesos que funções
     except:
-        new_weighted.weights = []
+        new_weighted.weights = [1.0]
 
-    assert len(new_weighted.weights) == 0
+    assert len(new_weighted.weights) == 1
 
 
 def test_weighted_call():
@@ -34,7 +40,7 @@ def test_weighted_call():
 
     assert cube(2) == 8
 
-    new_weighted = weighted.MultiObjectiveWeightedFunction(
+    new_weighted = weighted.WeightedFunction(
         functions=[square, cube], weights=[0.5, 0.5]
     )
 

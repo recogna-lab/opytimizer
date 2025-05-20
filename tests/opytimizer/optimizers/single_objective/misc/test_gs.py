@@ -1,4 +1,4 @@
-from opytimizer.optimizers.misc import gs
+from opytimizer.optimizers.single_objective.misc import gs
 
 
 def test_gs():

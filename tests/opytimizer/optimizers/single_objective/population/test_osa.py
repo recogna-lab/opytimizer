@@ -1,4 +1,4 @@
-from opytimizer.optimizers.population import osa
+from opytimizer.optimizers.single_objective.population import osa
 from opytimizer.spaces import search
 
 

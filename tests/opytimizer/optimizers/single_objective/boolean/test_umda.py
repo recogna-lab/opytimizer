@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.boolean import umda
+from opytimizer.optimizers.single_objective.boolean import umda
 from opytimizer.spaces import boolean
 
 

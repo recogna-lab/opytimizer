@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.population import aeo
+from opytimizer.optimizers.single_objective.population import aeo
 from opytimizer.spaces import search
 
 

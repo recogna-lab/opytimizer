@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.swarm import pio
+from opytimizer.optimizers.single_objective.swarm import pio
 from opytimizer.spaces import search
 
 

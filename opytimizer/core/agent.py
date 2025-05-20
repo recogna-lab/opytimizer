@@ -99,7 +99,12 @@ class Agent:
         Returns:
             Union[float, np.ndarray]: Single value for mono-objective or array for multi-objective.
         """
-
+        if not isinstance(self._fit, np.ndarray):
+            self._fit = np.array([c.FLOAT_MAX])
+        elif self._fit.ndim == 0:
+            self._fit = np.array([self._fit])
+        if self._fit.size == 1:
+            return float(self._fit[0])
         return self._fit
 
     @fit.setter

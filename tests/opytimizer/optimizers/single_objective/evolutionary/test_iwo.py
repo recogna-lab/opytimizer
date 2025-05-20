@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.evolutionary import iwo
+from opytimizer.optimizers.single_objective.evolutionary import iwo
 from opytimizer.spaces import search
 
 np.random.seed(0)

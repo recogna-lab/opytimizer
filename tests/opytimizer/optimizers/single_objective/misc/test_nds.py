@@ -1,7 +1,7 @@
 import numpy as np
 
 import opytimizer.math.random as r
-from opytimizer.optimizers.misc import nds
+from opytimizer.optimizers.single_objective.misc import nds
 from opytimizer.spaces import pareto
 
 

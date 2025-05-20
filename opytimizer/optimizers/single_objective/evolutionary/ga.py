@@ -115,7 +115,7 @@ class GA(Optimizer):
         # Re-arrange the list of fitness by inverting it
         # Note that we apply a trick due to it being designed for minimization
         # f'(x) = f_max - f(x)
-        inv_fitness = [max_fitness - fit + c.EPSILON for fit in fitness]
+        inv_fitness = max_fitness - fitness + c.EPSILON
         total_fitness = np.sum(inv_fitness)
 
         probs = [fit / total_fitness for fit in inv_fitness]

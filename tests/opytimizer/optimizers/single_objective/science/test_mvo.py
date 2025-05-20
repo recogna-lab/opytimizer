@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.science import mvo
+from opytimizer.optimizers.single_objective.science import mvo
 from opytimizer.spaces import search
 
 

@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 from opytimizer.core import function
-from opytimizer.optimizers.evolutionary import gp
+from opytimizer.optimizers.single_objective.evolutionary import gp
 from opytimizer.spaces import tree
 
 

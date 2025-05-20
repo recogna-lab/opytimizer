@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.science import weo
+from opytimizer.optimizers.single_objective.science import weo
 from opytimizer.spaces import search
 
 

@@ -4,7 +4,7 @@ import numpy as np
 
 import opytimizer.math.random as r
 from opytimizer.core import function
-from opytimizer.optimizers.boolean import bpso
+from opytimizer.optimizers.single_objective.boolean import bpso
 from opytimizer.spaces import boolean
 
 

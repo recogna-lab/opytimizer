@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.swarm import ba
+from opytimizer.optimizers.single_objective.swarm import ba
 from opytimizer.spaces import search
 
 

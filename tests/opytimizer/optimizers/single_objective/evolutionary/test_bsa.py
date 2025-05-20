@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.evolutionary import bsa
+from opytimizer.optimizers.single_objective.evolutionary import bsa
 from opytimizer.spaces import search
 
 np.random.seed(0)

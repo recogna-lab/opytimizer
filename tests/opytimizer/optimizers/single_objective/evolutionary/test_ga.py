@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.evolutionary import ga
+from opytimizer.optimizers.single_objective.evolutionary import ga
 from opytimizer.spaces import search
 
 

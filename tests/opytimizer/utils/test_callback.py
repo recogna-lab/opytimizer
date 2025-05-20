@@ -1,7 +1,7 @@
 from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer.core import function
-from opytimizer.optimizers import swarm
+from opytimizer.optimizers.single_objective import swarm
 from opytimizer.opytimizer import Opytimizer
 from opytimizer.spaces import search
 from opytimizer.utils import callback

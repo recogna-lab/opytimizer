@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.social import bso
+from opytimizer.optimizers.single_objective.social import bso
 from opytimizer.spaces import search
 
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from opytimizer.optimizers.swarm import js
+from opytimizer.optimizers.single_objective.swarm import js
 from opytimizer.spaces import search
 
 np.random.seed(0)

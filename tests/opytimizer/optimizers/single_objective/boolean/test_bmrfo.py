@@ -3,7 +3,7 @@ from opytimark.markers.boolean import Knapsack
 
 import opytimizer.math.random as r
 from opytimizer.core import function
-from opytimizer.optimizers.boolean import bmrfo
+from opytimizer.optimizers.single_objective.boolean import bmrfo
 from opytimizer.spaces import boolean
 
 

@@ -24,7 +24,7 @@ def plot_pareto_front(
 
     Args:
         pareto_front: List of agents in the Pareto front.
-        all_solutions: (opcional) Lista de todos os agentes da população.
+        all_solutions: (optional) List of all agents in the population.
         title: Title of the plot.
         subtitle: Subtitle of the plot.
         xlabel: Axis `x` label.
@@ -37,17 +37,14 @@ def plot_pareto_front(
 
     _, ax = plt.subplots(figsize=(7, 5))
 
-    # Se fornecido, plota todas as soluções (em cinza claro)
     if all_solutions is not None:
-        f1_all = [agent.fit[0] for agent in all_solutions]
-        f2_all = [agent.fit[1] for agent in all_solutions]
+        f1_all = [agent.fit[0][0] for agent in all_solutions]
+        f2_all = [agent.fit[1][0] for agent in all_solutions]
         ax.scatter(f1_all, f2_all, c='lightgray', alpha=0.5, label='All Solutions')
 
-    # Extrai os valores de fitness
-    f1 = [agent.fit[0] for agent in pareto_front]
-    f2 = [agent.fit[1] for agent in pareto_front]
+    f1 = [agent.fit[0][0] for agent in pareto_front]
+    f2 = [agent.fit[1][0] for agent in pareto_front]
 
-    # Ordena os pontos para melhor visualização
     idx = np.argsort(f1)
     f1 = np.array(f1)[idx]
     f2 = np.array(f2)[idx]
@@ -103,10 +100,9 @@ def plot_pareto_evolution(
     colors = plt.cm.viridis(np.linspace(0, 1, len(iterations)))
     
     for i, (front, it) in enumerate(zip(pareto_fronts, iterations)):
-        f1 = [agent.fit[0] for agent in front]
-        f2 = [agent.fit[1] for agent in front]
+        f1 = [agent.fit[0][0] for agent in front]
+        f2 = [agent.fit[1][0] for agent in front]
         
-        # Ordena os pontos
         idx = np.argsort(f1)
         f1 = np.array(f1)[idx]
         f2 = np.array(f2)[idx]
