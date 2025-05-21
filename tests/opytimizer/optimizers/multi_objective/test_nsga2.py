@@ -1,5 +1,5 @@
 import numpy as np
-from opytimizer.optimizers.multi_objective import nsga2
+from opytimizer.optimizers.multi_objective.evolutionary import nsga2
 from opytimizer.spaces.search import SearchSpace
 from opytimizer.core.agent import Agent
 

@@ -1,4 +1,4 @@
-from opytimizer.optimizers.multi_objective import NSGA2
+from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 
 # One should declare a hyperparameters object based
 # on the desired algorithm that will be used

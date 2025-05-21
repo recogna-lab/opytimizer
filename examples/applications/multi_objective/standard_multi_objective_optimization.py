@@ -3,7 +3,7 @@ from opytimark.markers.n_dimensional import Rastrigin, Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.multi_objective import nsga2
+from opytimizer.optimizers.multi_objective.evolutionary import nsga2
 from opytimizer.spaces import SearchSpace
 
 # Random seed for experimental consistency

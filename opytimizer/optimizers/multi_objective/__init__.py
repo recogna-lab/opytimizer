@@ -1,4 +1,3 @@
-"""Multi-objective optimizers.
+"""A multi-objective package for all common opytimizer modules.
+It contains implementations of multi-objective optimizers.
 """
-
-from opytimizer.optimizers.multi_objective.nsga2 import NSGA2

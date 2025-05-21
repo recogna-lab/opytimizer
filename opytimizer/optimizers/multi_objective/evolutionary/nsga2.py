@@ -1,8 +1,8 @@
-"""NSGA-II.
-"""
+"""NSGA-II."""
+
+import copy
 
 import numpy as np
-import copy
 
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
@@ -113,14 +113,14 @@ class NSGA2(MultiObjectiveOptimizer):
 
         self._crowding_distance = crowding_distance
 
-    def compile(self, space: 'Space') -> None:
+    def compile(self, space: "Space") -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
             space: A Space object containing meta-information.
 
         """
-        
+
         self.rank = np.zeros(space.n_agents)
         self.crowding_distance = np.zeros(space.n_agents)
 
@@ -136,21 +136,20 @@ class NSGA2(MultiObjectiveOptimizer):
         """
 
         n_agents = len(agents)
-        domination_count = np.zeros(n_agents,dtype=int)
+        domination_count = np.zeros(n_agents, dtype=int)
         dominated_solutions = [[] for _ in range(n_agents)]
         fronts = [[]]
 
         # Calculates a dominance
         for i in range(n_agents):
-            for j in range(i+1,n_agents):
-                
+            for j in range(i + 1, n_agents):
                 if agents[i].dominates(agents[j]):
                     dominated_solutions[i].append(j)
                     domination_count[j] += 1
                 elif agents[j].dominates(agents[i]):
                     dominated_solutions[j].append(i)
                     domination_count[i] += 1
-                    
+
             if domination_count[i] == 0:
                 fronts[0].append(i)
 
@@ -166,13 +165,13 @@ class NSGA2(MultiObjectiveOptimizer):
             if next_front:
                 fronts.append(next_front)
             i += 1
-                
-        #Assign ranks
-        self.rank=np.zeros(n_agents,dtype=int)
+
+        # Assign ranks
+        self.rank = np.zeros(n_agents, dtype=int)
         for rank_, front in enumerate(fronts):
             for i in front:
                 self.rank[i] = rank_
-                
+
         return fronts
 
     def _calculate_crowding_distance(self, front: list, agents: list) -> np.ndarray:
@@ -181,40 +180,40 @@ class NSGA2(MultiObjectiveOptimizer):
         Args:
             front: List of agents in the front.
             agents: List of all agents.
-            
+
         Returns:
             (np.ndarray): Crowding distance for the front.
 
         """
-        
+
         distances = np.zeros(len(front))
         if len(front) == 0:
             return distances
-       
+
         fitness_mtx = np.array([agents[i].fit for i in front])
-        
+
         n_objectives = fitness_mtx.shape[1]
-        
+
         for m in range(n_objectives):
             sorted_indices = np.argsort(fitness_mtx[:, m])
             # Sorts the front based on the current objective
             sorted_front = np.array(front)[sorted_indices]
-            
-            #Boundary points
-            distances[sorted_indices[0]] = float('inf')
-            distances[sorted_indices[-1]]= float('inf')
+
+            # Boundary points
+            distances[sorted_indices[0]] = float("inf")
+            distances[sorted_indices[-1]] = float("inf")
             # Normalizes the distance
-            min_val = fitness_mtx[sorted_indices[0],m]
-            max_val = fitness_mtx[sorted_indices[-1],m]
-            norm= (max_val - min_val) if max_val > min_val else 1.
-            
+            min_val = fitness_mtx[sorted_indices[0], m]
+            max_val = fitness_mtx[sorted_indices[-1], m]
+            norm = (max_val - min_val) if max_val > min_val else 1.0
+
             for i in range(1, len(front) - 1):
                 prev_idx = int(sorted_front[i - 1])
                 next_idx = int(sorted_front[i + 1])
                 prev_fit = agents[prev_idx].fit[m]
                 next_fit = agents[next_idx].fit[m]
                 distances[sorted_indices[i]] += (next_fit - prev_fit) / norm
-                
+
         return distances
 
     def _tournament_selection(self, agents: list) -> list:
@@ -230,35 +229,45 @@ class NSGA2(MultiObjectiveOptimizer):
         """
 
         selected = []
-        
+
         for _ in range(len(agents)):
             # Selects two random agents
             i, j = np.random.choice(len(agents), 2, replace=False)
-            
+
             # Compares rank and crowding distance
             if self.rank[i] < self.rank[j]:
-                winner=i
+                winner = i
             elif self.rank[i] > self.rank[j]:
-                winner=j
+                winner = j
             else:
                 if self.crowding_distance[i] > self.crowding_distance[j]:
-                    winner=i
+                    winner = i
                 else:
-                    winner=j
+                    winner = j
             selected.append(agents[winner])
-        
+
         return selected
 
-    def _crossover(self, parent1: 'Agent', parent2: 'Agent') -> tuple:
-        """
-        Performs the crossover between two parents.
+    def _crossover(self, parent1: "Agent", parent2: "Agent") -> tuple:
+        """Performs the crossover between two parents.
+
         The operator used can be customized via the constructor.
+
+        Args:
+            parent1: First parent.
+            parent2: Second parent.
+
+        Returns:
+            (tuple): Two children.
         """
+
         # Gets the vectors of the parents
         p1 = parent1.position.flatten()
         p2 = parent2.position.flatten()
+
         lb = parent1.lb
         ub = parent1.ub
+
         # Applies the custom operator
         if self.crossover_operator == arithmetic_crossover:
             c1_vec, c2_vec = self.crossover_operator(
@@ -268,25 +277,31 @@ class NSGA2(MultiObjectiveOptimizer):
             c1_vec, c2_vec = self.crossover_operator(
                 p1, p2, lb, ub, self.crossover_rate, **self.crossover_params
             )
-       
+
         # Creates new agents
         child1 = copy.deepcopy(parent1)
         child2 = copy.deepcopy(parent2)
         child1.position = c1_vec.reshape(parent1.position.shape)
         child2.position = c2_vec.reshape(parent2.position.shape)
-        
+
         return child1, child2
 
-    def _mutation(self, agent: 'Agent') -> Agent:
-        """
-        Performs the mutation on an agent.
+    def _mutation(self, agent: "Agent") -> Agent:
+        """Performs the mutation on an agent.
+
         The operator used can be customized via the constructor.
+
+        Args:
+            agent: Agent to be mutated.
+
+        Returns:
+            (Agent): Mutated agent.
         """
+
         x = agent.position.flatten()
         lb = agent.lb
         ub = agent.ub
-       
-       
+
         if self.mutation_operator == gaussian_mutation:
             mutant = self.mutation_operator(
                 x, self.mutation_rate, **self.mutation_params
@@ -295,27 +310,35 @@ class NSGA2(MultiObjectiveOptimizer):
             mutant = self.mutation_operator(
                 x, lb, ub, self.mutation_rate, **self.mutation_params
             )
-            
+
         mutated = copy.deepcopy(agent)
         mutated.position = mutant.reshape(agent.position.shape)
         mutated.clip_by_bound()
-        
+
         return mutated
 
-    def _create_offspring(self, space: 'Space') -> list[np.ndarray]:
-         """Generates offspring using SBX crossover and PM mutation."""
-         parents=self._tournament_selection(space.agents)
-         offspring=[]
-         for i in range(0, len(parents), 2):
-                parent1=parents[i]
-                parent2=parents[i+1] if i+1<len(space.agents) else parents[0]
-                child1, child2=self._crossover(parent1,parent2)
-                child1 = self._mutation(child1)
-                child2 = self._mutation(child2)
-                offspring.extend([child1, child2])
-         return offspring[:len(space.agents)]
-     
-    def _select_survivors(self, combined_population: list,space,function) -> list:
+    def _create_offspring(self, space: "Space") -> list[np.ndarray]:
+        """Generates offspring using SBX crossover and PM mutation.
+
+        Args:
+            space: Space containing agents and offspring-related information.
+
+        Returns:
+            (list): Offspring agents.
+        """
+
+        parents = self._tournament_selection(space.agents)
+        offspring = []
+        for i in range(0, len(parents), 2):
+            parent1 = parents[i]
+            parent2 = parents[i + 1] if i + 1 < len(space.agents) else parents[0]
+            child1, child2 = self._crossover(parent1, parent2)
+            child1 = self._mutation(child1)
+            child2 = self._mutation(child2)
+            offspring.extend([child1, child2])
+        return offspring[: len(space.agents)]
+
+    def _select_survivors(self, combined_population: list, space, function) -> list:
         """Selects the next generation of agents based on non-dominated sorting and crowding distance.
 
         Args:
@@ -327,60 +350,75 @@ class NSGA2(MultiObjectiveOptimizer):
             (list): Selected agents for the next generation.
 
         """
+
         fronts = self._fast_non_dominated_sort(combined_population)
-       
+
         new_population = []
         n_agents = len(space.agents)
 
         # Assigns ranks and calculates crowding distance
         for front in fronts:
-            if len(new_population) >= n_agents: break
-            
-            crowding=self._calculate_crowding_distance(front, combined_population)
-            sorted_front = sorted(zip(front, crowding),key=lambda x:x[1],reverse=True)
-            sorted_indices=[idx for idx,_ in sorted_front]
-            
-            remaining = n_agents - len(new_population)
-            new_population.extend([combined_population[i] for i in sorted_indices[:remaining]])
+            if len(new_population) >= n_agents:
+                break
 
-        new_population=new_population[:n_agents]
-        
+            crowding = self._calculate_crowding_distance(front, combined_population)
+            sorted_front = sorted(
+                zip(front, crowding), key=lambda x: x[1], reverse=True
+            )
+            sorted_indices = [idx for idx, _ in sorted_front]
+
+            remaining = n_agents - len(new_population)
+            new_population.extend(
+                [combined_population[i] for i in sorted_indices[:remaining]]
+            )
+
+        new_population = new_population[:n_agents]
+
         return new_population
-    
-    def update(self, space: 'Space',function) -> None:
+
+    def update(self, space: "Space", function) -> None:
         """Wraps NSGA-II over all agents and variables.
 
         Args:
             space: Space containing agents and update-related information.
 
         """
-      
-        offspring=self._create_offspring(space)
+
+        offspring = self._create_offspring(space)
         for i in range(len(offspring)):
             offspring[i].fit = function(offspring[i].position)
-            
+
         combined_population = space.agents + offspring
-       
+
         # Generates the offspring population (Q)
-        new_pop=self._select_survivors(combined_population,space,function)
+        new_pop = self._select_survivors(combined_population, space, function)
 
         # Updates the population with the new agents
         for i in range(len(space.agents)):
             space.agents[i] = new_pop[i]
-            
-        
+
     def evaluate(self, space, function):
+        """Evaluates the fitness of the agents.
+
+        Args:
+            space: Space containing agents and evaluation-related information.
+            function: Function to evaluate the fitness of the agents.
+
+        """
+        
         for agent in space.agents:
             agent.fit = function(agent.position)
-        
+
         # Non-dominated sorting
         fronts = self._fast_non_dominated_sort(space.agents)
         self.crowding_distance = np.zeros(len(space.agents))
         for front in fronts:
-            if not front: continue
+            if not front:
+                continue
             front_indices = np.array(front)
-            self.crowding_distance[front_indices] = self._calculate_crowding_distance(front, space.agents)
-        
+            self.crowding_distance[front_indices] = self._calculate_crowding_distance(
+                front, space.agents
+            )
+
         # Updates the Pareto front
         self.update_pareto_front(space.agents)
-       
