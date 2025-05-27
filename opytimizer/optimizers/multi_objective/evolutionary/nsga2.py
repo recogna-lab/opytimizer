@@ -196,8 +196,6 @@ class NSGA2(MultiObjectiveOptimizer):
 
         for m in range(n_objectives):
             sorted_indices = np.argsort(fitness_mtx[:, m])
-            # Sorts the front based on the current objective
-            sorted_front = np.array(front)[sorted_indices]
 
             # Boundary points
             distances[sorted_indices[0]] = float("inf")
@@ -419,4 +417,4 @@ class NSGA2(MultiObjectiveOptimizer):
             )
 
         # Updates the Pareto front
-        self.update_pareto_front(space.agents)
+        space.update_pareto_front(space.agents)
