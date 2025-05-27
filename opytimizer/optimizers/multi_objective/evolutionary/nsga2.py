@@ -190,8 +190,8 @@ class NSGA2(MultiObjectiveOptimizer):
         if len(front) == 0:
             return distances
 
-        fitness_mtx = np.array([agents[i].fit for i in front])
-
+        fitness_mtx = np.column_stack([agents[i].fit for i in front]).T
+        
         n_objectives = fitness_mtx.shape[1]
 
         for m in range(n_objectives):
@@ -208,10 +208,8 @@ class NSGA2(MultiObjectiveOptimizer):
             norm = (max_val - min_val) if max_val > min_val else 1.0
 
             for i in range(1, len(front) - 1):
-                prev_idx = int(sorted_front[i - 1])
-                next_idx = int(sorted_front[i + 1])
-                prev_fit = agents[prev_idx].fit[m]
-                next_fit = agents[next_idx].fit[m]
+                prev_fit = fitness_mtx[sorted_indices[i-1],m]
+                next_fit = fitness_mtx[sorted_indices[i+1],m]
                 distances[sorted_indices[i]] += (next_fit - prev_fit) / norm
 
         return distances
