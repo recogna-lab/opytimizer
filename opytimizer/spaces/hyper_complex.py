@@ -23,6 +23,7 @@ class HyperComplexSpace(Space):
         n_agents: int,
         n_variables: int,
         n_dimensions: int,
+        n_objectives: int,
         mapping: Optional[List[str]] = None,
     ) -> None:
         """Initialization method.
@@ -31,6 +32,7 @@ class HyperComplexSpace(Space):
             n_agents: Number of agents.
             n_variables: Number of decision variables.
             n_dimensions: Number of search space dimensions.
+            n_objectives: Number of objective functions.
             mapping: String-based identifiers for mapping variables' names.
 
         """
@@ -41,7 +43,13 @@ class HyperComplexSpace(Space):
         upper_bound = np.ones(n_variables)
 
         super(HyperComplexSpace, self).__init__(
-            n_agents, n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_agents=n_agents,
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping
         )
 
         self.build()

@@ -3,6 +3,7 @@ from opytimizer.spaces.tree import TreeSpace
 # Define the number of agents, decision variables and terminals
 n_agents = 2
 n_variables = 5
+n_objectives = 1
 n_terminals = 2
 
 # Minimum and maximum depths of the trees
@@ -21,6 +22,7 @@ upper_bound = [0.2, 0.4, 0.6, 0.8, 1.0]
 s = TreeSpace(
     n_agents,
     n_variables,
+    n_objectives,
     lower_bound,
     upper_bound,
     n_terminals,

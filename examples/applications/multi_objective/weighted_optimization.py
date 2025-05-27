@@ -12,13 +12,14 @@ np.random.seed(0)
 # Number of agents and decision variables
 n_agents = 20
 n_variables = 2
+n_objectives = 1
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [-10, -10]
 upper_bound = [10, 10]
 
 # Creates the space, optimizer and function
-space = SearchSpace(n_agents, n_variables, lower_bound, upper_bound)
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
 optimizer = PSO()
 function = WeightedFunction([Rastrigin(), Sphere()], [0.5, 0.5])
 

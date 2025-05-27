@@ -23,6 +23,7 @@ class Space:
         n_agents: int = 1,
         n_variables: int = 1,
         n_dimensions: int = 1,
+        n_objectives: int = 1,
         lower_bound: Optional[Union[float, List, Tuple, np.ndarray]] = 0.0,
         upper_bound: Optional[Union[float, List, Tuple, np.ndarray]] = 1.0,
         mapping: Optional[List[str]] = None,
@@ -33,6 +34,7 @@ class Space:
             n_agents: Number of agents.
             n_variables: Number of decision variables.
             n_dimensions: Dimension of search space.
+            n_objectives: Number of objective functions.
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
             mapping: String-based identifiers for mapping variables' names.
@@ -42,6 +44,7 @@ class Space:
         self.n_agents = n_agents
         self.n_variables = n_variables
         self.n_dimensions = n_dimensions
+        self.n_objectives = n_objectives
 
         self.lb = np.asarray(lower_bound)
         self.ub = np.asarray(upper_bound)
@@ -50,8 +53,14 @@ class Space:
 
         self.agents = []
         self.best_agent = Agent(
-            n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            n_objectives=n_objectives,
+            mapping=mapping
         )
+        self.pareto_front = []
 
         self.built = False
 
@@ -99,6 +108,20 @@ class Space:
             raise e.ValueError("`n_dimensions` should be > 0")
 
         self._n_dimensions = n_dimensions
+
+    @property
+    def n_objectives(self) -> int:
+        """Number of objective functions."""
+        return self._n_objectives
+
+    @n_objectives.setter
+    def n_objectives(self, n_objectives: int) -> None:
+        if not isinstance(n_objectives, int):
+            raise e.TypeError("`n_objectives` should be an integer")
+        if n_objectives <= 0:
+            raise e.ValueError("`n_objectives` should be > 0")
+
+        self._n_objectives = n_objectives
 
     @property
     def lb(self) -> np.ndarray:
@@ -178,6 +201,18 @@ class Space:
         self._best_agent = best_agent
 
     @property
+    def pareto_front(self) -> List[Agent]:
+        """List of non-dominated solutions."""
+        return self._pareto_front
+
+    @pareto_front.setter
+    def pareto_front(self, pareto_front: List[Agent]) -> None:
+        if not isinstance(pareto_front, list):
+            raise e.TypeError("`pareto_front` should be a list")
+
+        self._pareto_front = pareto_front
+
+    @property
     def built(self) -> bool:
         """Indicates whether the space is built."""
 
@@ -194,9 +229,25 @@ class Space:
         """Creates a list of agents."""
 
         self.agents = [
-            Agent(self.n_variables, self.n_dimensions, self.lb, self.ub, self.mapping)
+            Agent(
+                n_variables=self.n_variables,
+                n_dimensions=self.n_dimensions,
+                n_objectives=self.n_objectives,
+                lower_bound=self.lb,
+                upper_bound=self.ub,
+                mapping=self.mapping
+            )
             for _ in range(self.n_agents)
         ]
+
+        self.best_agent = Agent(
+            n_variables=self.n_variables,
+            n_dimensions=self.n_dimensions,
+            n_objectives=self.n_objectives,
+            lower_bound=self.lb,
+            upper_bound=self.ub,
+            mapping=self.mapping
+        )
 
     def _initialize_agents(self) -> None:
         """Initializes agents with their positions and defines a best agent.
@@ -218,11 +269,12 @@ class Space:
 
         logger.debug(
             "Agents: %d | Size: (%d, %d) | "
-            "Lower Bound: %s | Upper Bound: %s | "
+            "Objectives: %d | Lower Bound: %s | Upper Bound: %s | "
             "Mapping: %s | Built: %s.",
             self.n_agents,
             self.n_variables,
             self.n_dimensions,
+            self.n_objectives,
             self.lb,
             self.ub,
             self.mapping,
@@ -234,3 +286,21 @@ class Space:
 
         for agent in self.agents:
             agent.clip_by_bound()
+
+    def update_pareto_front(self, agents: List[Agent]) -> None:
+        """Updates the Pareto front with non-dominated solutions.
+
+        Args:
+            agents: List of agents to be evaluated.
+
+        """
+        self.pareto_front = []
+        for agent in agents:
+            is_dominated = False
+            for pareto_agent in self.pareto_front:
+                if pareto_agent.dominates(agent):
+                    is_dominated = True
+                    break
+            if not is_dominated:
+                self.pareto_front = [a for a in self.pareto_front if not agent.dominates(a)]
+                self.pareto_front.append(agent)

@@ -10,9 +10,9 @@ n_objectives = 3
 data_points = r.generate_uniform_random_number(size=(n_points, n_objectives))
 
 # Creates the ParetoSpace
-s = ParetoSpace(data_points)
+s = ParetoSpace(data_points, n_objectives)
 
 # Prints out some properties
-print(s.n_agents, s.n_variables)
+print(s.n_agents, s.n_variables, s.n_objectives)
 print(s.agents, s.best_agent)
 print(s.best_agent.position)

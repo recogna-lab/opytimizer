@@ -22,6 +22,7 @@ class GridSpace(Space):
     def __init__(
         self,
         n_variables: int,
+        n_objectives: int,
         step: Union[float, List, Tuple, np.ndarray],
         lower_bound: Union[float, List, Tuple, np.ndarray],
         upper_bound: Union[float, List, Tuple, np.ndarray],
@@ -31,6 +32,7 @@ class GridSpace(Space):
 
         Args:
             n_variables: Number of decision variables.
+            n_objectives: Number of objective functions.
             step: Variables' steps.
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
@@ -44,7 +46,13 @@ class GridSpace(Space):
         n_dimensions = 1
 
         super(GridSpace, self).__init__(
-            n_agents, n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_agents=n_agents,
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping
         )
 
         self.step = np.asarray(step)

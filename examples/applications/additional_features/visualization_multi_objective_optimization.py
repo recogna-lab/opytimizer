@@ -1,7 +1,7 @@
 import numpy as np
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.multi_objective import NSGA2
+from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.visualization.multi_objective import (
     plot_pareto_front,
@@ -28,16 +28,24 @@ def zdt1(x):
     # Returns a 1D array with the two objectives
     return np.array([f1, f2], dtype=np.float64)
 
-# Number of agents and decision variables
+# Number of agents and decision variables and objectives
 n_agents = 100
 n_variables = 30
+n_objectives = 2
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [0] * n_variables
 upper_bound = [1] * n_variables
 
 # Creates the space, optimizer and function
-space = SearchSpace(n_agents, n_variables, lower_bound, upper_bound)
+space = SearchSpace(
+    n_agents=n_agents,
+    n_variables=n_variables,
+    n_objectives=n_objectives,
+    lower_bound=lower_bound,
+    upper_bound=upper_bound
+)
+
 optimizer = NSGA2(
     crossover_operator=sbx_crossover,
     mutation_operator=polynomial_mutation,
@@ -51,17 +59,17 @@ pareto_fronts = []
 iterations = [1, 50, 100, 150, 200, 250]
 
 class ParetoFrontSaver(Callback):
-    def __init__(self, optimizer, pareto_fronts, iterations):
+    def __init__(self, space, pareto_fronts, iterations):
         super().__init__()
-        self.optimizer = optimizer
+        self.space = space
         self.pareto_fronts = pareto_fronts
         self.iterations = iterations
 
     def on_iteration_end(self, iteration, opt_model):
         if iteration in self.iterations:
-            if hasattr(self.optimizer, 'pareto_front') and self.optimizer.pareto_front:
-                print(f"Salvando frente na iteração {iteration} - tamanho: {len(self.optimizer.pareto_front)}")
-                self.pareto_fronts.append(self.optimizer.pareto_front.copy())
+            if self.space.pareto_front:
+                print(f"Salvando frente na iteração {iteration} - tamanho: {len(self.space.pareto_front)}")
+                self.pareto_fronts.append(self.space.pareto_front.copy())
             else:
                 print(f"Pareto front in iteration {iteration} is empty.")
 
@@ -69,14 +77,14 @@ class ParetoFrontSaver(Callback):
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization passing the callback
-opt.start(n_iterations=250, callbacks=[ParetoFrontSaver(optimizer, pareto_fronts, iterations)])
+opt.start(n_iterations=250, callbacks=[ParetoFrontSaver(space, pareto_fronts, iterations)])
 
 # Plots the final Pareto front
 plot_pareto_front(
-    optimizer.pareto_front,
+    space.pareto_front,
     all_solutions=space.agents,
     title="ZDT1 Pareto Front",
-    subtitle="NSGA-II",
+    subtitle="MOEAD",
     xlabel="f1",
     ylabel="f2"
 )
@@ -86,5 +94,5 @@ plot_pareto_evolution(
     pareto_fronts,
     iterations[:len(pareto_fronts)],
     title="ZDT1 Pareto Front Evolution",
-    subtitle="NSGA-II"
+    subtitle="MOEAD"
 )

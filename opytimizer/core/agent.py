@@ -21,6 +21,7 @@ class Agent:
         self,
         n_variables: int,
         n_dimensions: int,
+        n_objectives: int,
         lower_bound: List[Union[int, float]],
         upper_bound: List[Union[int, float]],
         mapping: Optional[List[str]] = None,
@@ -30,6 +31,7 @@ class Agent:
         Args:
             n_variables: Number of decision variables.
             n_dimensions: Number of dimensions.
+            n_objectives: Number of objective functions.
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
             mapping: String-based identifiers for mapping variables' names.
@@ -38,21 +40,20 @@ class Agent:
 
         self.n_variables = n_variables
         self.n_dimensions = n_dimensions
-
-        self.position = np.zeros((n_variables, n_dimensions))
-        self._fit = np.array([c.FLOAT_MAX])
+        self.n_objectives = n_objectives
 
         self.lb = np.asarray(lower_bound)
         self.ub = np.asarray(upper_bound)
 
-        self.mapping = mapping
+        self.position = np.zeros((n_variables, n_dimensions))
+        self._fit = np.array([c.FLOAT_MAX] * n_objectives)
 
+        self.mapping = mapping
         self.ts = int(time.time())
 
     @property
     def n_variables(self) -> int:
         """Number of decision variables."""
-
         return self._n_variables
 
     @n_variables.setter
@@ -67,7 +68,6 @@ class Agent:
     @property
     def n_dimensions(self) -> int:
         """Number of dimensions."""
-
         return self._n_dimensions
 
     @n_dimensions.setter
@@ -93,6 +93,20 @@ class Agent:
         self._position = position
 
     @property
+    def n_objectives(self) -> int:
+        """Number of objective functions."""
+        return self._n_objectives
+
+    @n_objectives.setter
+    def n_objectives(self, n_objectives: int) -> None:
+        if not isinstance(n_objectives, int):
+            raise e.TypeError("`n_objectives` should be an integer")
+        if n_objectives <= 0:
+            raise e.ValueError("`n_objectives` should be > 0")
+
+        self._n_objectives = n_objectives
+
+    @property
     def fit(self) -> Union[float, np.ndarray]:
         """Fitness value(s).
 
@@ -100,9 +114,9 @@ class Agent:
             Union[float, np.ndarray]: Single value for mono-objective or array for multi-objective.
         """
         if not isinstance(self._fit, np.ndarray):
-            self._fit = np.array([c.FLOAT_MAX])
+            self._fit = np.array([c.FLOAT_MAX] * self.n_objectives)
         elif self._fit.ndim == 0:
-            self._fit = np.array([self._fit])
+            self._fit = np.array([self._fit] * self.n_objectives)
         if self._fit.size == 1:
             return float(self._fit[0])
         return self._fit
@@ -110,14 +124,15 @@ class Agent:
     @fit.setter
     def fit(self, fit: Union[int, float, np.ndarray]) -> None:
         if isinstance(fit, (float, int)):
-            self._fit = np.array([fit])
+            self._fit = np.array([fit] * self.n_objectives)
         else:
+            if len(fit) != self.n_objectives:
+                raise e.SizeError("`fit` should have the same size as `n_objectives`")
             self._fit = np.array(fit)
 
     @property
     def lb(self) -> np.ndarray:
         """Lower bounds."""
-
         return self._lb
 
     @lb.setter
@@ -134,7 +149,6 @@ class Agent:
     @property
     def ub(self) -> np.ndarray:
         """Upper bounds."""
-
         return self._ub
 
     @ub.setter

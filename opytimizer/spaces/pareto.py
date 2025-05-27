@@ -19,12 +19,16 @@ class ParetoSpace(Space):
     """
 
     def __init__(
-        self, data_points: np.ndarray, mapping: Optional[List[str]] = None
+        self,
+        data_points: np.ndarray,
+        n_objectives: int,
+        mapping: Optional[List[str]] = None
     ) -> None:
         """Initialization method.
 
         Args:
             data_points: Pre-defined data points.
+            n_objectives: Number of objective functions.
             mapping: String-based identifiers for mapping variables' names.
 
         """
@@ -37,7 +41,13 @@ class ParetoSpace(Space):
         upper_bound = [0] * n_variables
 
         super(ParetoSpace, self).__init__(
-            n_agents, n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_agents=n_agents,
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping
         )
 
         self.build(data_points)

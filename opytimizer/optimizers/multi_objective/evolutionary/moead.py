@@ -1,286 +1,361 @@
-"""
-Multi Objective Evolutionary Algorithm based on Decomposition
+"""MOEA/D."""
 
-"""
-
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional
 
 import numpy as np
 
 import opytimizer.utils.exception as e
 from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.function import Function
 from opytimizer.core.space import Space
+from opytimizer.core.function import Function
 from opytimizer.utils import logging
-from scipy.spatial.distance import cdist
-from opytimizer.utils.operators import sbx_crossover, polynomial_mutation
-from opytimizer.utils.decomposition import weighted_sum
 from opytimizer.utils.weights_vector import ref_dirs
+from opytimizer.utils.operators import sbx_crossover, polynomial_mutation
+from opytimizer.utils.decomposition import tchebycheff
+from opytimizer.math.general import euclidean_distance
 
 logger = logging.get_logger(__name__)
 
+
 class MOEAD(Optimizer):
-    """
+    """MOEAD class, inherited from Optimizer.
+
     References:
         Zhang, Q., & Li, H. (2007). MOEA/D: A multiobjective evolutionary algorithm based on decomposition.
         IEEE Transactions on evolutionary computation, 11(6), 712-731.
+
     """
-    
-    def __init__(self, params: Optional[Dict[str, Any]] = None) -> None:
+
+    def __init__(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        crossover_operator=None,
+        mutation_operator=None,
+        crossover_params=None,
+        mutation_params=None,
+    ) -> None:
         """Initialization method.
 
         Args:
             params: Contains key-value parameters to the meta-heuristics.
+            crossover_operator: Crossover operator to be used.
+            mutation_operator: Mutation operator to be used.
+            crossover_params: Parameters for the crossover operator.
+            mutation_params: Parameters for the mutation operator.
 
         """
-        
+        logger.info("Overriding class: Optimizer -> MOEAD.")
+
         super().__init__()
-        
+
         self.CR = 0.9
         self.MR = 0.05
-        self.n_subproblems = 100
-        self.neighborhood_size = int(self.n_subproblems/10)
-        self.crossover_operator = sbx_crossover
-        self.mutation_operator = polynomial_mutation
-        self.decomposition = weighted_sum
-        
-        self.build(params)
-        
-        logger.info("Class overrided --> MOEA/D.")
-    
-    @property
-    def n_problems(self) -> int:
-        """Return the number of problems"""
-        return self._n_problems
+        self.n_subproblems = None
+        self.neighborhood_size = None
+        self.crossover_operator = crossover_operator or sbx_crossover
+        self.mutation_operator = mutation_operator or polynomial_mutation
+        self.crossover_params = crossover_params or {}
+        self.mutation_params = mutation_params or {}
 
-    @n_problems.setter
-    def n_problems(self, n_problems: int) -> None:
-        if not isinstance(n_problems, int):
-            raise e.TypeError("`n_problems` should be an integer.")
-        if n_problems < 2:
-            raise e.ValueError("`The number of problems` should be higher equal than 2")
-        self._n_problems = n_problems
+        self.build(params)
+
+        logger.info("Class overrided.")
 
     @property
     def n_subproblems(self) -> int:
-        """Number of subproblems"""
+        """Number of subproblems."""
         return self._n_subproblems
-    
+
     @n_subproblems.setter
-    def n_subproblems(self, n_subproblems: int) -> None:
-        if not isinstance(n_subproblems, int):
-            raise e.TypeError("`n_subproblems should be an integer.`")
-        if n_subproblems <= 0:
-            raise e.ValueError("`n_subproblems should be higher than 0.`")
-        
+    def n_subproblems(self, n_subproblems: Optional[int]) -> None:
+        if n_subproblems is not None:
+            if not isinstance(n_subproblems, int):
+                raise e.TypeError("`n_subproblems` should be an integer.")
+            if n_subproblems <= 0:
+                raise e.ValueError("`n_subproblems` should be higher than 0.")
+
         self._n_subproblems = n_subproblems
-    
+
     @property
     def CR(self) -> float:
-        """Crossover probability"""
+        """Crossover probability."""
         return self._CR
-    
+
     @CR.setter
     def CR(self, CR: float) -> None:
         if not isinstance(CR, (float, int)):
-            raise e.TypeError("`CR should be a float or integer.`")
+            raise e.TypeError("`CR` should be a float or integer.")
         if CR < 0 or CR > 1:
-            raise e.ValueError("`CR` should be between 0 and 1")
-        
+            raise e.ValueError("`CR` should be between 0 and 1.")
+
         self._CR = CR
-        
-    @property    
+
+    @property
     def MR(self) -> float:
-        """Mutation Rate"""
+        """Mutation rate."""
         return self._MR
-    
+
     @MR.setter
     def MR(self, MR: float) -> None:
         if not isinstance(MR, (float, int)):
             raise e.TypeError("`MR` should be a float or integer.")
         if MR < 0 or MR > 1:
             raise e.ValueError("`MR` should be between 0 and 1.")
-        
+
         self._MR = MR
-        
-    @property
-    def crossover_operator(self) -> Callable:
-        return self._crossover_operator
-    
-    @crossover_operator.setter
-    def crossover_operator(self, op: Callable) -> None:
-        self._crossover_operator = op
-        
-    @property
-    def mutation_operator(self) -> Callable:
-        return self._mutation_operator
-    
-    @mutation_operator.setter
-    def mutation_operator(self, op: Callable) -> None:
-        self._mutation_operator = op
-        
+
     @property
     def neighborhood_size(self) -> int:
-        """The size of neighborhood T"""
+        """Size of neighborhood T."""
         return self._neighborhood_size
-    
+
     @neighborhood_size.setter
-    def neighborhood_size(self, neighborhood_size: int) -> None:
-        if not isinstance(neighborhood_size, int):
-            raise e.TypeError("`neighborhood_size` should be a intenger.`")
-        if neighborhood_size < 2 or neighborhood_size > self.n_subproblems:
-            raise e.ValueError(f"`neighborhood_size should be higher than 1 and less equal than {self.n_subproblems}")
-        
+    def neighborhood_size(self, neighborhood_size: Optional[int]) -> None:
+        if neighborhood_size is not None:
+            if not isinstance(neighborhood_size, int):
+                raise e.TypeError("`neighborhood_size` should be an integer.")
+            if neighborhood_size < 2:
+                raise e.ValueError("`neighborhood_size` should be higher than 1.")
+
         self._neighborhood_size = neighborhood_size
-        
+
     @property
     def T(self) -> np.ndarray:
-        """The neighborhood of each subproblem"""
+        """Neighborhood of each subproblem."""
         return self._T
 
     @T.setter
     def T(self, T: np.ndarray) -> None:
         if not isinstance(T, np.ndarray):
-            raise e.ValueError("`T` should be a numpy array.")
+            raise e.TypeError("`T` should be a numpy array.")
         self._T = T
-        
-    @property
-    def decomposition(self) -> float:
-        """The decomposition function: calculates the fitness value"""
-        return self._decomposition
 
-    @decomposition.setter
-    def decomposition(self, decomposition: Callable):
-        if not isinstance(decomposition, Callable):
-            raise e.TypeError("`decomposition` should be a 'Callable' type.")
-        if decomposition.__module__ != 'opytimizer.utils.decomposition':
-            raise e.TypeError("`decomposition` should be a valid function. Look in 'opytimizer.utils.decompostion' for valid functions.")
-        
-        self._decomposition = decomposition
-      
     @property
     def weights_vector(self) -> np.ndarray:
-        """The normalized weights vector"""  
+        """Normalized weights vector."""
         return self._weights_vector
-    
+
     @weights_vector.setter
     def weights_vector(self, weights: np.ndarray) -> None:
         if not isinstance(weights, np.ndarray):
-            weights = np.ndarray(weights)
-        if weights.shape[0] != self.n_subproblems:
-            raise e.ValueError("`weights_vector` number of rows should be exactly equal than `n_subproblems`.")
+            weights = np.array(weights)
         self._weights_vector = weights
-        
+
     @property
     def z(self) -> np.ndarray:
-        """The reference point"""
+        """Reference point."""
         return self._z
-    
+
     @z.setter
     def z(self, ref: np.ndarray) -> None:
+        if not isinstance(ref, np.ndarray):
+            ref = np.array(ref)
         self._z = ref
+
+    def compile(self, space: Space, **kwargs) -> None:
+        """Compiles additional information that is used by this optimizer.
+
+        Args:
+            space: A Space object containing meta-information.
+
+        """
+        # If n_subproblems is not defined, use the number of agents
+        if self.n_subproblems is None:
+            self.n_subproblems = space.n_agents
         
-    def compile(self, space: Space, **kwargs):
-        self.n_problems = space.n_problems
+        # If neighborhood_size is not defined, use 10% of the number of subproblems
+        if self.neighborhood_size is None:
+            self.neighborhood_size = max(2, int(self.n_subproblems * 0.1))
         
-        # Generate weight vectors
-        self.weights_vector = ref_dirs(self.n_problems, self.n_subproblems)
-        
+        # Initialize weight vectors
+        self.weights_vector = ref_dirs(
+            n_objectives=space.n_objectives,
+            n_partitions=self.n_subproblems
+        )
+
         # Build neighborhood
         self._build_neighborhood()
-        
+
         # Initialize reference point
-        self.z = np.full(self.n_problems, np.inf)
-        
-        # Initialize fitness values
-        for agent in space.agents:
-            agent.fitness = np.zeros(self.n_problems)
-        
+        self.z = np.full(space.n_objectives, np.inf)
+
+        # Initialize iteration counter
         self._aux_iteration = 0
-        
+
     def _build_neighborhood(self) -> None:
-        """Computes the nearest neighbors for each weight vector using Euclidean distance."""
-        distances = cdist(self.weights_vector, self.weights_vector, metric="euclidean")
-        neighbors = np.argsort(distances, axis=1)[:, :self.neighborhood_size]
+        """Builds the neighborhood using Euclidean distance."""
+        n = len(self.weights_vector)
+        distances = np.zeros((n, n))
         
-        self.T = neighbors
+        for i in range(n):
+            for j in range(n):
+                distances[i, j] = euclidean_distance(self.weights_vector[i], self.weights_vector[j])
         
-    def _genetic_operators(self, parent1: np.ndarray, parent2: np.ndarray, space: Space) -> np.ndarray:
-        """Applies genetic operators (crossover and mutation) to generate offspring."""
-        child1, child2 = self.crossover_operator(
-            parent1, 
-            parent2, 
-            space.lower_bound, 
-            space.upper_bound, 
-            self.CR
-        )
+        self.T = np.argsort(distances, axis=1)[:, :self.neighborhood_size]
+
+    def _select_neighbors(self, index: int, space: Space) -> np.ndarray:
+        """Selects neighbors for reproduction.
+
+        Args:
+            index: Current agent index.
+            space: Space containing the population.
+
+        Returns:
+            (np.ndarray): Selected neighbor indices.
+
+        """
+        # Map the agent index to the subproblem index
+        subproblem_idx = index % self.n_subproblems
+        neighbors = self.T[subproblem_idx]
         
-        child1 = self.mutation_operator(
-            child1,
-            space.lower_bound,
-            space.upper_bound,
-            self.MR
-        )
-        
-        child2 = self.mutation_operator(
-            child2,
-            space.lower_bound,
-            space.upper_bound,
-            self.MR
-        )
-        
-        return child1, child2
-    
-    def _select_neighbors(self, index: int) -> np.ndarray:
-        """Selects two random neighbors from the neighborhood."""
-        return np.random.choice(self.T[index], 2, replace=False)
-    
-    def _dominance_between_two_points(self, point1: np.ndarray, point2: np.ndarray) -> bool:
-        """Checks if point1 dominates point2."""
-        all_better = np.all(point1 <= point2)
-        one_better = np.any(point1 < point2)
-        return (all_better and one_better)
-    
-    def _update_population(self, new_agents: np.ndarray, index: int, functions: Function, space: Space) -> None:
-        """Updates the population with new solutions."""
-        new_f_values = np.zeros((2, self.n_problems))
-        
-        # Evaluate new solutions
-        for i in range(len(new_f_values)):
-            new_f_values[i] = functions(new_agents[i])
-            self.z = np.minimum(self.z, new_f_values[i])
-        
-        # Update solutions in the neighborhood
-        for i in self.T[index]:
-            fitness = np.array([self.decomposition(f_value, self.weights_vector[i], self.z) for f_value in new_f_values])
-            actual_f_value = space.agents[i].fitness
-            actual_fitness = self.decomposition(actual_f_value, self.weights_vector[i], self.z)
+        # Ensure we have at least 2 neighbors
+        if len(neighbors) < 2:
+            return np.array([index, index])
             
-            better_fitness_idx = np.argmin(fitness)
-            
-            if (fitness[better_fitness_idx] < actual_fitness or 
-                (fitness[better_fitness_idx] == actual_fitness and 
-                 self._dominance_between_two_points(new_f_values[better_fitness_idx], space.agents[i].fitness))):
-                space.agents[i].position = new_agents[better_fitness_idx].copy()
-                space.agents[i].fitness = new_f_values[better_fitness_idx].copy()
-    
-    def evaluate(self, space: Space, functions: Function):
-        """Evaluates the population."""
-        # Initialize the F_values
-        if self._aux_iteration == 0:
-            self._aux_iteration = 1
-            for agent in space.agents:
-                agent.fitness = functions(agent.position.flatten())
-                self.z = np.minimum(self.z, agent.fitness)
+        # Select 2 random different neighbors
+        selected = np.random.choice(neighbors, 2, replace=False)
+        
+        # Map the subproblem indices back to the agent indices
+        return np.array([idx % space.n_agents for idx in selected])
+
+    def _genetic_operators(self, parent1: np.ndarray, parent2: np.ndarray, space: Space) -> tuple:
+        """Applies genetic operators.
+
+        Args:
+            parent1: First parent.
+            parent2: Second parent.
+            space: Space containing boundary information.
+
+        Returns:
+            (tuple): Two generated children.
+
+        """
+        # Apply crossover
+        if self.crossover_operator == sbx_crossover:
+            child1, child2 = self.crossover_operator(
+                parent1=parent1,
+                parent2=parent2,
+                lb=space.lb,
+                ub=space.ub,
+                crossover_rate=self.CR,
+                **self.crossover_params
+            )
         else:
-            for index, agent in enumerate(space.agents):
-                # Select neighbors
-                selected_indexes = self._select_neighbors(index=index)
-                parent1 = space.agents[selected_indexes[0]].position.ravel()
-                parent2 = space.agents[selected_indexes[1]].position.ravel()
-                
-                # Generate offspring
-                offspring1, offspring2 = self._genetic_operators(parent1, parent2, space)
-                
-                # Update population
-                self._update_population(np.array([offspring1, offspring2]), index, functions, space) 
+            child1, child2 = self.crossover_operator(
+                parent1=parent1,
+                parent2=parent2,
+                lb=space.lb,
+                ub=space.ub,
+                **self.crossover_params
+            )
+
+        # Apply mutation
+        if self.mutation_operator == polynomial_mutation:
+            child1 = self.mutation_operator(
+                vector=child1,
+                lb=space.lb,
+                ub=space.ub,
+                mutation_rate=self.MR,
+                **self.mutation_params
+            )
+            child2 = self.mutation_operator(
+                vector=child2,
+                lb=space.lb,
+                ub=space.ub,
+                mutation_rate=self.MR,
+                **self.mutation_params
+            )
+        else:
+            child1 = self.mutation_operator(
+                vector=child1,
+                lb=space.lb,
+                ub=space.ub,
+                **self.mutation_params
+            )
+            child2 = self.mutation_operator(
+                vector=child2,
+                lb=space.lb,
+                ub=space.ub,
+                **self.mutation_params
+            )
+
+        return child1, child2
+
+    def _update_neighborhood(self, index: int, new_agents: np.ndarray, new_f_values: np.ndarray, space: Space) -> None:
+        """Updates the population in the neighborhood.
+
+        Args:
+            index: Current agent index.
+            new_agents: Newly generated agents.
+            new_f_values: Fitness values of new agents.
+            space: Space containing the population.
+
+        """
+        # Map the agent index to the subproblem index
+        subproblem_idx = index % self.n_subproblems
+        
+        for i in self.T[subproblem_idx]:
+            # Map the subproblem index to the agent index
+            agent_idx = i % space.n_agents
+            
+            # Calculate fitness using decomposition
+            fitness = np.array([
+                tchebycheff(f_value, self.weights_vector[i], self.z)
+                for f_value in new_f_values
+            ])
+
+            # Current fitness
+            actual_f_value = space.agents[agent_idx].fit
+            actual_fitness = tchebycheff(actual_f_value, self.weights_vector[i], self.z)
+
+            # Update if better
+            better_idx = np.argmin(fitness)
+            if fitness[better_idx] < actual_fitness:
+                space.agents[agent_idx].position = new_agents[better_idx].copy()
+                space.agents[agent_idx].fit = new_f_values[better_idx].copy()
+
+    def evaluate(self, space: Space, function: Function) -> None:
+        """Evaluates the fitness of the agents.
+
+        Args:
+            space: Space containing agents and evaluation-related information.
+            function: Function to evaluate the fitness of the agents.
+
+        """
+        # Initial evaluation (first iteration)
+        if self._aux_iteration == 0:
+            for agent in space.agents:
+                agent.fit = function(agent.position)
+                self.z = np.minimum(self.z, agent.fit)
+            self._aux_iteration = 1
+        
+        # Update Pareto front
+        space.update_pareto_front(space.agents)
+
+    def update(self, space: Space, function: Function) -> None:
+        """Updates the population using MOEA/D.
+
+        Args:
+            space: Space containing agents and update-related information.
+            function: Function to evaluate the fitness of the agents.
+
+        """
+        # For each agent in the population
+        for index, agent in enumerate(space.agents):
+            # Select neighbors
+            selected = self._select_neighbors(index, space)
+            parent1 = space.agents[selected[0]].position
+            parent2 = space.agents[selected[1]].position
+
+            # Apply genetic operators
+            offspring1, offspring2 = self._genetic_operators(parent1, parent2, space)
+
+            # Evaluate new agents
+            new_agents = np.array([offspring1, offspring2])
+            new_f_values = np.array([function(off) for off in new_agents])
+
+            # Update reference point
+            self.z = np.minimum(self.z, np.min(new_f_values, axis=0))
+
+            # Update population in neighborhood
+            self._update_neighborhood(index, new_agents, new_f_values, space) 

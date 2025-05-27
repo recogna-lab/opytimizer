@@ -2,6 +2,7 @@ from opytimizer.spaces import GridSpace
 
 # Define the number of decision variables
 n_variables = 2
+n_objectives = 1
 
 # Also defines the step size of each variable
 # and their corresponding lower and upper bounds
@@ -10,9 +11,9 @@ lower_bound = [0.5, 1]
 upper_bound = [2.0, 2]
 
 # Creates the GridSpace
-s = GridSpace(n_variables, step, lower_bound, upper_bound)
+s = GridSpace(n_variables, n_objectives, step, lower_bound, upper_bound)
 
 # Prints out some properties
-print(s.n_agents, s.n_variables)
+print(s.n_agents, s.n_variables, s.n_objectives)
 print(s.agents, s.best_agent)
 print(s.best_agent.position)

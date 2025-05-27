@@ -19,13 +19,18 @@ class BooleanSpace(Space):
     """
 
     def __init__(
-        self, n_agents: int, n_variables: int, mapping: Optional[List[str]] = None
+        self,
+        n_agents: int,
+        n_variables: int,
+        n_objectives: int,
+        mapping: Optional[List[str]] = None
     ) -> None:
         """Initialization method.
 
         Args:
             n_agents: Number of agents.
             n_variables: Number of decision variables.
+            n_objectives: Number of objective functions.
             mapping: String-based identifiers for mapping variables' names.
 
         """
@@ -37,7 +42,13 @@ class BooleanSpace(Space):
         upper_bound = np.ones(n_variables)
 
         super(BooleanSpace, self).__init__(
-            n_agents, n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_agents=n_agents,
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping
         )
 
         self.build()

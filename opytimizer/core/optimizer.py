@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, List
 
 import opytimizer.utils.exception as e
+from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.space import Space
 from opytimizer.utils import logging
@@ -146,7 +147,6 @@ class MultiObjectiveOptimizer(Optimizer):
         """Initialization method."""
 
         super().__init__()
-        self.pareto_front = []
 
     def evaluate(self, space: Space, function: Function) -> None:
         """Evaluates the search space according to the objective function.
@@ -160,23 +160,4 @@ class MultiObjectiveOptimizer(Optimizer):
         for agent in space.agents:
             agent.fit = function(agent.position)
 
-        self.update_pareto_front(space.agents)
-
-    def update_pareto_front(self, agents: List['Agent']) -> None:
-        """Updates the Pareto front with non-dominated solutions.
-
-        Args:
-            agents: List of agents to be evaluated.
-
-        """
-
-        self.pareto_front = []
-        for agent in agents:
-            is_dominated = False
-            for pareto_agent in self.pareto_front:
-                if pareto_agent.dominates(agent):
-                    is_dominated = True
-                    break
-            if not is_dominated:
-                self.pareto_front = [a for a in self.pareto_front if not agent.dominates(a)]
-                self.pareto_front.append(agent)
+        space.update_pareto_front(space.agents)

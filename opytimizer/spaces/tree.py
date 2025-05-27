@@ -25,6 +25,7 @@ class TreeSpace(Space):
         self,
         n_agents: int,
         n_variables: int,
+        n_objectives: int,
         lower_bound: Union[float, List, Tuple, np.ndarray],
         upper_bound: Union[float, List, Tuple, np.ndarray],
         n_terminals: int = 1,
@@ -38,6 +39,7 @@ class TreeSpace(Space):
         Args:
             n_agents: Number of agents (trees).
             n_variables: Number of decision variables.
+            n_objectives: Number of objective functions.
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
             n_terminals: Number of terminal nodes.
@@ -53,7 +55,13 @@ class TreeSpace(Space):
         n_dimensions = 1
 
         super(TreeSpace, self).__init__(
-            n_agents, n_variables, n_dimensions, lower_bound, upper_bound, mapping
+            n_agents=n_agents,
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping
         )
 
         self.n_terminals = n_terminals
@@ -174,7 +182,7 @@ class TreeSpace(Space):
         """Creates a list of terminals."""
 
         self.terminals = [
-            Agent(self.n_variables, self.n_dimensions, self.lb, self.ub, self.mapping)
+            Agent(self.n_variables, self.n_dimensions, self.n_objectives, self.lb, self.ub, self.mapping)
             for _ in range(self.n_terminals)
         ]
 
