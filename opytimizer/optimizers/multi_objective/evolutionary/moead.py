@@ -33,6 +33,7 @@ class MOEAD(Optimizer):
         mutation_operator=None,
         crossover_params=None,
         mutation_params=None,
+        weights_vector=None
     ) -> None:
         """Initialization method.
 
@@ -56,7 +57,8 @@ class MOEAD(Optimizer):
         self.mutation_operator = mutation_operator or polynomial_mutation
         self.crossover_params = crossover_params or {}
         self.mutation_params = mutation_params or {}
-
+        self.weights_vector=weights_vector
+        
         self.build(params)
 
         logger.info("Class overrided.")
@@ -166,12 +168,6 @@ class MOEAD(Optimizer):
         # If neighborhood_size is not defined, use 10% of the number of subproblems
         if self.neighborhood_size is None:
             self.neighborhood_size = max(2, int(self.n_subproblems * 0.1))
-        
-        # Initialize weight vectors
-        self.weights_vector = ref_dirs(
-            n_objectives=space.n_objectives,
-            n_partitions=self.n_subproblems
-        )
         
 
         # Build neighborhood
