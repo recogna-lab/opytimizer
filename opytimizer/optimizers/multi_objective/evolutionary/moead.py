@@ -172,6 +172,7 @@ class MOEAD(Optimizer):
             n_objectives=space.n_objectives,
             n_partitions=self.n_subproblems
         )
+        
 
         # Build neighborhood
         self._build_neighborhood()
@@ -191,6 +192,7 @@ class MOEAD(Optimizer):
             for j in range(n):
                 distances[i, j] = euclidean_distance(self.weights_vector[i], self.weights_vector[j])
         
+       
         self.T = np.argsort(distances, axis=1)[:, :self.neighborhood_size]
 
     def _select_neighbors(self, index: int, space: Space) -> np.ndarray:
@@ -303,16 +305,16 @@ class MOEAD(Optimizer):
                 tchebycheff(f_value, self.weights_vector[i], self.z)
                 for f_value in new_f_values
             ])
-
+        
             # Current fitness
-            actual_f_value = space.agents[agent_idx].fit
+            actual_f_value = space.agents[agent_idx].fit.flatten()
             actual_fitness = tchebycheff(actual_f_value, self.weights_vector[i], self.z)
 
             # Update if better
             better_idx = np.argmin(fitness)
-            if fitness[better_idx] < actual_fitness:
+            if fitness[better_idx] <= actual_fitness:
                 space.agents[agent_idx].position = new_agents[better_idx].copy()
-                space.agents[agent_idx].fit = new_f_values[better_idx].copy()
+                space.agents[agent_idx].fit = (new_f_values[better_idx].reshape(-1,1)).copy()
 
     def evaluate(self, space: Space, function: Function) -> None:
         """Evaluates the fitness of the agents.
@@ -326,7 +328,8 @@ class MOEAD(Optimizer):
         if self._aux_iteration == 0:
             for agent in space.agents:
                 agent.fit = function(agent.position)
-                self.z = np.minimum(self.z, agent.fit)
+                self.z = np.minimum(self.z, agent.fit.T)
+                
             self._aux_iteration = 1
         
         # Update Pareto front
@@ -349,13 +352,14 @@ class MOEAD(Optimizer):
 
             # Apply genetic operators
             offspring1, offspring2 = self._genetic_operators(parent1, parent2, space)
-
+            
             # Evaluate new agents
             new_agents = np.array([offspring1, offspring2])
-            new_f_values = np.array([function(off) for off in new_agents])
-
+            new_f_values = np.array([function(off).flatten() for off in new_agents])
+            
             # Update reference point
-            self.z = np.minimum(self.z, np.min(new_f_values, axis=0))
+            self.z = np.minimum(self.z, np.min(new_f_values, axis=0)).reshape(-1)
+            
 
             # Update population in neighborhood
             self._update_neighborhood(index, new_agents, new_f_values, space) 
