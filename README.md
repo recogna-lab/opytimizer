@@ -1,7 +1,7 @@
 # Opytimizer: A Nature-Inspired Python Optimizer
 
 <div align="center">
-    <img src="/assets/logo.png" width="400">
+    <img src="/assets/logo.png" width="300">
 </div>
 
 [![Latest release](https://img.shields.io/github/release/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/releases)
