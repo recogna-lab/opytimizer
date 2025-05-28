@@ -37,7 +37,7 @@ def test_aso_params_setter():
 
 def test_aso_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_aso = aso.ASO()
@@ -53,7 +53,7 @@ def test_aso_compile():
 
 def test_aso_calculate_mass():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_aso = aso.ASO()
@@ -66,7 +66,7 @@ def test_aso_calculate_mass():
 
 def test_aso_calculate_potential():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_aso = aso.ASO()
@@ -79,7 +79,7 @@ def test_aso_calculate_potential():
 
 def test_aso_calculate_acceleration():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_aso = aso.ASO()
@@ -93,7 +93,7 @@ def test_aso_calculate_acceleration():
 
 def test_aso_update():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_aso = aso.ASO()

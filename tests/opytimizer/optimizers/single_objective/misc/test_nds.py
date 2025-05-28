@@ -32,7 +32,7 @@ def test_nds_params_setter():
 def test_nds_compile():
     data_points = np.zeros((10, 3))
 
-    search_space = pareto.ParetoSpace(data_points)
+    search_space = pareto.ParetoSpace(data_points, n_objectives=1)
 
     new_nds = nds.NDS()
     new_nds.compile(search_space)
@@ -62,7 +62,7 @@ def test_nds_compile():
 def test_nds_update_1():
     data_points = np.zeros((10, 3))
 
-    search_space = pareto.ParetoSpace(data_points)
+    search_space = pareto.ParetoSpace(data_points, n_objectives=1)
 
     new_nds = nds.NDS()
     new_nds.compile(search_space)
@@ -73,7 +73,7 @@ def test_nds_update_1():
 def test_nds_update_2():
     data_points = r.generate_uniform_random_number(size=(10, 3))
 
-    search_space = pareto.ParetoSpace(data_points)
+    search_space = pareto.ParetoSpace(data_points, n_objectives=1)
 
     new_nds = nds.NDS()
     new_nds.compile(search_space)

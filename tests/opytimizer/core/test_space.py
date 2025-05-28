@@ -64,6 +64,28 @@ def test_space_n_dimensions_setter():
     assert new_space.n_dimensions == 1
 
 
+def test_space_n_objectives():
+    new_space = space.Space(n_objectives=1)
+
+    assert new_space.n_objectives == 1
+
+
+def test_space_n_objectives_setter():
+    try:
+        new_space = space.Space(n_objectives=0.0)
+    except:
+        new_space = space.Space(n_objectives=1)
+
+    assert new_space.n_objectives == 1
+
+    try:
+        new_space = space.Space(n_objectives=0)
+    except:
+        new_space = space.Space(n_objectives=1)
+
+    assert new_space.n_objectives == 1
+
+
 def test_space_agents():
     new_space = space.Space()
 
@@ -93,7 +115,7 @@ def test_space_best_agent_setter():
     try:
         new_space.best_agent = None
     except:
-        new_space.best_agent = agent.Agent(1, 1, 0, 1)
+        new_space.best_agent = agent.Agent(1, 1, 1, 0, 1)
 
     assert isinstance(new_space.best_agent, agent.Agent)
 

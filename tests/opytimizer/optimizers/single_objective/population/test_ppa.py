@@ -6,7 +6,7 @@ from opytimizer.spaces import search
 
 def test_ppa_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()
@@ -22,7 +22,7 @@ def test_ppa_compile():
 
 def test_ppa_calculate_population():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()
@@ -37,7 +37,7 @@ def test_ppa_calculate_population():
 
 def test_ppa_nesting_phase():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()
@@ -48,7 +48,7 @@ def test_ppa_nesting_phase():
 
 def test_ppa_parasitism_phase():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()
@@ -59,7 +59,7 @@ def test_ppa_parasitism_phase():
 
 def test_ppa_predation_phase():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()
@@ -70,7 +70,7 @@ def test_ppa_predation_phase():
 
 def test_ppa_update():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_ppa = ppa.PPA()

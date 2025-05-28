@@ -6,7 +6,7 @@ from opytimizer.spaces import pareto
 def test_pareto_space_load_agents():
     data_points = np.zeros((10, 3))
 
-    new_pareto_space = pareto.ParetoSpace(data_points)
+    new_pareto_space = pareto.ParetoSpace(data_points, 1)
 
     new_pareto_space._load_agents(data_points)
 
@@ -16,7 +16,7 @@ def test_pareto_space_load_agents():
 def test_pareto_space_build():
     data_points = np.zeros((10, 3))
 
-    new_pareto_space = pareto.ParetoSpace(data_points)
+    new_pareto_space = pareto.ParetoSpace(data_points, 1)
 
     new_pareto_space.build(data_points)
 

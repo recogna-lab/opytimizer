@@ -84,7 +84,7 @@ plot_pareto_front(
     space.pareto_front,
     all_solutions=space.agents,
     title="ZDT1 Pareto Front",
-    subtitle="MOEAD",
+    subtitle="NSGA2",
     xlabel="f1",
     ylabel="f2"
 )
@@ -94,5 +94,5 @@ plot_pareto_evolution(
     pareto_fronts,
     iterations[:len(pareto_fronts)],
     title="ZDT1 Pareto Front Evolution",
-    subtitle="MOEAD"
+    subtitle="NSGA2"
 )

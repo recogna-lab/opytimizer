@@ -55,9 +55,9 @@ class Space:
         self.best_agent = Agent(
             n_variables=n_variables,
             n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            n_objectives=n_objectives,
             mapping=mapping
         )
         self.pareto_front = []

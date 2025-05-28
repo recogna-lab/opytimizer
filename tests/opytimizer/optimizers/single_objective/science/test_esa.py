@@ -32,7 +32,7 @@ def test_esa_params_setter():
 
 def test_esa_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_esa = esa.ESA()
@@ -51,7 +51,7 @@ def test_esa_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_esa = esa.ESA()

@@ -29,7 +29,7 @@ def test_bmrfo_params_setter():
 def test_bmrfo_cyclone_foraging():
     new_bmrfo = bmrfo.BMRFO()
 
-    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2)
+    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2, n_objectives=1)
 
     cyclone = new_bmrfo._cyclone_foraging(
         boolean_space.agents, boolean_space.best_agent.position, 0, 1, 100
@@ -59,7 +59,7 @@ def test_bmrfo_cyclone_foraging():
 def test_bmrfo_chain_foraging():
     new_bmrfo = bmrfo.BMRFO()
 
-    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2)
+    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2, n_objectives=1)
 
     chain = new_bmrfo._chain_foraging(
         boolean_space.agents, boolean_space.best_agent.position, 0
@@ -71,7 +71,7 @@ def test_bmrfo_chain_foraging():
 def test_bmrfo_somersault_foraging():
     new_bmrfo = bmrfo.BMRFO()
 
-    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2)
+    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=2, n_objectives=1)
 
     somersault = new_bmrfo._somersault_foraging(
         boolean_space.agents[0].position, boolean_space.best_agent.position
@@ -81,14 +81,16 @@ def test_bmrfo_somersault_foraging():
 
 
 def test_bmrfo_update():
-    new_function = function.Function(
-        pointer=Knapsack(
+    def knapsack_wrapper(x):
+        knapsack = Knapsack(
             values=(55, 10, 47, 5, 4), weights=(95, 4, 60, 32, 23), max_capacity=100
         )
-    )
+        return [knapsack(x)]
+
+    new_function = function.Function(pointer=knapsack_wrapper)
 
     new_bmrfo = bmrfo.BMRFO()
 
-    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=5)
+    boolean_space = boolean.BooleanSpace(n_agents=100, n_variables=5, n_objectives=1)
 
     new_bmrfo.update(boolean_space, new_function, 1, 20)

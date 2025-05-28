@@ -35,13 +35,14 @@ def k_means_clustering(opytimizer):
 # Number of agents and decision variables
 n_agents = 10
 n_variables = 1
+n_objectives = 1
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [1]
 upper_bound = [100]
 
 # Creates the space, optimizer and function
-space = SearchSpace(n_agents, n_variables, lower_bound, upper_bound)
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
 optimizer = PSO()
 function = Function(k_means_clustering)
 

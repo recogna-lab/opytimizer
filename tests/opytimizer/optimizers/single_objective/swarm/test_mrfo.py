@@ -34,7 +34,7 @@ def test_mrfo_cyclone_foraging():
     new_mrfo = mrfo.MRFO()
 
     search_space = search.SearchSpace(
-        n_agents=5, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=5, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     cyclone = new_mrfo._cyclone_foraging(
@@ -48,7 +48,7 @@ def test_mrfo_chain_foraging():
     new_mrfo = mrfo.MRFO()
 
     search_space = search.SearchSpace(
-        n_agents=5, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=5, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     chain = new_mrfo._chain_foraging(
@@ -71,7 +71,7 @@ def test_mrfo_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=5, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=5, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_mrfo = mrfo.MRFO()

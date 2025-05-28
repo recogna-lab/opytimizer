@@ -119,7 +119,7 @@ def test_bso_params_setter():
 
 def test_bso_clusterize():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_bso = bso.BSO()
@@ -142,7 +142,7 @@ def test_bso_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_bso = bso.BSO()

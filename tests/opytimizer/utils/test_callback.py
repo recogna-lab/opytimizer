@@ -119,7 +119,7 @@ def test_discrete_search_callback_allowed_values_setter():
 
 
 def test_discrete_search_callback_on_task_begin():
-    space = search.SearchSpace(1, 2, [0, 0], [1, 1])
+    space = search.SearchSpace(1, 2, 1, [0, 0], [1, 1])
     optimizer = swarm.PSO()
     func = function.Function(Sphere())
 
@@ -158,7 +158,7 @@ def test_discrete_search_callback_on_evaluate_before():
         allowed_values=allowed_values
     )
 
-    space = search.SearchSpace(1, 2, [0, 0], [1, 1])
+    space = search.SearchSpace(1, 2, 1, [0, 0], [1, 1])
     optimizer = swarm.PSO()
     func = function.Function(Sphere())
 

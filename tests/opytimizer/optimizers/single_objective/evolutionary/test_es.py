@@ -30,7 +30,7 @@ def test_es_params_setter():
 
 def test_es_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_es = es.ES()
@@ -63,7 +63,7 @@ def test_es_mutate_parent():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_es = es.ES()
@@ -76,7 +76,7 @@ def test_es_mutate_parent():
 
 def test_es_update_strategy():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_es = es.ES()
@@ -92,7 +92,7 @@ def test_es_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_es = es.ES()

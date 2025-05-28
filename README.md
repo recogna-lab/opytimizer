@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/github/license/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/blob/master/LICENSE)
 
 ## Welcome to Opytimizer.
-Did you ever reach a bottleneck in your computational experiments? Are you tired of selecting suitable parameters for a chosen technique? If yes, Opytimizer is the real deal! This package provides an easy-to-go implementation of meta-heuristic optimizations. From agents to search space, from internal functions to external communication, we will foster all research related to optimizing stuff.
+Did you ever reach a bottleneck in your computational experiments? Are you tired of selecting suitable parameters for a chosen technique? If yes, Opytimizer is the real deal! This package provides an easy-to-go implementation of meta-heuristic optimizations, supporting both single and multi-objective problems. From agents to search space, from internal functions to external communication, from single to multiple objectives, we will foster all research related to optimizing stuff.
 
 Use Opytimizer if you need a library or wish to:
 * Create your optimization algorithm;
@@ -73,19 +73,24 @@ Opytimizer is based on the following structure, and you should pay attention to 
     - functions
         - constrained
         - multi_objective
+            - standard
+            - weighted
     - math
         - distribution
         - general
         - hyper
         - random
     - optimizers
-        - boolean
-        - evolutionary
-        - misc
-        - population
-        - science
-        - social
-        - swarm
+        - multi_objective
+            - evolutionary
+        - single_objective
+            - boolean
+            - evolutionary
+            - misc
+            - population
+            - science
+            - social
+            - swarm
     - spaces
         - boolean
         - graph
@@ -97,11 +102,15 @@ Opytimizer is based on the following structure, and you should pay attention to 
     - utils
         - callback
         - constant
+        - decomposition
         - exception
         - history
         - logging
+        - operators
+        - weights_vector
     - visualization
         - convergence
+        - multi_objective
         - surface
 ```
 
@@ -169,9 +178,9 @@ No specific additional commands are needed.
 
 ---
 
-## How-To-Use: Minimal Example
+## How-To-Use: Minimal Single-Objective Example
 
-Take a look at a quick working example of Opytimizer. Note that we are not passing many extra arguments nor additional information to the procedure. For more complex examples, please check our `examples/` folder.
+Take a look at a quick working example of Opytimizer for single-objective optimization. Note that we are not passing many extra arguments nor additional information to the procedure. For more complex examples, please check our `examples/` folder.
 
 ```Python
 import numpy as np
@@ -182,20 +191,75 @@ from opytimizer.optimizers.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 def sphere(x):
-  return np.sum(x ** 2)
+    return np.sum(x ** 2)
 
 n_agents = 20
 n_variables = 2
+n_objectives = 1
 lower_bound = [-10, -10]
 upper_bound = [10, 10]
 
-space = SearchSpace(n_agents, n_variables, lower_bound, upper_bound)
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
 optimizer = PSO()
 function = Function(sphere)
 
 opt = Opytimizer(space, optimizer, function)
 opt.start(n_iterations=1000)
 ```
+
+## How-To-Use: Minimal Multi-Objective Example
+
+Here's a simple example of multi-objective optimization using the ZDT1 benchmark function and NSGA-II algorithm:
+
+```Python
+import numpy as np
+from opytimizer import Opytimizer
+from opytimizer.core import Function
+from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
+from opytimizer.spaces import SearchSpace
+from opytimizer.utils.operators import sbx_crossover, polynomial_mutation
+
+def zdt1(x):
+    f1 = x[0]
+    g = 1 + 9 * np.sum(x[1:]) / (len(x) - 1)
+    f2 = g * (1 - np.sqrt(f1/g)) if f1 != 0 else g
+    return np.array([f1, f2])
+
+n_agents = 100
+n_variables = 30
+n_objectives = 2
+
+space = SearchSpace(
+    n_agents=n_agents,
+    n_variables=n_variables,
+    n_objectives=n_objectives,
+    lower_bound=[0] * n_variables,
+    upper_bound=[1] * n_variables
+)
+
+optimizer = NSGA2(
+    crossover_operator=sbx_crossover,
+    mutation_operator=polynomial_mutation,
+    crossover_params={'eta': 20},
+    mutation_params={'eta': 20}
+)
+function = Function(zdt1)
+
+opt = Opytimizer(space, optimizer, function)
+opt.start(n_iterations=250)
+```
+
+The optimization process will generate a Pareto front, which can be visualized as follows:
+
+<div align="center">
+    <img src="/assets/pareto_front.png" width="400">
+    <p>Final Pareto Front</p>
+</div>
+
+<div align="center">
+    <img src="/assets/pareto_front_evolution.png" width="400">
+    <p>Pareto Front Evolution</p>
+</div>
 
 ---
 

@@ -32,7 +32,7 @@ def test_gsa_params_setter():
 
 def test_gsa_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_gsa = gsa.GSA()
@@ -48,7 +48,7 @@ def test_gsa_compile():
 
 def test_gsa_calculate_mass():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_gsa = gsa.GSA()
@@ -65,7 +65,7 @@ def test_gsa_calculate_mass():
 
 def test_gsa_calculate_force():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_gsa = gsa.GSA()
@@ -86,7 +86,7 @@ def test_gsa_calculate_force():
 
 def test_gsa_update():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_gsa = gsa.GSA()

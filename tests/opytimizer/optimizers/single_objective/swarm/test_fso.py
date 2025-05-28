@@ -39,7 +39,7 @@ def test_fso_update():
     new_fso = fso.FSO()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_fso.update(search_space, square, 1, 10)

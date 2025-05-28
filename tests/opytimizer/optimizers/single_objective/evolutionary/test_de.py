@@ -46,7 +46,7 @@ def test_de_mutate_agent():
     new_de = de.DE()
 
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     agent = new_de._mutate_agent(
@@ -66,7 +66,7 @@ def test_de_update():
     new_de = de.DE()
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_de.update(search_space, square)

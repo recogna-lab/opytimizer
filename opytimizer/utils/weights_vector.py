@@ -1,5 +1,4 @@
 import numpy as np
-from itertools import combinations
 
 def ref_dirs(n_objectives: int, n_partitions: int) -> np.ndarray:
     """

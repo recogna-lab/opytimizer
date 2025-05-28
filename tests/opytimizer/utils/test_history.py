@@ -24,7 +24,7 @@ def test_history_dump():
 
     agents = [
         agent.Agent(
-            n_variables=2, n_dimensions=1, lower_bound=[0, 0], upper_bound=[1, 1]
+            n_variables=2, n_dimensions=1, n_objectives=1, lower_bound=[0, 0], upper_bound=[1, 1]
         )
         for _ in range(5)
     ]
@@ -47,7 +47,7 @@ def test_history_get_convergence():
 
     agents = [
         agent.Agent(
-            n_variables=2, n_dimensions=1, lower_bound=[0, 0], upper_bound=[1, 1]
+            n_variables=2, n_dimensions=1, n_objectives=1, lower_bound=[0, 0], upper_bound=[1, 1]
         )
         for _ in range(5)
     ]

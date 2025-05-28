@@ -72,7 +72,7 @@ def test_eo_params_setter():
 
 def test_eo_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_eo = eo.EO()
@@ -88,7 +88,7 @@ def test_eo_compile():
 
 def test_eo_calculate_equilibrium():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_eo = eo.EO()
@@ -102,7 +102,7 @@ def test_eo_average_concentration():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_eo = eo.EO()
@@ -118,7 +118,7 @@ def test_eo_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_eo = eo.EO()

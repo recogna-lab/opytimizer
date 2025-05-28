@@ -50,14 +50,14 @@ def test_moa_params_setter():
 def test_moa_compile():
     try:
         search_space = search.SearchSpace(
-            n_agents=10, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+            n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
         )
 
         new_moa = moa.MOA()
         new_moa.compile(search_space)
     except:
         search_space = search.SearchSpace(
-            n_agents=9, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+            n_agents=9, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
         )
 
         new_moa = moa.MOA()
@@ -66,7 +66,7 @@ def test_moa_compile():
 
 def test_moa_update():
     search_space = search.SearchSpace(
-        n_agents=9, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=9, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_moa = moa.MOA()

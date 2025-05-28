@@ -72,7 +72,7 @@ def test_umda_params_setter():
 def test_umda_calculate_probability():
     new_umda = umda.UMDA()
 
-    boolean_space = boolean.BooleanSpace(n_agents=5, n_variables=2)
+    boolean_space = boolean.BooleanSpace(n_agents=5, n_variables=2, n_objectives=1)
 
     probs = new_umda._calculate_probability(boolean_space.agents)
 
@@ -92,6 +92,6 @@ def test_umda_sample_position():
 def test_umda_update():
     new_umda = umda.UMDA()
 
-    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5)
+    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5, n_objectives=1)
 
     new_umda.update(boolean_space)

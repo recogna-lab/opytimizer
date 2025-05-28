@@ -51,7 +51,7 @@ def test_aig_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
     )
 
     new_aig = aig.AIG()

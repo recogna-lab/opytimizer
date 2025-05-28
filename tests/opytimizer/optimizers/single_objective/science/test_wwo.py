@@ -74,7 +74,7 @@ def test_wwo_params_setter():
 
 def test_wwo_compile():
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()
@@ -100,7 +100,7 @@ def test_wwo_propagate_wave():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()
@@ -116,7 +116,7 @@ def test_wwo_refract_wave():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()
@@ -135,7 +135,7 @@ def test_wwo_break_wave():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()
@@ -148,7 +148,7 @@ def test_wwo_break_wave():
 
 def test_wwo_update_wave_length():
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()
@@ -162,7 +162,7 @@ def test_wwo_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
     )
 
     new_wwo = wwo.WWO()

@@ -6,7 +6,7 @@ from opytimizer.utils import callback, history
 
 
 def test_opytimizer_space():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -16,7 +16,7 @@ def test_opytimizer_space():
 
 
 def test_opytimizer_space_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -33,7 +33,7 @@ def test_opytimizer_space_setter():
 
 
 def test_opytimizer_optimizer():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -43,7 +43,7 @@ def test_opytimizer_optimizer():
 
 
 def test_opytimizer_optimizer_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -60,7 +60,7 @@ def test_opytimizer_optimizer_setter():
 
 
 def test_opytimizer_function():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -70,7 +70,7 @@ def test_opytimizer_function():
 
 
 def test_opytimizer_function_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -87,7 +87,7 @@ def test_opytimizer_function_setter():
 
 
 def test_opytimizer_history():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -97,7 +97,7 @@ def test_opytimizer_history():
 
 
 def test_opytimizer_history_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
     hist = history.History()
@@ -113,7 +113,7 @@ def test_opytimizer_history_setter():
 
 
 def test_opytimizer_iteration():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -123,7 +123,7 @@ def test_opytimizer_iteration():
 
 
 def test_opytimizer_iterations_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -145,7 +145,7 @@ def test_opytimizer_iterations_setter():
 
 
 def test_opytimizer_total_iterations():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -155,7 +155,7 @@ def test_opytimizer_total_iterations():
 
 
 def test_opytimizer_total_iterations_setter():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -177,7 +177,7 @@ def test_opytimizer_total_iterations_setter():
 
 
 def test_opytimizer_evaluate_args():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -187,7 +187,7 @@ def test_opytimizer_evaluate_args():
 
 
 def test_opytimizer_update_args():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -197,7 +197,7 @@ def test_opytimizer_update_args():
 
 
 def test_opytimizer_evaluate():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
     callbacks = callback.CallbackVessel([])
@@ -208,7 +208,7 @@ def test_opytimizer_evaluate():
 
 
 def test_opytimizer_update():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
     callbacks = callback.CallbackVessel([])
@@ -219,7 +219,7 @@ def test_opytimizer_update():
 
 
 def test_opytimizer_start():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 
@@ -229,7 +229,7 @@ def test_opytimizer_start():
 
 
 def test_opytimizer_save():
-    space = search.SearchSpace(1, 1, 0, 1)
+    space = search.SearchSpace(1, 1, 1, 0, 1)
     func = function.Function(callable)
     optimizer = pso.PSO()
 

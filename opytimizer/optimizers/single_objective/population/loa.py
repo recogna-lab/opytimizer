@@ -30,6 +30,7 @@ class Lion(Agent):
         self,
         n_variables: int,
         n_dimensions: int,
+        n_objectives: int,
         lower_bound: Union[List, Tuple, np.ndarray],
         upper_bound: Union[List, Tuple, np.ndarray],
         position: np.ndarray,
@@ -47,7 +48,7 @@ class Lion(Agent):
 
         """
 
-        super(Lion, self).__init__(n_variables, n_dimensions, lower_bound, upper_bound)
+        super(Lion, self).__init__(n_variables, n_dimensions, n_objectives, lower_bound, upper_bound)
 
         self.position = copy.deepcopy(position)
         self.best_position = copy.deepcopy(position)
@@ -299,6 +300,7 @@ class LOA(Optimizer):
             Lion(
                 agent.n_variables,
                 agent.n_dimensions,
+                agent.n_objectives,
                 agent.lb,
                 agent.ub,
                 agent.position,

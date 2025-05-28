@@ -40,7 +40,7 @@ def test_bpso_params_setter():
 
 
 def test_bpso_compile():
-    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5)
+    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5, n_objectives=1)
 
     new_bpso = bpso.BPSO()
     new_bpso.compile(boolean_space)
@@ -66,7 +66,7 @@ def test_bpso_evaluate():
 
     new_function = function.Function(pointer=square)
 
-    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5)
+    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5, n_objectives=1)
 
     new_bpso = bpso.BPSO()
     new_bpso.compile(boolean_space)
@@ -77,7 +77,7 @@ def test_bpso_evaluate():
 
 
 def test_bpso_update():
-    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5)
+    boolean_space = boolean.BooleanSpace(n_agents=2, n_variables=5, n_objectives=1)
 
     new_bpso = bpso.BPSO()
     new_bpso.compile(boolean_space)

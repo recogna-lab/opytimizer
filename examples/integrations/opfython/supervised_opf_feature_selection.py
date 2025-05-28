@@ -49,6 +49,7 @@ def supervised_opf_feature_selection(opytimizer):
 # Number of agents and decision variables
 n_agents = 5
 n_variables = 64
+n_objectives = 1
 
 # Parameters for the optimizer
 params = {
@@ -57,7 +58,7 @@ params = {
 }
 
 # Creates the space, optimizer and function
-space = BooleanSpace(n_agents, n_variables)
+space = BooleanSpace(n_agents, n_variables, n_objectives)
 optimizer = BPSO()
 function = Function(supervised_opf_feature_selection)
 

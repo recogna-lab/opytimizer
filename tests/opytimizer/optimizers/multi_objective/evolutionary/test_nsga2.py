@@ -47,7 +47,7 @@ def test_nsga2_params_setter():
 
 def test_nsga2_compile():
     search_space = SearchSpace(
-        n_agents=2, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2, n_variables=2, n_objectives=2, lower_bound=[0, 0], upper_bound=[10, 10]
     )
     
     new_nsga2 = nsga2.NSGA2()
@@ -69,7 +69,7 @@ def test_nsga2_compile():
 
 def test_nsga2_crossover():
     search_space = SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=2, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_nsga2 = nsga2.NSGA2()
@@ -82,7 +82,7 @@ def test_nsga2_crossover():
 
 def test_nsga2_mutation():
     search_space = SearchSpace(
-        n_agents=10, n_variables=2, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=10, n_variables=2, n_objectives=2, lower_bound=[1, 1], upper_bound=[10, 10]
     )
 
     new_nsga2 = nsga2.NSGA2()
@@ -94,7 +94,7 @@ def test_nsga2_mutation():
     assert type(beta).__name__ == "Agent"
 
 def make_agent(fit):
-    a = Agent(3, 1, [0, 0, 0], [1, 1, 1])
+    a = Agent(3, 1, 2, [0, 0, 0], [1, 1, 1])
     a.fit = np.array(fit)
     return a
 
@@ -153,7 +153,7 @@ def test_nsga2_evaluate():
         return np.array([f1, f2])
 
     search_space = SearchSpace(
-        n_agents=2, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2, n_variables=2, n_objectives=2, lower_bound=[0, 0], upper_bound=[10, 10]
     )
     
     new_nsga2 = nsga2.NSGA2()
@@ -161,8 +161,8 @@ def test_nsga2_evaluate():
     
     new_nsga2.evaluate(search_space, multi_square)
     
-    assert isinstance(new_nsga2.pareto_front, list)
-    assert len(new_nsga2.pareto_front) > 0
+    assert isinstance(search_space.pareto_front, list)
+    assert len(search_space.pareto_front) > 0
 
 
 def test_nsga2_update():
@@ -172,7 +172,7 @@ def test_nsga2_update():
         return np.array([f1, f2])
     
     search_space = SearchSpace(
-        n_agents=2, n_variables=2, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2, n_variables=2, n_objectives=2, lower_bound=[0, 0], upper_bound=[10, 10]
     )
     
     new_nsga2 = nsga2.NSGA2()
