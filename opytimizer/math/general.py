@@ -129,3 +129,28 @@ def weighted_wheel_selection(weights: List[float]) -> int:
             return i
 
     return None
+
+
+def angular_distance(x: np.ndarray, y: np.ndarray) -> float:
+    """Calculates the angular distance between two n-dimensional vectors.
+
+    Args:
+        x: N-dimensional vector.
+        y: N-dimensional vector.
+
+    Returns:
+        (float): Angular distance between `x` and `y`, in radians.
+                 The value is in the range [0, π].
+
+    """
+    # Normalize the vectors to unit length
+    x_norm = x / np.linalg.norm(x)
+    y_norm = y / np.linalg.norm(y)
+
+    # Compute the cosine similarity
+    cosine_similarity = np.clip(np.dot(x_norm, y_norm), -1.0, 1.0)
+
+    # Angular distance is the arccos of the cosine similarity
+    angle = np.arccos(cosine_similarity)
+
+    return angle

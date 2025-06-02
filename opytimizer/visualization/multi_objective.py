@@ -15,6 +15,7 @@ def plot_pareto_front(
     subtitle: str = "",
     xlabel: str = "f1",
     ylabel: str = "f2",
+    zlabel: str = "f3",
     grid: bool = True,
     scatter: bool = True,
     line: bool = True,
@@ -29,27 +30,51 @@ def plot_pareto_front(
         subtitle: Subtitle of the plot.
         xlabel: Axis `x` label.
         ylabel: Axis `y` label.
+        zlabel: Axis `z` label.
         grid: If grid should be used or not.
         scatter: If scatter plot should be used or not.
         line: If line plot should be used or not.
 
     """
 
-    _, ax = plt.subplots(figsize=(7, 5))
+    n_dimensions = pareto_front[0].fit.shape[0]
+    if n_dimensions == 3:
+        # 3 dimensions
+        fig = plt.figure(figsize=(10,7))
+        ax = fig.add_subplot(111, projection='3d')
+    elif n_dimensions == 2:
+        # 2 dimensions
+        fig, ax = plt.subplots(figsize=(7, 5))
+    else:
+        # PF can't be shown
+        raise e.ValueError('Only two and three-objetive problems can be ploted')    
 
     if all_solutions is not None:
         f1_all = [agent.fit[0][0] for agent in all_solutions]
         f2_all = [agent.fit[1][0] for agent in all_solutions]
-        ax.scatter(f1_all, f2_all, c='lightgray', alpha=0.5, label='All Solutions')
+        
+        if n_dimensions == 3:
+            f3_all = [agent.fit[2][0] for agent in all_solutions]
+            ax.scatter(f1_all, f2_all, f3_all, c='lightgray', alpha=0.5, label='All solutions')
+        else:
+            ax.scatter(f1_all, f2_all, c='lightgray', alpha=0.5, label='All Solutions')
 
     f1 = [agent.fit[0][0] for agent in pareto_front]
     f2 = [agent.fit[1][0] for agent in pareto_front]
+    
+    if n_dimensions == 3:
+        f3 = [agent.fit[2][0] for agent in pareto_front]
 
     idx = np.argsort(f1)
     f1 = np.array(f1)[idx]
     f2 = np.array(f2)[idx]
-
+    if n_dimensions == 3:
+        f3=np.array(f3)[idx]
+        
     ax.set(xlabel=xlabel, ylabel=ylabel)
+    if n_dimensions == 3:
+        ax.set(zlabel=zlabel)
+        
     ax.set_title(title, loc="left", fontsize=14)
     ax.set_title(subtitle, loc="right", fontsize=8, color="grey")
 
@@ -57,10 +82,15 @@ def plot_pareto_front(
         ax.grid()
 
     if scatter:
-        ax.scatter(f1, f2, c='blue', alpha=0.8, label='Pareto Front')
+        if n_dimensions == 3:
+            ax.scatter(f1, f2, f3, c='blue', alpha=0.8, label='Pareto Front')
+        else:    
+            ax.scatter(f1, f2, c='blue', alpha=0.8, label='Pareto Front')
     
     if line:
-        ax.plot(f1, f2, 'r--', alpha=0.4, label='Pareto Line')
+        if n_dimensions != 3:
+            ax.plot(f1, f2, 'r--', alpha=0.4, label='Pareto Line')
+        
 
     ax.legend()
     plt.show()
