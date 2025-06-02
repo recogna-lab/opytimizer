@@ -19,11 +19,7 @@ def zdt1(x):
     # Calculates f1 and f2
     f1 = x[0]
     g = 1 + 9 * np.sum(x[1:]) / (len(x) - 1)
-    # Avoids division by zero
-    if f1 == 0:
-        f2 = g
-    else:
-        f2 = g * (1 - np.sqrt(f1/g))
+    f2 = g * (1 - np.sqrt(f1/g))
     
     # Returns a 1D array with the two objectives
     return np.array([f1, f2], dtype=np.float64)
