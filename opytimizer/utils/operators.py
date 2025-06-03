@@ -107,6 +107,8 @@ def one_point_crossover(parent1, parent2, lb=None, ub=None, crossover_rate=0.9):
     Returns:
         tuple: Two children vectors (np.ndarray).
     """
+    parent1=parent1.flatten()
+    parent2=parent2.flatten()
     child1 = parent1.copy()
     child2 = parent2.copy()
     if np.random.rand() < crossover_rate:
@@ -116,7 +118,7 @@ def one_point_crossover(parent1, parent2, lb=None, ub=None, crossover_rate=0.9):
         if lb is not None and ub is not None:
             child1 = np.clip(child1, lb, ub)
             child2 = np.clip(child2, lb, ub)
-    return child1, child2
+    return child1.reshape(-1,1), child2.reshape(-1,1)
 
 
 def gaussian_mutation(vector, mutation_rate=0.1, std=0.1):
@@ -141,7 +143,7 @@ def gaussian_mutation(vector, mutation_rate=0.1, std=0.1):
     return mutant
 
 
-def bit_flip_mutation(vector, mutation_rate=0.01):
+def bit_flip_mutation(vector, mutation_rate=0.01, **kwargs):
     """
     Bit flip mutation for binary vectors.
 

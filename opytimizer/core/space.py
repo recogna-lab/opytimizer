@@ -297,10 +297,18 @@ class Space:
         self.pareto_front = []
         for agent in agents:
             is_dominated = False
+            is_duplicate = any(
+                np.array_equal(agent.fit, existing_agent.fit)
+                for existing_agent in self.pareto_front
+            )
+            if is_duplicate:
+                continue
             for pareto_agent in self.pareto_front:
                 if pareto_agent.dominates(agent):
                     is_dominated = True
                     break
             if not is_dominated:
-                self.pareto_front = [a for a in self.pareto_front if not agent.dominates(a)]
+                self.pareto_front = [
+                    a for a in self.pareto_front if not agent.dominates(a)
+                ]
                 self.pareto_front.append(agent)
