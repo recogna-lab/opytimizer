@@ -1,6 +1,6 @@
 import numpy as np
 
-def ref_dirs(n_objectives: int, n_partitions: int) -> tuple[np.ndarray,int]:
+def ref_dirs(n_objectives: int, n_partitions: int) -> tuple:
     """
     Generates reference direction vectors (weight vectors) on the unit simplex.
 
