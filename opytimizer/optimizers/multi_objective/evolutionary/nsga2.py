@@ -313,7 +313,7 @@ class NSGA2(MultiObjectiveOptimizer):
 
         return mutated
 
-    def _create_offspring(self, space: "Space") -> list[np.ndarray]:
+    def _create_offspring(self, space: "Space") -> list:
         """Generates offspring using SBX crossover and PM mutation.
 
         Args:

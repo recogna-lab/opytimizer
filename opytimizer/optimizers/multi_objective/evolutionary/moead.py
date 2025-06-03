@@ -49,8 +49,8 @@ class MOEAD(Optimizer):
 
         super().__init__()
 
-        self.CR = 0.9
-        self.MR = 0.05
+        self.CR = 1.
+        self.MR = 0.025
         self.n_subproblems = None
         self.neighborhood_size = None
         self.crossover_operator = crossover_operator or sbx_crossover
@@ -164,11 +164,11 @@ class MOEAD(Optimizer):
         # If n_subproblems is not defined, use the number of agents
         if self.n_subproblems is None:
             self.n_subproblems = space.n_agents
-        
+
         # If neighborhood_size is not defined, use 10% of the number of subproblems
         if self.neighborhood_size is None:
             self.neighborhood_size = max(2, int(self.n_subproblems * 0.1))
-        
+
 
         # Build neighborhood
         self._build_neighborhood()
@@ -183,12 +183,12 @@ class MOEAD(Optimizer):
         """Builds the neighborhood using Euclidean distance."""
         n = len(self.weights_vector)
         distances = np.zeros((n, n))
-        
+
         for i in range(n):
             for j in range(n):
                 distances[i, j] = euclidean_distance(self.weights_vector[i], self.weights_vector[j])
-        
-       
+
+
         self.T = np.argsort(distances, axis=1)[:, :self.neighborhood_size]
 
     def _select_neighbors(self, index: int, space: Space) -> np.ndarray:
@@ -205,14 +205,14 @@ class MOEAD(Optimizer):
         # Map the agent index to the subproblem index
         subproblem_idx = index % self.n_subproblems
         neighbors = self.T[subproblem_idx]
-        
+
         # Ensure we have at least 2 neighbors
         if len(neighbors) < 2:
             return np.array([index, index])
-            
+
         # Select 2 random different neighbors
         selected = np.random.choice(neighbors, 2, replace=False)
-        
+
         # Map the subproblem indices back to the agent indices
         return np.array([idx % space.n_agents for idx in selected])
 
@@ -291,17 +291,17 @@ class MOEAD(Optimizer):
         """
         # Map the agent index to the subproblem index
         subproblem_idx = index % self.n_subproblems
-        
+
         for i in self.T[subproblem_idx]:
             # Map the subproblem index to the agent index
             agent_idx = i % space.n_agents
-            
+
             # Calculate fitness using decomposition
             fitness = np.array([
                 tchebycheff(f_value, self.weights_vector[i], self.z)
                 for f_value in new_f_values
             ])
-        
+
             # Current fitness
             actual_f_value = space.agents[agent_idx].fit.flatten()
             actual_fitness = tchebycheff(actual_f_value, self.weights_vector[i], self.z)
@@ -325,9 +325,9 @@ class MOEAD(Optimizer):
             for agent in space.agents:
                 agent.fit = function(agent.position)
                 self.z = np.minimum(self.z, agent.fit.T)
-                
+
             self._aux_iteration = 1
-        
+
         # Update Pareto front
         space.update_pareto_front(space.agents)
 
@@ -348,15 +348,16 @@ class MOEAD(Optimizer):
 
             # Apply genetic operators
             offspring1, offspring2 = self._genetic_operators(parent1, parent2, space)
-            
+
             # Evaluate new agents
             new_agents = np.array([offspring1, offspring2])
             new_f_values = np.array([function(off).flatten() for off in new_agents])
-            
+
             # Update reference point
             self.z = np.minimum(self.z, np.min(new_f_values, axis=0)).reshape(-1)
-            
 
+
+            
             # Update population in neighborhood
             self._update_neighborhood(index, new_agents, new_f_values, space) 
             
