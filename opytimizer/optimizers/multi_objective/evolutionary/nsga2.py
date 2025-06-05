@@ -47,7 +47,7 @@ class NSGA2(MultiObjectiveOptimizer):
         super().__init__()
 
         self.crossover_rate = 0.9
-        self.mutation_rate = 0.025
+        self.MR = 0.025
         self.crossover_operator = crossover_operator or arithmetic_crossover
         self.mutation_operator = mutation_operator or gaussian_mutation
         self.crossover_params = crossover_params or {}
@@ -73,19 +73,19 @@ class NSGA2(MultiObjectiveOptimizer):
         self._crossover_rate = crossover_rate
 
     @property
-    def mutation_rate(self) -> float:
+    def MR(self) -> float:
         """Probability of mutation."""
 
-        return self._mutation_rate
+        return self._MR
 
-    @mutation_rate.setter
-    def mutation_rate(self, mutation_rate: float) -> None:
+    @MR.setter
+    def MR(self, mutation_rate: float) -> None:
         if not isinstance(mutation_rate, (float, int)):
-            raise e.TypeError("`mutation_rate` should be a float or integer")
+            raise e.TypeError("`MR` should be a float or integer")
         if mutation_rate < 0 or mutation_rate > 1:
-            raise e.ValueError("`mutation_rate` should be between 0 and 1")
+            raise e.ValueError("`MR` should be between 0 and 1")
 
-        self._mutation_rate = mutation_rate
+        self._MR = mutation_rate
 
     @property
     def rank(self) -> np.ndarray:
@@ -300,11 +300,15 @@ class NSGA2(MultiObjectiveOptimizer):
 
         if self.mutation_operator == gaussian_mutation:
             mutant = self.mutation_operator(
-                x, self.mutation_rate, **self.mutation_params
+                x, self.MR, **self.mutation_params
             )
         else:
             mutant = self.mutation_operator(
-                x, lb, ub, self.mutation_rate, **self.mutation_params
+                vector=x,
+                lb=lb,
+                ub=ub,
+                mutation_rate=self.MR,
+                **self.mutation_params
             )
 
         mutated = copy.deepcopy(agent)
