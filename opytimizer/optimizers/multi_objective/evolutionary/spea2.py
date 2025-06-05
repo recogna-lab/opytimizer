@@ -342,7 +342,11 @@ class SPEA2(MultiObjectiveOptimizer):
             )
         else:
             mutant = self.mutation_operator(
-                x, lb, ub, self.mutation_rate, **self.mutation_params
+                vector=x,
+                lb=lb,
+                ub=ub,
+                mutation_rate=self.mutation_rate,
+                **self.mutation_params
             )
 
         mutated = copy.deepcopy(agent)
