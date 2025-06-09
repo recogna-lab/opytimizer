@@ -150,7 +150,7 @@ def test_agent_ub_setter():
 def test_agent_ts():
     new_agent = agent.Agent(1, 1, 1, 0, 1)
 
-    assert type(new_agent.ts) == int
+    assert isinstance(new_agent.ts, int)
 
 
 def test_agent_ts_setter():

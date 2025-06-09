@@ -117,7 +117,11 @@ def test_iwo_produce_offspring():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_iwo = iwo.IWO()
@@ -136,7 +140,11 @@ def test_iwo_update():
     new_iwo.max_seeds = 20
 
     search_space = search.SearchSpace(
-        n_agents=5, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=5,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_iwo.update(search_space, square, 1, 10)

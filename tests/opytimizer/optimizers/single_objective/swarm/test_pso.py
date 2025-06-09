@@ -58,7 +58,11 @@ def test_pso_params_setter():
 
 def test_pso_compile():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_pso = pso.PSO()
@@ -84,7 +88,11 @@ def test_pso_evaluate():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_pso = pso.PSO()
@@ -95,7 +103,11 @@ def test_pso_evaluate():
 
 def test_pso_update():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_pso = pso.PSO()
@@ -106,7 +118,11 @@ def test_pso_update():
 
 def test_aiwpso_compute_success():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_aiwpso = pso.AIWPSO()
@@ -118,7 +134,11 @@ def test_aiwpso_compute_success():
 
 def test_aiwpso_update():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_aiwpso = pso.AIWPSO()
@@ -129,7 +149,11 @@ def test_aiwpso_update():
 
 def test_rpso_compile():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_rpso = pso.RPSO()
@@ -159,7 +183,11 @@ def test_rpso_compile():
 
 def test_rpso_update():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_rpso = pso.RPSO()
@@ -170,7 +198,11 @@ def test_rpso_update():
 
 def test_savpso_update():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_savpso = pso.SAVPSO()
@@ -181,7 +213,11 @@ def test_savpso_update():
 
 def test_vpso_compile():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_vpso = pso.VPSO()
@@ -211,7 +247,11 @@ def test_vpso_compile():
 
 def test_vpso_update():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_vpso = pso.VPSO()

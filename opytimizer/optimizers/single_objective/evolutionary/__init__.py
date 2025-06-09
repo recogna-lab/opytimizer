@@ -10,6 +10,13 @@ from opytimizer.optimizers.single_objective.evolutionary.foa import FOA
 from opytimizer.optimizers.single_objective.evolutionary.ga import GA
 from opytimizer.optimizers.single_objective.evolutionary.gp import GP
 from opytimizer.optimizers.single_objective.evolutionary.gsgp import GSGP
-from opytimizer.optimizers.single_objective.evolutionary.hs import GHS, GOGHS, HS, IHS, NGHS, SGHS
+from opytimizer.optimizers.single_objective.evolutionary.hs import (
+    GHS,
+    GOGHS,
+    HS,
+    IHS,
+    NGHS,
+    SGHS,
+)
 from opytimizer.optimizers.single_objective.evolutionary.iwo import IWO
 from opytimizer.optimizers.single_objective.evolutionary.rra import RRA

@@ -46,7 +46,11 @@ def test_gco_params_setter():
 
 def test_gco_compile():
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=4,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_gco = gco.GCO()
@@ -69,7 +73,11 @@ def test_gco_compile():
 
 def test_gco_mutate_cell():
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=4,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_gco = gco.GCO()
@@ -90,7 +98,11 @@ def test_gco_dark_zone():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=4,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_gco = gco.GCO()
@@ -101,7 +113,11 @@ def test_gco_dark_zone():
 
 def test_gco_light_zone():
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=4,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_gco = gco.GCO()
@@ -115,7 +131,11 @@ def test_gco_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=4, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=4,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_gco = gco.GCO()

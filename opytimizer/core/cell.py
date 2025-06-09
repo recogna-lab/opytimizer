@@ -56,7 +56,7 @@ class Cell(DiGraph):
             for node in path:
                 current_args = self.nodes[node]["block"](*current_args)
 
-                if type(current_args) != tuple:
+                if not isinstance(current_args, tuple):
                     current_args = (current_args,)
 
             outputs.append(current_args)

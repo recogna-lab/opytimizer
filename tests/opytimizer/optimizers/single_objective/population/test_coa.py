@@ -34,7 +34,11 @@ def test_coa_params_setter():
 
 def test_coa_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_coa = coa.COA()
@@ -57,7 +61,11 @@ def test_coa_compile():
 
 def test_coa_get_agents_from_pack():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_coa = coa.COA()
@@ -74,7 +82,11 @@ def test_coa_get_agents_from_pack():
 
 def test_coa_transition_packs():
     search_space = search.SearchSpace(
-        n_agents=200, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=200,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_coa = coa.COA()
@@ -88,7 +100,11 @@ def test_coa_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_coa = coa.COA()

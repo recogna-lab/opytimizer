@@ -239,7 +239,7 @@ class Agent:
                 lb, ub, self.n_dimensions
             )
 
-    def dominates(self, other: 'Agent') -> bool:
+    def dominates(self, other: "Agent") -> bool:
         """Checks if this agent dominates another agent.
 
         Args:

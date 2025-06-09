@@ -7,7 +7,7 @@ def test_weighted_weights():
 
     new_weighted = weighted.WeightedFunction([square], [1.0])
 
-    assert type(new_weighted.weights) == list
+    assert isinstance(new_weighted.weights, list)
 
 
 def test_weighted_weights_setter():

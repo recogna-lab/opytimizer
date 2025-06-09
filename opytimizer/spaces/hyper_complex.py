@@ -49,7 +49,7 @@ class HyperComplexSpace(Space):
             n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            mapping=mapping
+            mapping=mapping,
         )
 
         self.build()

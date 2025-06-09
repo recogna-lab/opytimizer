@@ -22,7 +22,7 @@ class ParetoSpace(Space):
         self,
         data_points: np.ndarray,
         n_objectives: int,
-        mapping: Optional[List[str]] = None
+        mapping: Optional[List[str]] = None,
     ) -> None:
         """Initialization method.
 
@@ -47,7 +47,7 @@ class ParetoSpace(Space):
             n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            mapping=mapping
+            mapping=mapping,
         )
 
         self.build(data_points)

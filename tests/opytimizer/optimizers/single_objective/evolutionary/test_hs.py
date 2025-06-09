@@ -66,7 +66,11 @@ def test_hs_generate_new_harmony():
     new_hs = hs.HS()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     agent = new_hs._generate_new_harmony(search_space.agents)
@@ -81,7 +85,11 @@ def test_hs_update():
     new_hs = hs.HS()
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_hs.update(search_space, square)
@@ -170,7 +178,11 @@ def test_ihs_update():
     new_ihs = hs.IHS()
 
     search_space = search.SearchSpace(
-        n_agents=20, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[5, 5]
+        n_agents=20,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[5, 5],
     )
 
     new_ihs.update(search_space, square, 1, 10)
@@ -180,7 +192,11 @@ def test_ghs_generate_new_harmony():
     new_ghs = hs.GHS()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     agent = new_ghs._generate_new_harmony(search_space.agents)
@@ -295,7 +311,11 @@ def test_sghs_params_setter():
 
 def test_sghs_compile():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_sghs = hs.SGHS()
@@ -332,7 +352,11 @@ def test_sghs_compile():
 
 def test_sghs_generate_new_harmony():
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_sghs = hs.SGHS()
@@ -354,7 +378,11 @@ def test_sghs_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_sghs = hs.SGHS()
@@ -400,7 +428,11 @@ def test_nghs_generate_new_harmony():
     new_nghs.pm = 1
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     agent = new_nghs._generate_new_harmony(
@@ -417,7 +449,11 @@ def test_nghs_update():
     new_nghs = hs.NGHS()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_nghs.update(search_space, square)
@@ -429,7 +465,11 @@ def test_goghs_generate_opposition_harmony():
     new_goghs = hs.GOGHS()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     agent = new_goghs._generate_opposition_harmony(
@@ -446,7 +486,11 @@ def test_goghs_update():
     new_goghs = hs.GOGHS()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_goghs.update(search_space, square)

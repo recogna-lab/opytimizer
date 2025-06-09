@@ -58,7 +58,7 @@ class Space:
             n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            mapping=mapping
+            mapping=mapping,
         )
         self.pareto_front = []
 
@@ -235,7 +235,7 @@ class Space:
                 n_objectives=self.n_objectives,
                 lower_bound=self.lb,
                 upper_bound=self.ub,
-                mapping=self.mapping
+                mapping=self.mapping,
             )
             for _ in range(self.n_agents)
         ]
@@ -246,7 +246,7 @@ class Space:
             n_objectives=self.n_objectives,
             lower_bound=self.lb,
             upper_bound=self.ub,
-            mapping=self.mapping
+            mapping=self.mapping,
         )
 
     def _initialize_agents(self) -> None:

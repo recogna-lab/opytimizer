@@ -21,7 +21,13 @@ from opytimizer.optimizers.single_objective.swarm.kh import KH
 from opytimizer.optimizers.single_objective.swarm.mfo import MFO
 from opytimizer.optimizers.single_objective.swarm.mrfo import MRFO
 from opytimizer.optimizers.single_objective.swarm.pio import PIO
-from opytimizer.optimizers.single_objective.swarm.pso import AIWPSO, PSO, RPSO, SAVPSO, VPSO
+from opytimizer.optimizers.single_objective.swarm.pso import (
+    AIWPSO,
+    PSO,
+    RPSO,
+    SAVPSO,
+    VPSO,
+)
 from opytimizer.optimizers.single_objective.swarm.sbo import SBO
 from opytimizer.optimizers.single_objective.swarm.sca import SCA
 from opytimizer.optimizers.single_objective.swarm.sfo import SFO

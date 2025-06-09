@@ -24,12 +24,10 @@ class WeightedFunction(Function):
 
         """
 
-        logger.info(
-            "Overriding class: Function -> WeightedFunction."
-        )
+        logger.info("Overriding class: Function -> WeightedFunction.")
 
         super(WeightedFunction, self).__init__(functions)
-        
+
         self.functions = functions
 
         self.weights = weights or []

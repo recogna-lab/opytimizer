@@ -113,7 +113,11 @@ def test_rra_stalling_search():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_rra = rra.RRA()
@@ -127,7 +131,11 @@ def test_rra_roulette_selection():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     fitness = [1 for _ in range(search_space.n_agents)]
@@ -144,7 +152,11 @@ def test_rra_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_rra = rra.RRA()

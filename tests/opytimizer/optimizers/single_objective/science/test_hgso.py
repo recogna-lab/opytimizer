@@ -124,7 +124,11 @@ def test_hgso_params_setter():
 
 def test_hgso_compile():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_hgso = hgso.HGSO()
@@ -154,7 +158,11 @@ def test_hgso_compile():
 
 def test_hgso_update_position():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_hgso = hgso.HGSO()
@@ -172,7 +180,11 @@ def test_hgso_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_hgso = hgso.HGSO()

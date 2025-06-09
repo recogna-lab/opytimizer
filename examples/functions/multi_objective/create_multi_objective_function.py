@@ -1,5 +1,6 @@
 from opytimizer.core import Function
 
+
 # Defines some test functions
 def test_function1(z):
     return z + 2

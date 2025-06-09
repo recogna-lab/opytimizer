@@ -48,7 +48,9 @@ class Lion(Agent):
 
         """
 
-        super(Lion, self).__init__(n_variables, n_dimensions, n_objectives, lower_bound, upper_bound)
+        super(Lion, self).__init__(
+            n_variables, n_dimensions, n_objectives, lower_bound, upper_bound
+        )
 
         self.position = copy.deepcopy(position)
         self.best_position = copy.deepcopy(position)

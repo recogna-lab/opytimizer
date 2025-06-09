@@ -12,7 +12,7 @@ s = HyperComplexSpace(
     n_agents=n_agents,
     n_variables=n_variables,
     n_dimensions=n_dimensions,
-    n_objectives=n_objectives
+    n_objectives=n_objectives,
 )
 
 # Prints out some properties

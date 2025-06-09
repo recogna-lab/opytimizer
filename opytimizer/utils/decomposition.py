@@ -1,5 +1,8 @@
 import numpy as np
+
 import opytimizer.utils.exception as e
+
+
 def weighted_sum(agent: np.ndarray, weights: np.ndarray, **kwargs) -> float:
     """The weighted sum classical method.
     Args:
@@ -8,6 +11,7 @@ def weighted_sum(agent: np.ndarray, weights: np.ndarray, **kwargs) -> float:
     """
     return np.sum((agent * weights))
 
+
 def tchebycheff(agent: np.ndarray, weights: np.ndarray, z: np.ndarray) -> float:
     """The Tchebycheff classical method.
     Args:
@@ -15,9 +19,12 @@ def tchebycheff(agent: np.ndarray, weights: np.ndarray, z: np.ndarray) -> float:
         weights: weights vector
         z: reference point.
     """
-    return np.max(weights * (np.abs(agent - z))) 
+    return np.max(weights * (np.abs(agent - z)))
 
-def pbi(agent: np.ndarray, weights: np.ndarray, z: np.ndarray, penalty: float = 5.0) -> float:
+
+def pbi(
+    agent: np.ndarray, weights: np.ndarray, z: np.ndarray, penalty: float = 5.0
+) -> float:
     """The Penalty-based Boundary Intersection (PBI) method.
 
     Args:

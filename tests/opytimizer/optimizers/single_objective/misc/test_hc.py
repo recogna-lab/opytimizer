@@ -46,7 +46,11 @@ def test_hc_params_setter():
 
 def test_hc_update():
     search_space = search.SearchSpace(
-        n_agents=50, n_variables=2, n_objectives=1, lower_bound=[0, 0], upper_bound=[10, 10]
+        n_agents=50,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[0, 0],
+        upper_bound=[10, 10],
     )
 
     new_hc = hc.HC()

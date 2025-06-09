@@ -99,74 +99,92 @@ def test_function():
 
 
 def test_function_multi_objective_name():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     new_function = function.Function(funcs)
-    
+
     assert new_function.name == "MultiObjectiveFunction"
 
 
 def test_function_multi_objective_pointer_is_callable():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     new_function = function.Function(funcs)
-    
+
     assert callable(new_function.pointer)
 
 
 def test_function_multi_objective_built():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     new_function = function.Function(funcs)
-    
+
     assert new_function.built is True
 
 
 def test_function_multi_objective_call():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     x = np.array([1, 2, 3])
-    
+
     results = [f(x) for f in funcs]
-    
+
     new_function = function.Function(funcs)
-    
+
     np.testing.assert_array_equal(new_function(x), np.array(results))
 
 
 def test_function_multi_objective_n_objectives():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     new_function = function.Function(funcs)
-    
+
     assert new_function.n_objectives == 2
 
 
 def test_function_multi_objective_pointer_call():
-    def f1(x): return np.sum(x**2)
-    def f2(x): return np.sum(x)
-    
+    def f1(x):
+        return np.sum(x**2)
+
+    def f2(x):
+        return np.sum(x)
+
     funcs = [f1, f2]
-    
+
     x = np.array([1, 2, 3])
-    
+
     results = [f(x) for f in funcs]
-    
+
     new_function = function.Function(funcs)
-    
+
     np.testing.assert_array_equal(new_function.pointer(x), np.array(results))

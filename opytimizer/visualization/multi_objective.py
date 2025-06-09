@@ -40,28 +40,30 @@ def plot_pareto_front(
     n_dimensions = pareto_front[0].fit.shape[0]
     if n_dimensions == 3:
         # 3 dimensions
-        fig = plt.figure(figsize=(10,7))
-        ax = fig.add_subplot(111, projection='3d')
+        fig = plt.figure(figsize=(10, 7))
+        ax = fig.add_subplot(111, projection="3d")
     elif n_dimensions == 2:
         # 2 dimensions
         fig, ax = plt.subplots(figsize=(7, 5))
     else:
         # PF can't be shown
-        raise e.ValueError('Only two and three-objetive problems can be ploted')    
+        raise e.ValueError("Only two and three-objetive problems can be ploted")
 
     if all_solutions is not None:
         f1_all = [agent.fit[0][0] for agent in all_solutions]
         f2_all = [agent.fit[1][0] for agent in all_solutions]
-        
+
         if n_dimensions == 3:
             f3_all = [agent.fit[2][0] for agent in all_solutions]
-            ax.scatter(f1_all, f2_all, f3_all, c='lightgray', alpha=0.5, label='All solutions')
+            ax.scatter(
+                f1_all, f2_all, f3_all, c="lightgray", alpha=0.5, label="All solutions"
+            )
         else:
-            ax.scatter(f1_all, f2_all, c='lightgray', alpha=0.5, label='All Solutions')
+            ax.scatter(f1_all, f2_all, c="lightgray", alpha=0.5, label="All Solutions")
 
     f1 = [agent.fit[0][0] for agent in pareto_front]
     f2 = [agent.fit[1][0] for agent in pareto_front]
-    
+
     if n_dimensions == 3:
         f3 = [agent.fit[2][0] for agent in pareto_front]
 
@@ -69,12 +71,12 @@ def plot_pareto_front(
     f1 = np.array(f1)[idx]
     f2 = np.array(f2)[idx]
     if n_dimensions == 3:
-        f3=np.array(f3)[idx]
-        
+        f3 = np.array(f3)[idx]
+
     ax.set(xlabel=xlabel, ylabel=ylabel)
     if n_dimensions == 3:
         ax.set(zlabel=zlabel)
-        
+
     ax.set_title(title, loc="left", fontsize=14)
     ax.set_title(subtitle, loc="right", fontsize=8, color="grey")
 
@@ -83,14 +85,13 @@ def plot_pareto_front(
 
     if scatter:
         if n_dimensions == 3:
-            ax.scatter(f1, f2, f3, c='blue', alpha=0.8, label='Pareto Front')
-        else:    
-            ax.scatter(f1, f2, c='blue', alpha=0.8, label='Pareto Front')
-    
+            ax.scatter(f1, f2, f3, c="blue", alpha=0.8, label="Pareto Front")
+        else:
+            ax.scatter(f1, f2, c="blue", alpha=0.8, label="Pareto Front")
+
     if line:
         if n_dimensions != 3:
-            ax.plot(f1, f2, 'r--', alpha=0.4, label='Pareto Line')
-        
+            ax.plot(f1, f2, "r--", alpha=0.4, label="Pareto Line")
 
     ax.legend()
     plt.show()
@@ -128,17 +129,16 @@ def plot_pareto_evolution(
         ax.grid()
 
     colors = plt.cm.viridis(np.linspace(0, 1, len(iterations)))
-    
+
     for i, (front, it) in enumerate(zip(pareto_fronts, iterations)):
         f1 = [agent.fit[0][0] for agent in front]
         f2 = [agent.fit[1][0] for agent in front]
-        
+
         idx = np.argsort(f1)
         f1 = np.array(f1)[idx]
         f2 = np.array(f2)[idx]
-        
-        ax.plot(f1, f2, '--', alpha=0.4, color=colors[i], 
-                label=f'Iteration {it}')
+
+        ax.plot(f1, f2, "--", alpha=0.4, color=colors[i], label=f"Iteration {it}")
 
     ax.legend()
     plt.show()

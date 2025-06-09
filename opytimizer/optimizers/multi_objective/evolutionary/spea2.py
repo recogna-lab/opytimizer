@@ -1,6 +1,7 @@
 """SPEA2."""
 
 import copy
+
 import numpy as np
 
 import opytimizer.utils.exception as e
@@ -240,12 +241,12 @@ class SPEA2(MultiObjectiveOptimizer):
         if len(non_dominated) > self.archive_size:
             # Sorts by density
             sorted_indices = np.argsort(self.density[non_dominated])
-            selected = [non_dominated[i] for i in sorted_indices[:self.archive_size]]
+            selected = [non_dominated[i] for i in sorted_indices[: self.archive_size]]
         else:
             # If we have less non-dominated solutions than the archive size
             selected = non_dominated
             remaining = self.archive_size - len(non_dominated)
-            
+
             # Gets the remaining solutions from the dominated ones
             dominated = [i for i in range(len(agents)) if i not in non_dominated]
             sorted_indices = np.argsort(fitness[dominated])
@@ -377,7 +378,7 @@ class SPEA2(MultiObjectiveOptimizer):
             child2 = self._mutation(child2)
             offspring.extend([child1, child2])
 
-        return offspring[:len(space.agents)]
+        return offspring[: len(space.agents)]
 
     def update(self, space: "Space", function) -> None:
         """Wraps SPEA2 over all agents and variables.
@@ -400,4 +401,4 @@ class SPEA2(MultiObjectiveOptimizer):
         new_pop = self._environmental_selection(combined_population)
 
         # Updates the population
-        space.agents = new_pop 
+        space.agents = new_pop

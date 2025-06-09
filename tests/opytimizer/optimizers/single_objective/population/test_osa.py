@@ -28,7 +28,11 @@ def test_osa_params_setter():
 
 def test_osa_update():
     search_space = search.SearchSpace(
-        n_agents=10, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=10,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[-10, -10],
+        upper_bound=[10, 10],
     )
 
     new_osa = osa.OSA()

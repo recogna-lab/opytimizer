@@ -23,7 +23,7 @@ class BooleanSpace(Space):
         n_agents: int,
         n_variables: int,
         n_objectives: int,
-        mapping: Optional[List[str]] = None
+        mapping: Optional[List[str]] = None,
     ) -> None:
         """Initialization method.
 
@@ -48,7 +48,7 @@ class BooleanSpace(Space):
             n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            mapping=mapping
+            mapping=mapping,
         )
 
         self.build()

@@ -47,7 +47,7 @@ class NSGA2(MultiObjectiveOptimizer):
         super().__init__()
 
         self.crossover_rate = 0.9
-        self.MR = 0.025
+        self.mutation_rate = 0.025
         self.crossover_operator = crossover_operator or arithmetic_crossover
         self.mutation_operator = mutation_operator or gaussian_mutation
         self.crossover_params = crossover_params or {}
@@ -73,19 +73,19 @@ class NSGA2(MultiObjectiveOptimizer):
         self._crossover_rate = crossover_rate
 
     @property
-    def MR(self) -> float:
+    def mutation_rate(self) -> float:
         """Probability of mutation."""
 
-        return self._MR
+        return self._mutation_rate
 
-    @MR.setter
-    def MR(self, mutation_rate: float) -> None:
+    @mutation_rate.setter
+    def mutation_rate(self, mutation_rate: float) -> None:
         if not isinstance(mutation_rate, (float, int)):
-            raise e.TypeError("`MR` should be a float or integer")
+            raise e.TypeError("`mutation_rate` should be a float or integer")
         if mutation_rate < 0 or mutation_rate > 1:
-            raise e.ValueError("`MR` should be between 0 and 1")
+            raise e.ValueError("`mutation_rate` should be between 0 and 1")
 
-        self._MR = mutation_rate
+        self._mutation_rate = mutation_rate
 
     @property
     def rank(self) -> np.ndarray:
@@ -191,7 +191,7 @@ class NSGA2(MultiObjectiveOptimizer):
             return distances
 
         fitness_mtx = np.column_stack([agents[i].fit for i in front]).T
-        
+
         n_objectives = fitness_mtx.shape[1]
 
         for m in range(n_objectives):
@@ -206,8 +206,8 @@ class NSGA2(MultiObjectiveOptimizer):
             norm = (max_val - min_val) if max_val > min_val else 1.0
 
             for i in range(1, len(front) - 1):
-                prev_fit = fitness_mtx[sorted_indices[i-1],m]
-                next_fit = fitness_mtx[sorted_indices[i+1],m]
+                prev_fit = fitness_mtx[sorted_indices[i - 1], m]
+                next_fit = fitness_mtx[sorted_indices[i + 1], m]
                 distances[sorted_indices[i]] += (next_fit - prev_fit) / norm
 
         return distances
@@ -300,14 +300,14 @@ class NSGA2(MultiObjectiveOptimizer):
 
         if self.mutation_operator == gaussian_mutation:
             mutant = self.mutation_operator(
-                x, self.MR, **self.mutation_params
+                x, self.mutation_rate, **self.mutation_params
             )
         else:
             mutant = self.mutation_operator(
                 vector=x,
                 lb=lb,
                 ub=ub,
-                mutation_rate=self.MR,
+                mutation_rate=self.mutation_rate,
                 **self.mutation_params
             )
 
@@ -405,7 +405,7 @@ class NSGA2(MultiObjectiveOptimizer):
             function: Function to evaluate the fitness of the agents.
 
         """
-        
+
         for agent in space.agents:
             agent.fit = function(agent.position)
 

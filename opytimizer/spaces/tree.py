@@ -61,7 +61,7 @@ class TreeSpace(Space):
             n_objectives=n_objectives,
             lower_bound=lower_bound,
             upper_bound=upper_bound,
-            mapping=mapping
+            mapping=mapping,
         )
 
         self.n_terminals = n_terminals
@@ -182,7 +182,14 @@ class TreeSpace(Space):
         """Creates a list of terminals."""
 
         self.terminals = [
-            Agent(self.n_variables, self.n_dimensions, self.n_objectives, self.lb, self.ub, self.mapping)
+            Agent(
+                self.n_variables,
+                self.n_dimensions,
+                self.n_objectives,
+                self.lb,
+                self.ub,
+                self.mapping,
+            )
             for _ in range(self.n_terminals)
         ]
 

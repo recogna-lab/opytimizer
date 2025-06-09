@@ -107,8 +107,8 @@ def one_point_crossover(parent1, parent2, lb=None, ub=None, crossover_rate=0.9):
     Returns:
         tuple: Two children vectors (np.ndarray).
     """
-    parent1=parent1.flatten()
-    parent2=parent2.flatten()
+    parent1 = parent1.flatten()
+    parent2 = parent2.flatten()
     child1 = parent1.copy()
     child2 = parent2.copy()
     if np.random.rand() < crossover_rate:
@@ -118,7 +118,7 @@ def one_point_crossover(parent1, parent2, lb=None, ub=None, crossover_rate=0.9):
         if lb is not None and ub is not None:
             child1 = np.clip(child1, lb, ub)
             child2 = np.clip(child2, lb, ub)
-    return child1.reshape(-1,1), child2.reshape(-1,1)
+    return child1.reshape(-1, 1), child2.reshape(-1, 1)
 
 
 def gaussian_mutation(vector, mutation_rate=0.1, std=0.1):
@@ -190,9 +190,13 @@ def polynomial_mutation(vector, lb, ub, mutation_rate=0.1, eta=20):
             delta2 = (ubi - x) / (ubi - lbi) if ubi > lbi else 0.0
             u = np.random.rand()
             if u <= 0.5:
-                delta_q = (2*u + (1 - 2*u) * (1 - delta1)**(eta + 1)) ** (1/(eta + 1)) - 1
+                delta_q = (2 * u + (1 - 2 * u) * (1 - delta1) ** (eta + 1)) ** (
+                    1 / (eta + 1)
+                ) - 1
             else:
-                delta_q = 1 - (2*(1 - u) + 2*(u - 0.5)*(1 - delta2)**(eta + 1)) ** (1/(eta + 1))
+                delta_q = 1 - (
+                    2 * (1 - u) + 2 * (u - 0.5) * (1 - delta2) ** (eta + 1)
+                ) ** (1 / (eta + 1))
             mutant[i] = x + delta_q * (ubi - lbi)
             mutant[i] = np.clip(mutant[i], lbi, ubi)
-    return mutant 
+    return mutant

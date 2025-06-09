@@ -50,7 +50,7 @@ class WAOA(Optimizer):
             space: A Space object that will be evaluated.
 
         """
-        print('evaluating...')
+        print("evaluating...")
         for agent in space.agents:
             if agent.fit < space.best_agent.fit:
                 space.best_agent.position = copy.deepcopy(agent.position)

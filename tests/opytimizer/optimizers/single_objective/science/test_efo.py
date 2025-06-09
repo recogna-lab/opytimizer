@@ -122,7 +122,11 @@ def test_efo_update():
     new_efo = efo.EFO()
 
     search_space = search.SearchSpace(
-        n_agents=2, n_variables=2, n_objectives=1, lower_bound=[1, 1], upper_bound=[10, 10]
+        n_agents=2,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[1, 1],
+        upper_bound=[10, 10],
     )
 
     new_efo.update(search_space, square)

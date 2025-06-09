@@ -58,7 +58,11 @@ def test_cs_params_setter():
 
 def test_cs_generate_new_nests():
     search_space = search.SearchSpace(
-        n_agents=20, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=20,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[-10, -10],
+        upper_bound=[10, 10],
     )
 
     new_cs = cs.CS()
@@ -72,7 +76,11 @@ def test_cs_generate_new_nests():
 
 def test_cs_generate_abandoned_nests():
     search_space = search.SearchSpace(
-        n_agents=20, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=20,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[-10, -10],
+        upper_bound=[10, 10],
     )
 
     new_cs = cs.CS()
@@ -87,7 +95,11 @@ def test_cs_evaluate_nests():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=20, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=20,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[-10, -10],
+        upper_bound=[10, 10],
     )
 
     new_cs = cs.CS()
@@ -101,7 +113,11 @@ def test_cs_update():
         return np.sum(x**2)
 
     search_space = search.SearchSpace(
-        n_agents=20, n_variables=2, n_objectives=1, lower_bound=[-10, -10], upper_bound=[10, 10]
+        n_agents=20,
+        n_variables=2,
+        n_objectives=1,
+        lower_bound=[-10, -10],
+        upper_bound=[10, 10],
     )
 
     new_cs = cs.CS()
