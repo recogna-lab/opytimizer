@@ -7,11 +7,11 @@ import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.hyperheuristic import HyperHeuristic
 from opytimizer.core.space import Space
-from opytimizer.utils import logging
-from opytimizer.utils.adaptation_mechanism import (
+from opytimizer.hyperheuristics.adaptation_mechanism import (
     AdaptationMechanism,
     ParameterAdaptation,
 )
+from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -23,10 +23,6 @@ class AdaptiveHyperHeuristic(HyperHeuristic):
     This hyperheuristic implements the adaptive approach where optimizer
     parameters are modified dynamically based on their performance history
     and the chosen adaptation mechanism.
-
-    References:
-        A. E. Eiben and J. E. Smith. Introduction to Evolutionary Computing.
-        Springer (2015).
     """
 
     def __init__(
@@ -113,17 +109,24 @@ class AdaptiveHyperHeuristic(HyperHeuristic):
                 }
             )
 
-    def update(self, space: Space) -> None:
+    def update(self, space: Space, function: Function = None) -> None:
         """Update the search space and potentially adapt optimizer parameters.
 
         Args:
             space: A Space object containing agents and update-related information.
+            function: Objective function (optional, for optimizers that need it).
         """
         if not self.current_optimizer:
             raise e.ValueError("No optimizer selected for update")
 
-        # Update using current optimizer
-        self.current_optimizer.update(space)
+        # Check if the optimizer needs function as an argument
+        import inspect
+
+        sig = inspect.signature(self.current_optimizer.update)
+        if "function" in sig.parameters:
+            self.current_optimizer.update(space, function)
+        else:
+            self.current_optimizer.update(space)
 
         # Increment iteration
         self.iteration += 1

@@ -1,7 +1,5 @@
-"""Adaptive hyperheuristics package.
-
-This package contains hyperheuristics that adapt their parameters
-and strategies based on performance feedback.
+"""An adaptive hyperheuristics package for opytimizer.
+It contains adaptive strategies for hyperheuristics.
 """
 
 from opytimizer.hyperheuristics.adaptive.adaptive_hyperheuristic import (

@@ -1,14 +1,11 @@
 """HyperHeuristic.
 """
 
-import copy
-import time
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
 from opytimizer.core.space import Space
@@ -25,18 +22,7 @@ class HyperHeuristic(Optimizer):
     It supports both single-objective and multi-objective optimization by allowing
     a custom performance_metric function to be passed (e.g., min_fitness, hypervolume, etc).
 
-    Example usage:
-        # For single-objective
-        hh_single = HyperHeuristic(
-            optimizers=[PSO(), GA()],
-            performance_metric=lambda space: space.best_agent.fit
-        )
-
-        # For multi-objective
-        hh_multi = HyperHeuristic(
-            optimizers=[NSGA2(), MOEAD()],
-            performance_metric=hypervolume
-        )
+    It also supports parameter adaptation and strategy adaptation mechanisms.
     """
 
     def __init__(
@@ -66,6 +52,9 @@ class HyperHeuristic(Optimizer):
                 optimizer_name = optimizer.__class__.__name__
                 self.performance_history[optimizer_name] = []
                 self.selection_count[optimizer_name] = 0
+
+        # Mark as built since we have all required components
+        self.built = True
 
         logger.info("Class overrided.")
 
@@ -216,12 +205,21 @@ class HyperHeuristic(Optimizer):
         self.current_optimizer.evaluate(space, function)
         self.update_performance(self.current_optimizer, space)
 
-    def update(self, space: Space) -> None:
+    def update(self, space: Space, function: Function = None) -> None:
         if not self.current_optimizer:
             raise e.ValueError("No optimizer selected for update")
-        self.current_optimizer.update(space)
+
+        # Check if the optimizer needs function as an argument
+        import inspect
+
+        sig = inspect.signature(self.current_optimizer.update)
+        if "function" in sig.parameters:
+            self.current_optimizer.update(space, function)
+        else:
+            self.current_optimizer.update(space)
+
         self.iteration += 1
-        new_optimizer = self.select_optimizer(space, None)
+        new_optimizer = self.select_optimizer(space, function)
         if new_optimizer != self.current_optimizer:
             self.current_optimizer = new_optimizer
             logger.debug("Switched to optimizer: %s.", new_optimizer.__class__.__name__)

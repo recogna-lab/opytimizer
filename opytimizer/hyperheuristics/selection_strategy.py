@@ -3,7 +3,7 @@
 
 import random
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -37,12 +37,7 @@ class SelectionStrategy(ABC):
 
 
 class ChoiceFunction(SelectionStrategy):
-    """Choice Function selection strategy.
-
-    References:
-        A. J. Parkes and D. H. Smith. A Hyper-Heuristic Approach to Scheduling.
-        Journal of Scheduling (2003).
-    """
+    """Choice Function selection strategy."""
 
     def __init__(self, alpha: float = 0.5, beta: float = 0.5) -> None:
         """Initialization method.
@@ -90,27 +85,22 @@ class ChoiceFunction(SelectionStrategy):
 
 
 class MultiArmedBandit(SelectionStrategy):
-    """Multi-Armed Bandit selection strategy.
+    """Multi-Armed Bandit selection strategy using Upper Confidence Bound (UCB)."""
 
-    References:
-        A. Aleti and I. Moser. A Systematic Literature Review of Adaptive
-        Parameter Control Methods for Evolutionary Algorithms.
-        ACM Computing Surveys (2016).
-    """
-
-    def __init__(self, exploration_rate: float = 0.1) -> None:
+    def __init__(self, exploration_constant: float = 2.0) -> None:
         """Initialization method.
 
         Args:
-            exploration_rate: Rate of exploration vs exploitation.
+            exploration_constant: Constant for UCB exploration (default: 2.0).
         """
         super().__init__()
-        self.exploration_rate = exploration_rate
+        self.exploration_constant = exploration_constant
+        self.selection_counts = {}
 
     def select(
         self, optimizers: List[Any], performance_history: Dict[str, List[float]]
     ) -> Any:
-        """Select optimizer using Multi-Armed Bandit.
+        """Select optimizer using UCB (Upper Confidence Bound).
 
         Args:
             optimizers: List of available optimizers.
@@ -122,35 +112,54 @@ class MultiArmedBandit(SelectionStrategy):
         if not optimizers:
             raise e.ValueError("No optimizers available for selection")
 
-        # Exploration: select random optimizer
-        if random.random() < self.exploration_rate:
-            return random.choice(optimizers)
+        # Initialize selection counts if not present
+        for optimizer in optimizers:
+            optimizer_name = optimizer.__class__.__name__
+            if optimizer_name not in self.selection_counts:
+                self.selection_counts[optimizer_name] = 0
 
-        # Exploitation: select best performing optimizer
-        best_performance = float("-inf")
-        best_optimizer = optimizers[0]
+        # Calculate UCB values for each optimizer
+        ucb_values = []
+        total_selections = sum(self.selection_counts.values()) + 1  # +1 to avoid log(0)
 
         for optimizer in optimizers:
             optimizer_name = optimizer.__class__.__name__
-            if (
-                optimizer_name in performance_history
-                and performance_history[optimizer_name]
-            ):
-                avg_performance = np.mean(performance_history[optimizer_name])
-                if avg_performance > best_performance:
-                    best_performance = avg_performance
-                    best_optimizer = optimizer
+            selection_count = self.selection_counts[optimizer_name]
 
-        return best_optimizer
+            if selection_count == 0:
+                # If never selected, give it high priority
+                ucb_value = float("inf")
+            else:
+                # Calculate average performance
+                if (
+                    optimizer_name in performance_history
+                    and performance_history[optimizer_name]
+                ):
+                    avg_performance = np.mean(performance_history[optimizer_name])
+                else:
+                    avg_performance = 0.0
+
+                # UCB formula: avg_reward + sqrt(ln(t) / n_i)
+                exploration_term = self.exploration_constant * np.sqrt(
+                    np.log(total_selections) / selection_count
+                )
+                ucb_value = avg_performance + exploration_term
+
+            ucb_values.append(ucb_value)
+
+        # Select optimizer with highest UCB value
+        selected_index = np.argmax(ucb_values)
+        selected_optimizer = optimizers[selected_index]
+
+        # Update selection count
+        selected_optimizer_name = selected_optimizer.__class__.__name__
+        self.selection_counts[selected_optimizer_name] += 1
+
+        return selected_optimizer
 
 
 class RandomDescent(SelectionStrategy):
-    """Random Descent selection strategy.
-
-    References:
-        P. Cowling, G. Kendall, and E. Soubeiga. A Hyperheuristic Approach to
-        Scheduling a Sales Summit. Practice and Theory of Automated Timetabling (2001).
-    """
+    """Random Descent selection strategy."""
 
     def __init__(self, acceptance_threshold: float = 0.1) -> None:
         """Initialization method.

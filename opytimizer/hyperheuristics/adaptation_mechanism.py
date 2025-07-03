@@ -1,16 +1,10 @@
 """Adaptation mechanisms for hyperheuristics.
 """
 
-import random
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
-
-import opytimizer.utils.exception as e
-from opytimizer.utils import logging
-
-logger = logging.get_logger(__name__)
 
 
 class AdaptationMechanism(ABC):
@@ -193,12 +187,7 @@ class PopulationAdaptation(AdaptationMechanism):
 
 
 class AdaptiveParameterControl(AdaptationMechanism):
-    """Adaptive parameter control mechanism.
-
-    References:
-        Eiben, A. E., Hinterding, R., & Michalewicz, Z. (1999). Parameter control
-        in evolutionary algorithms. IEEE Transactions on Evolutionary Computation.
-    """
+    """Adaptive parameter control mechanism."""
 
     def __init__(self, adaptation_window: int = 10) -> None:
         """Initialization method.

@@ -1,7 +1,5 @@
-"""Hybrid hyperheuristics package.
-
-This package contains hyperheuristics that combine multiple approaches,
-such as selection and generation, or selection and adaptation.
+"""A hybrid hyperheuristics package for opytimizer.
+It contains hybrid strategies for hyperheuristics.
 """
 
 from opytimizer.hyperheuristics.hybrid.hybrid_hyperheuristic import HybridHyperHeuristic

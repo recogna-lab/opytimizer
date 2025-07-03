@@ -1,7 +1,5 @@
-"""Selection-based hyperheuristics package.
-
-This package contains hyperheuristics that select between different
-low-level optimizers using various strategies.
+"""A selection-based hyperheuristics package for opytimizer.
+It contains selection strategies for hyperheuristics.
 """
 
 from opytimizer.hyperheuristics.selection.selection_hyperheuristic import (
