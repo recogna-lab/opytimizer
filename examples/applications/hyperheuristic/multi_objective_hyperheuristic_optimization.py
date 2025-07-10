@@ -7,9 +7,9 @@ from opytimizer.hyperheuristics.selection_strategy import (
     ChoiceFunction,
     MultiArmedBandit,
 )
+from opytimizer.math.metrics import HypervolumeMetric
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
-from opytimizer.utils.metrics import calculate_hypervolume
 from opytimizer.utils.operators import polynomial_mutation, sbx_crossover
 from opytimizer.utils.weights_vector import ref_dirs
 
@@ -33,7 +33,8 @@ REFERENCE_POINT = np.array(
 def performance_metric(space):
     """Calculate performance based on hypervolume."""
     pareto_front = np.array(space.pareto_front)
-    return calculate_hypervolume(pareto_front, REFERENCE_POINT)
+    hypervolume_metric = HypervolumeMetric()
+    return hypervolume_metric(pareto_front, REFERENCE_POINT)
 
 
 # Generate weight vectors for MOEAD
