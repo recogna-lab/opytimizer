@@ -5,7 +5,7 @@ from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.callback import Callback
-from opytimizer.utils.operators import polynomial_mutation, sbx_crossover
+from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
 from opytimizer.visualization.multi_objective import (
     plot_pareto_evolution,
     plot_pareto_front,
@@ -44,10 +44,8 @@ space = SearchSpace(
 )
 
 optimizer = NSGA2(
-    crossover_operator=sbx_crossover,
-    mutation_operator=polynomial_mutation,
-    crossover_params={"eta": 20},
-    mutation_params={"eta": 20},
+    crossover_operator=SBXCrossover(eta=20),
+    mutation_operator=PolynomialMutation(eta=20),
 )
 function = Function(zdt1)
 

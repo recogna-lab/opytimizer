@@ -16,6 +16,7 @@ from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.space import Space
 from opytimizer.utils import logging
+from opytimizer.utils.operators import ArithmeticCrossover, GaussianMutation
 
 logger = logging.get_logger(__name__)
 
@@ -31,12 +32,18 @@ class GA(Optimizer):
 
     """
 
-    def __init__(self, params: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        crossover_operator=None,
+        mutation_operator=None,
+    ) -> None:
         """Initialization method.
 
         Args:
             params: Contains key-value parameters to the meta-heuristics.
-
+            crossover_operator: Crossover operator to be used.
+            mutation_operator: Mutation operator to be used.
         """
 
         super(GA, self).__init__()
@@ -44,6 +51,8 @@ class GA(Optimizer):
         self.p_selection = 0.75
         self.p_mutation = 0.25
         self.p_crossover = 0.5
+        self.crossover_operator = crossover_operator or ArithmeticCrossover()
+        self.mutation_operator = mutation_operator or GaussianMutation()
 
         self.build(params)
 
@@ -136,18 +145,15 @@ class GA(Optimizer):
 
         """
 
-        alpha, beta = copy.deepcopy(father), copy.deepcopy(mother)
+        if np.random.rand() < self.p_crossover:
+            child1, child2 = self.crossover_operator(father, mother)
+        else:
+            child1 = copy.deepcopy(father)
+            child2 = copy.deepcopy(mother)
 
-        r1 = r.generate_uniform_random_number()
-        if r1 < self.p_crossover:
-            r2 = r.generate_uniform_random_number()
+        return child1, child2
 
-            alpha.position = r2 * father.position + (1 - r2) * mother.position
-            beta.position = r2 * mother.position + (1 - r2) * father.position
-
-        return alpha, beta
-
-    def _mutation(self, alpha: Agent, beta: Agent) -> Tuple[Agent, Agent]:
+    def _mutation(self, agent: Agent) -> Agent:
         """Performs the mutation over offsprings (p. 8).
 
         Args:
@@ -159,16 +165,13 @@ class GA(Optimizer):
 
         """
 
-        for j in range(alpha.n_variables):
-            r1 = r.generate_uniform_random_number()
-            if r1 < self.p_mutation:
-                alpha.position[j] += r.generate_gaussian_random_number()
+        if np.random.rand() < self.p_mutation:
+            mutated = self.mutation_operator(agent)
+        else:
+            mutated = copy.deepcopy(agent)
 
-            r2 = r.generate_uniform_random_number()
-            if r2 < self.p_mutation:
-                beta.position[j] += r.generate_gaussian_random_number()
-
-        return alpha, beta
+        mutated.clip_by_bound()
+        return mutated
 
     def update(self, space: Space, function: Function) -> None:
         """Wraps Genetic Algorithm over all agents and variables.
@@ -186,16 +189,16 @@ class GA(Optimizer):
 
         selected = self._roulette_selection(n_agents, fitness)
         for s in g.n_wise(selected):
-            alpha, beta = self._crossover(space.agents[s[0]], space.agents[s[1]])
-            alpha, beta = self._mutation(alpha, beta)
+            parent1 = space.agents[s[0]]
+            parent2 = space.agents[s[1]]
+            child1, child2 = self._crossover(parent1, parent2)
+            child1 = self._mutation(child1)
+            child2 = self._mutation(child2)
 
-            alpha.clip_by_bound()
-            beta.clip_by_bound()
+            child1.fit = function(child1.position)
+            child2.fit = function(child2.position)
 
-            alpha.fit = function(alpha.position)
-            beta.fit = function(beta.position)
-
-            new_agents.extend([alpha, beta])
+            new_agents.extend([child1, child2])
 
         space.agents += new_agents
         space.agents.sort(key=lambda x: x.fit)

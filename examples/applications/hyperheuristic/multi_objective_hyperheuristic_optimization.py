@@ -10,7 +10,7 @@ from opytimizer.hyperheuristics.selection_strategy import (
 from opytimizer.math.metrics import HypervolumeMetric
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
-from opytimizer.utils.operators import polynomial_mutation, sbx_crossover
+from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
 from opytimizer.utils.weights_vector import ref_dirs
 
 
@@ -43,19 +43,16 @@ weights, n_subproblems = ref_dirs(n_objectives=2, n_partitions=12)
 # One should declare a list of optimizer instances to be used by the hyperheuristic
 optimizers = [
     NSGA2(
-        crossover_operator=sbx_crossover,
-        mutation_operator=polynomial_mutation,
-        crossover_params={"eta": 20},
-        mutation_params={"eta": 20},
+        crossover_operator=SBXCrossover(eta=20),
+        mutation_operator=PolynomialMutation(eta=20),
     ),
     MOEAD(
-        crossover_operator=sbx_crossover,
-        mutation_operator=polynomial_mutation,
-        crossover_params={"eta": 20},
-        mutation_params={"eta": 20},
-        weights_vector=weights,
+        crossover_operator=SBXCrossover(eta=20),
+        mutation_operator=PolynomialMutation(eta=20),
     ),
 ]
+# Set weights_vector for MOEAD if needed
+optimizers[1].weights_vector = weights
 
 # One should declare different selection strategies to compare
 selection_strategies = {

@@ -9,7 +9,7 @@ from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import Space
 from opytimizer.utils import logging
-from opytimizer.utils.operators import arithmetic_crossover, gaussian_mutation
+from opytimizer.utils.operators import ArithmeticCrossover, GaussianMutation
 
 logger = logging.get_logger(__name__)
 
@@ -28,8 +28,6 @@ class SPEA2(MultiObjectiveOptimizer):
         params: dict = None,
         crossover_operator=None,
         mutation_operator=None,
-        crossover_params=None,
-        mutation_params=None,
     ) -> None:
         """Initialization method.
 
@@ -37,8 +35,6 @@ class SPEA2(MultiObjectiveOptimizer):
             params: Contains key-value parameters to the meta-heuristics.
             crossover_operator: Crossover operator to be used.
             mutation_operator: Mutation operator to be used.
-            crossover_params: Parameters for the crossover operator.
-            mutation_params: Parameters for the mutation operator.
 
         """
 
@@ -48,11 +44,8 @@ class SPEA2(MultiObjectiveOptimizer):
 
         self.crossover_rate = 0.9
         self.mutation_rate = 0.025
-        self.archive_size = 100
-        self.crossover_operator = crossover_operator or arithmetic_crossover
-        self.mutation_operator = mutation_operator or gaussian_mutation
-        self.crossover_params = crossover_params or {}
-        self.mutation_params = mutation_params or {}
+        self.crossover_operator = crossover_operator or ArithmeticCrossover()
+        self.mutation_operator = mutation_operator or GaussianMutation()
 
         self.build(params)
 
@@ -296,30 +289,11 @@ class SPEA2(MultiObjectiveOptimizer):
             (tuple): Two children.
 
         """
-
-        # Gets the vectors of the parents
-        p1 = parent1.position.flatten()
-        p2 = parent2.position.flatten()
-
-        lb = parent1.lb
-        ub = parent1.ub
-
-        # Applies the custom operator
-        if self.crossover_operator == arithmetic_crossover:
-            c1_vec, c2_vec = self.crossover_operator(
-                p1, p2, self.crossover_rate, **self.crossover_params
-            )
+        if np.random.random() < self.crossover_rate:
+            child1, child2 = self.crossover_operator(parent1, parent2)
         else:
-            c1_vec, c2_vec = self.crossover_operator(
-                p1, p2, lb, ub, self.crossover_rate, **self.crossover_params
-            )
-
-        # Creates new agents
-        child1 = copy.deepcopy(parent1)
-        child2 = copy.deepcopy(parent2)
-        child1.position = c1_vec.reshape(parent1.position.shape)
-        child2.position = c2_vec.reshape(parent2.position.shape)
-
+            child1 = copy.deepcopy(parent1)
+            child2 = copy.deepcopy(parent2)
         return child1, child2
 
     def _mutation(self, agent: "Agent") -> Agent:
@@ -332,28 +306,11 @@ class SPEA2(MultiObjectiveOptimizer):
             (Agent): Mutated agent.
 
         """
-
-        x = agent.position.flatten()
-        lb = agent.lb
-        ub = agent.ub
-
-        if self.mutation_operator == gaussian_mutation:
-            mutant = self.mutation_operator(
-                x, self.mutation_rate, **self.mutation_params
-            )
+        if np.random.random() < self.mutation_rate:
+            mutated = self.mutation_operator(agent)
         else:
-            mutant = self.mutation_operator(
-                vector=x,
-                lb=lb,
-                ub=ub,
-                mutation_rate=self.mutation_rate,
-                **self.mutation_params
-            )
-
-        mutated = copy.deepcopy(agent)
-        mutated.position = mutant.reshape(agent.position.shape)
+            mutated = copy.deepcopy(agent)
         mutated.clip_by_bound()
-
         return mutated
 
     def _create_offspring(self, space: "Space") -> list:
