@@ -5,16 +5,15 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 
+import opytimizer.math.general as g
 import opytimizer.utils.exception as e
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
 from opytimizer.core.space import Space
-from opytimizer.math.general import euclidean_distance
 from opytimizer.utils import logging
 from opytimizer.utils.decomposition import tchebycheff
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
-from opytimizer.utils.weights_vector import ref_dirs
 
 logger = logging.get_logger(__name__)
 
@@ -30,7 +29,7 @@ class MOEAD(Optimizer):
 
     def __init__(
         self,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
         crossover_operator=None,
         mutation_operator=None,
         weights_vector=None,
@@ -41,9 +40,8 @@ class MOEAD(Optimizer):
             params: Contains key-value parameters to the meta-heuristics.
             crossover_operator: Crossover operator to be used.
             mutation_operator: Mutation operator to be used.
-            weights_vector: Weights vector to be used.
-        """
 
+        """
         logger.info("Overriding class: Optimizer -> MOEAD.")
 
         super().__init__()
@@ -182,7 +180,7 @@ class MOEAD(Optimizer):
 
         for i in range(n):
             for j in range(n):
-                distances[i, j] = euclidean_distance(
+                distances[i, j] = g.euclidean_distance(
                     self.weights_vector[i], self.weights_vector[j]
                 )
 
@@ -213,15 +211,16 @@ class MOEAD(Optimizer):
         # Map the subproblem indices back to the agent indices
         return np.array([idx % space.n_agents for idx in selected])
 
-    def _genetic_operators(self, parent1: "Agent", parent2: "Agent") -> tuple:
-        """Applies genetic operators (crossover and mutation) to Agent objects.
+    def _genetic_operators(self, parent1: np.ndarray, parent2: np.ndarray) -> tuple:
+        """Applies genetic operators.
 
         Args:
-            parent1: First parent (Agent).
-            parent2: Second parent (Agent).
+            parent1: First parent.
+            parent2: Second parent.
 
         Returns:
-            (tuple): Two generated children (Agent).
+            (tuple): Two generated children.
+
         """
         # Apply crossover respecting crossover_rate
         if np.random.random() < self.CR:
@@ -229,21 +228,24 @@ class MOEAD(Optimizer):
         else:
             child1 = copy.deepcopy(parent1)
             child2 = copy.deepcopy(parent2)
+
         # Apply mutation respecting mutation_rate
         if np.random.random() < self.MR:
             child1 = self.mutation_operator(child1)
         if np.random.random() < self.MR:
             child2 = self.mutation_operator(child2)
+
+        # Return the children
         return child1, child2
 
     def _update_neighborhood(
-        self, index: int, new_agents: list, new_f_values: list, space: Space
+        self, index: int, new_agents: np.ndarray, new_f_values: np.ndarray, space: Space
     ) -> None:
         """Updates the population in the neighborhood.
 
         Args:
             index: Current agent index.
-            new_agents: Newly generated agents (list of Agent).
+            new_agents: Newly generated agents.
             new_f_values: Fitness values of new agents.
             space: Space containing the population.
 
@@ -264,13 +266,16 @@ class MOEAD(Optimizer):
             )
 
             # Current fitness
-            actual_f_value = space.agents[agent_idx].fit.flatten()
+            actual_f_value = space.agents[agent_idx].fit
             actual_fitness = tchebycheff(actual_f_value, self.weights_vector[i], self.z)
 
             # Update if better
             better_idx = np.argmin(fitness)
             if fitness[better_idx] <= actual_fitness:
-                space.agents[agent_idx] = copy.deepcopy(new_agents[better_idx])
+                space.agents[agent_idx].position = copy.deepcopy(
+                    new_agents[better_idx].position
+                )
+                space.agents[agent_idx].fit = copy.deepcopy(new_f_values[better_idx])
 
     def evaluate(self, space: Space, function: Function) -> None:
         """Evaluates the fitness of the agents.
@@ -284,7 +289,7 @@ class MOEAD(Optimizer):
         if self._aux_iteration == 0:
             for agent in space.agents:
                 agent.fit = function(agent.position)
-                self.z = np.minimum(self.z, agent.fit.T)
+                self.z = np.minimum(self.z, agent.fit)
 
             self._aux_iteration = 1
 
@@ -310,14 +315,14 @@ class MOEAD(Optimizer):
             offspring1, offspring2 = self._genetic_operators(parent1, parent2)
 
             # Evaluate new agents
-            new_agents = [offspring1, offspring2]
-            new_f_values = [function(child.position).flatten() for child in new_agents]
+            children = np.array([offspring1, offspring2])
+            new_f_values = np.array([function(off.position) for off in children])
 
             # Update reference point
-            self.z = np.minimum(self.z, np.min(new_f_values, axis=0)).reshape(-1)
+            self.z = np.minimum(self.z, np.min(new_f_values, axis=0))
 
             # Update population in neighborhood
-            self._update_neighborhood(index, new_agents, new_f_values, space)
+            self._update_neighborhood(index, children, new_f_values, space)
 
 
 class MOEAD_DE(Optimizer):
@@ -331,27 +336,30 @@ class MOEAD_DE(Optimizer):
 
     def __init__(
         self,
-        params: dict = None,
-        crossover_operator=None,
+        params: Optional[Dict[str, Any]] = None,
         mutation_operator=None,
+        weights_vector=None,
     ) -> None:
         """Initialization method.
 
         Args:
             params: Contains key-value parameters to the meta-heuristics.
-            crossover_operator: Crossover operator to be used.
             mutation_operator: Mutation operator to be used.
+            weights_vector: Weights vector to be used.
 
         """
-
-        logger.info("Overriding class: Optimizer -> MOEAD.")
+        logger.info("Overriding class: Optimizer -> MOEAD_DE.")
 
         super().__init__()
 
         self.CR = 0.9
         self.MR = 0.05
-        self.crossover_operator = crossover_operator or SBXCrossover()
+        self.n_subproblems = None
+        self.neighborhood_size = None
         self.mutation_operator = mutation_operator or PolynomialMutation()
+        self.weights_vector = weights_vector
+        self.nr = 2
+        self.F = 0.5
 
         self.build(params)
 
@@ -505,7 +513,7 @@ class MOEAD_DE(Optimizer):
 
         for i in range(n):
             for j in range(n):
-                distances[i, j] = euclidean_distance(
+                distances[i, j] = g.euclidean_distance(
                     self.weights_vector[i], self.weights_vector[j]
                 )
 
@@ -535,9 +543,9 @@ class MOEAD_DE(Optimizer):
 
     def _DE_operator(
         self,
-        parent1: np.ndarray,
-        parent2: np.ndarray,
-        parent3: np.ndarray,
+        parent1: Agent,
+        parent2: Agent,
+        parent3: Agent,
         space: Space,
     ) -> np.ndarray:
         """Applies DE operator.
@@ -552,19 +560,21 @@ class MOEAD_DE(Optimizer):
         """
 
         # Apply DE
-        child = parent1.copy()
-        for i in range(len(parent1)):
-            if np.random.rand() < self.F:
-                child[i] = parent1[i] + self.F * (parent2[i] - parent3[i])
-                child[i] = np.clip(child[i], space.lb[i], space.ub[i])
+        child = copy.deepcopy(parent1)
+        for i in range(len(parent1.position)):
+            if np.random.rand() < self.CR:
+                child.position[i] = parent1.position[i] + self.F * (
+                    parent2.position[i] - parent3.position[i]
+                )
+                child.position[i] = np.clip(child.position[i], space.lb[i], space.ub[i])
 
         return child
 
     def _apply_operators(
         self,
-        parent1: np.ndarray,
-        parent2: np.ndarray,
-        parent3: np.ndarray,
+        parent1: Agent,
+        parent2: Agent,
+        parent3: Agent,
         space: Space,
     ) -> tuple:
         """Applies DE and genetic operator.
@@ -587,7 +597,7 @@ class MOEAD_DE(Optimizer):
 
         # Apply mutation respecting mutation_rate
         if np.random.random() < self.MR:
-            child = self.mutation_operator(vector=child, lb=space.lb, ub=space.ub)
+            child = self.mutation_operator(child)
 
         return child
 
@@ -617,14 +627,14 @@ class MOEAD_DE(Optimizer):
             fitness = np.array(tchebycheff(new_f_value, self.weights_vector[i], self.z))
 
             # Current fitness
-            actual_f_value = space.agents[i].fit.flatten()
+            actual_f_value = space.agents[i].fit
             actual_fitness = tchebycheff(actual_f_value, self.weights_vector[i], self.z)
 
             # Update if better
 
             if fitness <= actual_fitness:
-                space.agents[i].position = new_agent.copy()
-                space.agents[i].fit = (new_f_value.reshape(-1, 1)).copy()
+                space.agents[i].position = copy.deepcopy(new_agent.position)
+                space.agents[i].fit = copy.deepcopy(new_f_value)
                 c += 1
 
             # Remove the index from mating pool
@@ -660,7 +670,7 @@ class MOEAD_DE(Optimizer):
         if self._aux_iteration == 0:
             for agent in space.agents:
                 agent.fit = function(agent.position)
-                self.z = np.minimum(self.z, agent.fit.T)
+                self.z = np.minimum(self.z, agent.fit)
 
             self._aux_iteration = 1
 
@@ -689,18 +699,13 @@ class MOEAD_DE(Optimizer):
             parent3 = space.agents[selected[2]]
 
             # Apply DE and genetic operator
-            offspring1 = self._apply_operators(
-                parent1.position, parent2.position, parent3.position, space
-            )
+            offspring = self._apply_operators(parent1, parent2, parent3, space)
 
             # Evaluate new agents
-
-            new_f_value = function(offspring1.position).flatten()
+            new_f_value = function(offspring.position)
 
             # Update reference point
-            self.z = np.minimum(self.z, new_f_value).reshape(-1)
+            self.z = np.minimum(self.z, new_f_value)
 
             # Update population in neighborhood
-            self._update_neighborhood(
-                offspring1.position, new_f_value, space, mating_pool
-            )
+            self._update_neighborhood(offspring, new_f_value, space, mating_pool)

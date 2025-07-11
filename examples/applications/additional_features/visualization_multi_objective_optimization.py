@@ -2,10 +2,12 @@ import numpy as np
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
+from opytimizer.math.metrics import MaximumSpreadMetric, SpreadMetric
+from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.callback import Callback
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
+from opytimizer.utils.weights_vector import ref_dirs
 from opytimizer.visualization.multi_objective import (
     plot_pareto_evolution,
     plot_pareto_front,
@@ -22,13 +24,14 @@ def zdt1(x):
     f2 = g * (1 - np.sqrt(f1 / g))
 
     # Returns a 1D array with the two objectives
-    return np.array([f1, f2], dtype=np.float64)
+    return np.array([f1, f2])
 
 
 # Number of agents and decision variables and objectives
-n_agents = 100
 n_variables = 30
 n_objectives = 2
+
+weights, n_agents = ref_dirs(n_objectives, 99)
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [0] * n_variables
@@ -43,10 +46,12 @@ space = SearchSpace(
     upper_bound=upper_bound,
 )
 
-optimizer = NSGA2(
+optimizer = MOEAD(
     crossover_operator=SBXCrossover(eta=20),
     mutation_operator=PolynomialMutation(eta=20),
+    weights_vector=weights,
 )
+
 function = Function(zdt1)
 
 # List to store the Pareto fronts at different iterations
@@ -72,12 +77,23 @@ class ParetoFrontSaver(Callback):
                 print(f"Pareto front in iteration {iteration} is empty.")
 
 
+pareto_optimal = np.array([[f1, 1 - np.sqrt(f1)] for f1 in np.linspace(0, 1, 100)])
+
+
+def spread(pf):
+    return SpreadMetric()(pf, pareto_optimal)
+
+
+max_spread = MaximumSpreadMetric()
+
 # Bundles every piece into Opytimizer class
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
-# Runs the optimization passing the callback
+# Runs the optimization passando callbacks e métricas
 opt.start(
-    n_iterations=250, callbacks=[ParetoFrontSaver(space, pareto_fronts, iterations)]
+    n_iterations=250,
+    callbacks=[ParetoFrontSaver(space, pareto_fronts, iterations)],
+    metrics=[spread, max_spread],
 )
 
 # Plots the final Pareto front
@@ -85,7 +101,7 @@ plot_pareto_front(
     space.pareto_front,
     all_solutions=space.agents,
     title="ZDT1 Pareto Front",
-    subtitle="NSGA2",
+    subtitle="MOEAD",
     xlabel="f1",
     ylabel="f2",
 )
@@ -95,5 +111,5 @@ plot_pareto_evolution(
     pareto_fronts,
     iterations[: len(pareto_fronts)],
     title="ZDT1 Pareto Front Evolution",
-    subtitle="NSGA2",
+    subtitle="MOEAD",
 )

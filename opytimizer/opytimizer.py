@@ -6,6 +6,7 @@ from inspect import signature
 from typing import Any, List, Optional
 
 import dill
+import numpy as np
 from tqdm import tqdm
 
 import opytimizer.utils.exception as e
@@ -204,13 +205,14 @@ class Opytimizer:
         self,
         n_iterations: int = 1,
         callbacks: Optional[List[Callback]] = None,
+        metrics: Optional[List] = None,
     ) -> None:
         """Starts the optimization task.
 
-        Args
+        Args:
             n_iterations: Maximum number of iterations.
-            callback: List of callbacks.
-
+            callbacks: List of callbacks.
+            metrics: List of metric callables (opcional, apenas para MOO).
         """
 
         logger.info("Starting optimization task.")
@@ -236,17 +238,41 @@ class Opytimizer:
                 self.update(callbacks)
                 self.evaluate(callbacks)
 
-                b.set_postfix(fitness=self.space.best_agent.fit)
+                if self.space.n_objectives == 1 or not metrics:
+                    b.set_postfix(fitness=self.space.best_agent.fit)
+                    self.history.dump(
+                        agents=self.space.agents, best_agent=self.space.best_agent
+                    )
+                    logger.to_file(f"Fitness: {self.space.best_agent.fit}")
+                    logger.to_file(f"Position: {self.space.best_agent.position}")
+                else:
+                    pareto_front = [ag.fit for ag in self.space.pareto_front]
+                    pareto_front = np.array(pareto_front)
+                    metric_values = {}
+                    for metric in metrics:
+                        if hasattr(metric, "name"):
+                            name = metric.name.lower()
+                        elif hasattr(metric, "__name__"):
+                            name = metric.__name__.lower()
+                        else:
+                            name = str(metric)
+                        try:
+                            value = metric(pareto_front)
+                        except Exception:
+                            value = None
+                        metric_values[name] = value
+                    b.set_postfix(**metric_values)
+                    self.history.dump(
+                        agents=self.space.agents,
+                        pareto_front=self.space.pareto_front,
+                        metric_values=metric_values,
+                    )
+                    logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
+                    for name, value in metric_values.items():
+                        logger.to_file(f"{name}: {value}")
                 b.update()
 
-                self.history.dump(
-                    agents=self.space.agents, best_agent=self.space.best_agent
-                )
-
                 callbacks.on_iteration_end(self.total_iterations, self)
-
-                logger.to_file(f"Fitness: {self.space.best_agent.fit}")
-                logger.to_file(f"Position: {self.space.best_agent.position}")
 
         callbacks.on_task_end(self)
 

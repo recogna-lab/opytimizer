@@ -44,6 +44,7 @@ class SPEA2(MultiObjectiveOptimizer):
 
         self.crossover_rate = 0.9
         self.mutation_rate = 0.025
+        self.archive_size = 100
         self.crossover_operator = crossover_operator or ArithmeticCrossover()
         self.mutation_operator = mutation_operator or GaussianMutation()
 
@@ -289,11 +290,13 @@ class SPEA2(MultiObjectiveOptimizer):
             (tuple): Two children.
 
         """
+
         if np.random.random() < self.crossover_rate:
             child1, child2 = self.crossover_operator(parent1, parent2)
         else:
             child1 = copy.deepcopy(parent1)
             child2 = copy.deepcopy(parent2)
+
         return child1, child2
 
     def _mutation(self, agent: "Agent") -> Agent:
@@ -306,11 +309,14 @@ class SPEA2(MultiObjectiveOptimizer):
             (Agent): Mutated agent.
 
         """
+
         if np.random.random() < self.mutation_rate:
             mutated = self.mutation_operator(agent)
         else:
             mutated = copy.deepcopy(agent)
+
         mutated.clip_by_bound()
+
         return mutated
 
     def _create_offspring(self, space: "Space") -> list:
