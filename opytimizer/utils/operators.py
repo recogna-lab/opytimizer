@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-import opytimizer.utils.random as r
+import opytimizer.math.random as r
 from opytimizer.core.agent import Agent
 
 
@@ -82,14 +82,15 @@ class SBXCrossover(BaseCrossover):
         c2 = x2.copy()
         for j in range(x1.shape[0]):
             for d in range(x1.shape[1]):
-                if np.random.rand() <= 0.5:
+                r1 = r.generate_uniform_random_number()
+                if r1 <= 0.5:
                     if abs(x1[j, d] - x2[j, d]) > 1e-10:
                         y1, y2 = (
                             (x1[j, d], x2[j, d])
                             if x1[j, d] < x2[j, d]
                             else (x2[j, d], x1[j, d])
                         )
-                        rand = np.random.rand()
+                        rand = r.generate_uniform_random_number()
                         beta = 1.0 + (2.0 * (y1 - lb[j]) / (y2 - y1))
                         alpha = 2.0 - beta ** -(self.eta + 1)
                         if rand <= 1.0 / alpha:
@@ -132,7 +133,7 @@ class OnePointCrossover(BaseCrossover):
         lb = parent1.lb
         ub = parent1.ub
 
-        point = np.random.randint(1, p1.shape[0])
+        point = r.generate_integer_random_number(1, p1.shape[0])
         c1 = np.vstack((p1[:point, :], p2[point:, :]))
         c2 = np.vstack((p2[:point, :], p1[point:, :]))
         c1 = np.clip(c1, lb[:, None], ub[:, None])
@@ -149,7 +150,7 @@ class BitFlipMutation(BaseMutation):
         mutant = copy.deepcopy(agent)
         x = agent.position
         m = x.copy()
-        mask = np.random.rand(*x.shape) < 0.5
+        mask = r.generate_uniform_random_number(*x.shape) < 0.5
         m[mask] = 1 - m[mask]
         mutant.position = m
         return mutant
@@ -169,10 +170,11 @@ class PolynomialMutation(BaseMutation):
         m = x.copy()
         for j in range(x.shape[0]):
             for d in range(x.shape[1]):
-                if np.random.rand() < 1.0 / (x.shape[0] * x.shape[1]):
+                r1 = r.generate_uniform_random_number()
+                if r1 < 1.0 / (x.shape[0] * x.shape[1]):
                     delta1 = (m[j, d] - lb[j]) / (ub[j] - lb[j])
                     delta2 = (ub[j] - m[j, d]) / (ub[j] - lb[j])
-                    rand = np.random.rand()
+                    rand = r.generate_uniform_random_number()
                     mut_pow = 1.0 / (self.eta + 1.0)
                     if rand < 0.5:
                         xy = 1.0 - delta1
