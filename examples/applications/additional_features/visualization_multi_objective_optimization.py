@@ -7,7 +7,7 @@ from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.callback import Callback
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
-from opytimizer.utils.weights_vector import ref_dirs
+from opytimizer.utils.weights_vector import das_dennis
 from opytimizer.visualization.multi_objective import (
     plot_pareto_evolution,
     plot_pareto_front,
@@ -31,7 +31,7 @@ def zdt1(x):
 n_variables = 30
 n_objectives = 2
 
-weights, n_agents = ref_dirs(n_objectives, 99)
+weights, n_agents = das_dennis(n_objectives, 99)
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [0] * n_variables
@@ -80,8 +80,7 @@ class ParetoFrontSaver(Callback):
 pareto_optimal = np.array([[f1, 1 - np.sqrt(f1)] for f1 in np.linspace(0, 1, 100)])
 
 
-def spread(pf):
-    return SpreadMetric()(pf, pareto_optimal)
+spread = SpreadMetric(pareto_optimal=pareto_optimal)
 
 
 max_spread = MaximumSpreadMetric()

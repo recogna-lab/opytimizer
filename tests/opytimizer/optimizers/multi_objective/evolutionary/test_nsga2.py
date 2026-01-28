@@ -5,42 +5,6 @@ from opytimizer.optimizers.multi_objective.evolutionary import nsga2
 from opytimizer.spaces.search import SearchSpace
 
 
-def test_nsga2_params():
-    params = {"crossover_rate": 0.9, "mutation_rate": 0.025}
-
-    new_nsga2 = nsga2.NSGA2(params=params)
-
-    assert new_nsga2.crossover_rate == 0.9
-
-    assert new_nsga2.mutation_rate == 0.025
-
-
-def test_nsga2_params_setter():
-    new_nsga2 = nsga2.NSGA2()
-
-    try:
-        new_nsga2.crossover_rate = "a"
-    except:
-        new_nsga2.crossover_rate = 0.9
-
-    try:
-        new_nsga2.crossover_rate = -1
-    except:
-        new_nsga2.crossover_rate = 0.9
-
-    assert new_nsga2.crossover_rate == 0.9
-
-    try:
-        new_nsga2.mutation_rate = "b"
-    except:
-        new_nsga2.mutation_rate = 0.025
-
-    try:
-        new_nsga2.mutation_rate = -1
-    except:
-        new_nsga2.mutation_rate = 0.025
-
-    assert new_nsga2.mutation_rate == 0.025
 
 
 def test_nsga2_compile():
@@ -81,10 +45,13 @@ def test_nsga2_crossover():
 
     new_nsga2 = nsga2.NSGA2()
 
-    alpha, beta = new_nsga2._crossover(search_space.agents[0], search_space.agents[1])
+    children = new_nsga2._crossover(search_space.agents[0], search_space.agents[1])
 
+    alpha = children[0]
     assert type(alpha).__name__ == "Agent"
-    assert type(beta).__name__ == "Agent"
+    if len(children) == 2:
+        beta = children[1]
+        assert type(beta).__name__ == "Agent"
 
 
 def test_nsga2_mutation():

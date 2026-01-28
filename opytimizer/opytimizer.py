@@ -238,7 +238,7 @@ class Opytimizer:
                 self.update(callbacks)
                 self.evaluate(callbacks)
 
-                if self.space.n_objectives == 1 or not metrics:
+                if self.space.n_objectives == 1:
                     b.set_postfix(fitness=self.space.best_agent.fit)
                     self.history.dump(
                         agents=self.space.agents, best_agent=self.space.best_agent
@@ -249,19 +249,13 @@ class Opytimizer:
                     pareto_front = [ag.fit for ag in self.space.pareto_front]
                     pareto_front = np.array(pareto_front)
                     metric_values = {}
-                    for metric in metrics:
-                        if hasattr(metric, "name"):
-                            name = metric.name.lower()
-                        elif hasattr(metric, "__name__"):
-                            name = metric.__name__.lower()
-                        else:
-                            name = str(metric)
-                        try:
+                    
+                    if metrics:
+                        for metric in metrics:
                             value = metric(pareto_front)
-                        except Exception:
-                            value = None
-                        metric_values[name] = value
-                    b.set_postfix(**metric_values)
+                            metric_values[metric.name.lower()] = value
+                        b.set_postfix(**metric_values)
+                    
                     self.history.dump(
                         agents=self.space.agents,
                         pareto_front=self.space.pareto_front,

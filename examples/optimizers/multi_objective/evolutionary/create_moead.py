@@ -2,7 +2,7 @@ from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 
 # One should declare a hyperparameters object based
 # on the desired algorithm that will be used
-params = {"CR": 0.9, "MR": 0.05}
+params = {"neighborhood_size": 20}
 
-# Creates a PSO optimizer
+# Creates a MOEA/D optimizer
 o = MOEAD(params=params)

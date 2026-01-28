@@ -6,7 +6,7 @@ from nalp.models.generators import RNNGenerator
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 # Creates a character TextCorpus from file

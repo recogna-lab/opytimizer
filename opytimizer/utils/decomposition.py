@@ -3,32 +3,32 @@ import numpy as np
 import opytimizer.utils.exception as e
 
 
-def weighted_sum(agent: np.ndarray, weights: np.ndarray, **kwargs) -> float:
+def weighted_sum(fit: np.ndarray, weights: np.ndarray, **kwargs) -> float:
     """The weighted sum classical method.
     Args:
-        agent: agent f_value.
+        fit: agent fit value.
         weights: weights vector
     """
-    return np.sum((agent * weights))
+    return np.sum((fit * weights))
 
 
-def tchebycheff(agent: np.ndarray, weights: np.ndarray, z: np.ndarray) -> float:
+def tchebycheff(fit: np.ndarray, weights: np.ndarray, z: np.ndarray, **kwargs) -> float:
     """The Tchebycheff classical method.
     Args:
-        agent: agent f_value.
+        fit: agent fit value.
         weights: weights vector
         z: reference point.
     """
-    return np.max(weights * (np.abs(agent - z)))
+    return np.max(weights * (np.abs(fit - z)))
 
 
 def pbi(
-    agent: np.ndarray, weights: np.ndarray, z: np.ndarray, penalty: float = 5.0
+    fit: np.ndarray, weights: np.ndarray, z: np.ndarray, penalty: float = 5.0, **kwargs
 ) -> float:
     """The Penalty-based Boundary Intersection (PBI) method.
 
     Args:
-        agent: Objective values of the agent (f_value).
+        fit: Objective values of the agent (agent.fit).
         weights: Weight vector (should be normalized).
         z: Reference point.
         penalty: Penalty parameter (typically a large positive number, e.g., 5.0 or 10.0).
@@ -43,7 +43,7 @@ def pbi(
     w = weights / norm_w
 
     # Compute the difference vector
-    diff = agent - z
+    diff = fit - z
 
     # Projection (d1): length along the direction of weight vector
     d1 = np.dot(diff, w)

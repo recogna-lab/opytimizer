@@ -5,7 +5,7 @@ from tensorflow.keras import datasets, layers, models, optimizers
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 # Loads CIFAR-10 data

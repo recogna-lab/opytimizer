@@ -9,7 +9,7 @@ from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import Space
 from opytimizer.utils import logging
-from opytimizer.utils.operators import ArithmeticCrossover, GaussianMutation
+from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 
 logger = logging.get_logger(__name__)
 
@@ -42,45 +42,15 @@ class NSGA2(MultiObjectiveOptimizer):
 
         super().__init__()
 
-        self.crossover_rate = 0.9
-        self.mutation_rate = 0.025
-        self.crossover_operator = crossover_operator or ArithmeticCrossover()
-        self.mutation_operator = mutation_operator or GaussianMutation()
+    
+        self.crossover_operator = crossover_operator or SBXCrossover(return_mode='both')
+        self.mutation_operator = mutation_operator or PolynomialMutation()
 
         self.build(params)
 
         logger.info("Class overrided.")
 
-    @property
-    def crossover_rate(self) -> float:
-        """Probability of crossover."""
-
-        return self._crossover_rate
-
-    @crossover_rate.setter
-    def crossover_rate(self, crossover_rate: float) -> None:
-        if not isinstance(crossover_rate, (float, int)):
-            raise e.TypeError("`crossover_rate` should be a float or integer")
-        if crossover_rate < 0 or crossover_rate > 1:
-            raise e.ValueError("`crossover_rate` should be between 0 and 1")
-
-        self._crossover_rate = crossover_rate
-
-    @property
-    def mutation_rate(self) -> float:
-        """Probability of mutation."""
-
-        return self._mutation_rate
-
-    @mutation_rate.setter
-    def mutation_rate(self, mutation_rate: float) -> None:
-        if not isinstance(mutation_rate, (float, int)):
-            raise e.TypeError("`mutation_rate` should be a float or integer")
-        if mutation_rate < 0 or mutation_rate > 1:
-            raise e.ValueError("`mutation_rate` should be between 0 and 1")
-
-        self._mutation_rate = mutation_rate
-
+    
     @property
     def rank(self) -> np.ndarray:
         """Array of ranks."""
@@ -250,12 +220,10 @@ class NSGA2(MultiObjectiveOptimizer):
         Returns:
             (tuple): Two children.
         """
-        if np.random.random() < self.crossover_rate:
-            child1, child2 = self.crossover_operator(parent1, parent2)
-        else:
-            child1 = copy.deepcopy(parent1)
-            child2 = copy.deepcopy(parent2)
-        return child1, child2
+        
+        children = self.crossover_operator(parent1, parent2)
+        
+        return children
 
     def _mutation(self, agent: "Agent") -> Agent:
         """Performs the mutation on an agent.
@@ -268,11 +236,7 @@ class NSGA2(MultiObjectiveOptimizer):
         Returns:
             (Agent): Mutated agent.
         """
-        if np.random.random() < self.mutation_rate:
-            mutated = self.mutation_operator(agent)
-        else:
-            mutated = copy.deepcopy(agent)
-        mutated.clip_by_bound()
+        mutated = self.mutation_operator(agent)
         return mutated
 
     def _create_offspring(self, space: "Space") -> list:
@@ -290,10 +254,12 @@ class NSGA2(MultiObjectiveOptimizer):
         for i in range(0, len(parents), 2):
             parent1 = parents[i]
             parent2 = parents[i + 1] if i + 1 < len(space.agents) else parents[0]
-            child1, child2 = self._crossover(parent1, parent2)
-            child1 = self._mutation(child1)
-            child2 = self._mutation(child2)
-            offspring.extend([child1, child2])
+            children = self._crossover(parent1, parent2)
+            children_list = []
+            for child in children:
+                children_list.append(self._mutation(child))
+            
+            offspring.extend(children_list)
         return offspring[: len(space.agents)]
 
     def _select_survivors(self, combined_population: list, space, function) -> list:

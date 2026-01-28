@@ -11,7 +11,7 @@ from opytimizer.math.metrics import HypervolumeMetric
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
-from opytimizer.utils.weights_vector import ref_dirs
+from opytimizer.utils.weights_vector import das_dennis
 
 
 # Define a multi-objective function (ZDT1)
@@ -30,20 +30,16 @@ REFERENCE_POINT = np.array(
 )  # For ZDT1, all solutions should be dominated by this point
 
 
-def performance_metric(space):
-    """Calculate performance based on hypervolume."""
-    pareto_front = np.array(space.pareto_front)
-    hypervolume_metric = HypervolumeMetric()
-    return hypervolume_metric(pareto_front, REFERENCE_POINT)
+hv = HypervolumeMetric(REFERENCE_POINT)
 
 
 # Generate weight vectors for MOEAD
-weights, n_subproblems = ref_dirs(n_objectives=2, n_partitions=12)
+weights, n_subproblems = das_dennis(n_objectives=2, n_partitions=12)
 
 # One should declare a list of optimizer instances to be used by the hyperheuristic
 optimizers = [
     NSGA2(
-        crossover_operator=SBXCrossover(eta=20),
+        crossover_operator=SBXCrossover(eta=20, return_mode='both'),
         mutation_operator=PolynomialMutation(eta=20),
     ),
     MOEAD(
@@ -81,7 +77,7 @@ for strategy_name, strategy in selection_strategies.items():
     h = SelectionHyperHeuristic(
         optimizers=optimizers,
         selection_strategy=strategy,
-        performance_metric=performance_metric,
+        performance_metric=hv,
         selection_interval=15,
     )
 
@@ -94,7 +90,7 @@ for strategy_name, strategy in selection_strategies.items():
     # Prints out multi-objective optimization results
     print(f"Number of Pareto solutions: {len(opt.space.pareto_front)}")
     print(f"Optimization time: {opt.history.time} seconds")
-    print(f"Final Hypervolume: {performance_metric(opt.space)}")
+    print(f"Final Hypervolume: {hv(opt.space.pareto_front)}")
 
     # Print selection statistics
     stats = h.get_strategy_statistics()

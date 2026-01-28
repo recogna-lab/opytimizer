@@ -6,7 +6,7 @@ from sklearn.datasets import load_digits
 import opytimizer.math.random as r
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.boolean import BPSO
+from opytimizer.optimizers.single_objective.boolean import BPSO
 from opytimizer.spaces import BooleanSpace
 
 # Loads digits dataset

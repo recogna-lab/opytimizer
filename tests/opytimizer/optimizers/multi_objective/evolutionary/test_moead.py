@@ -2,46 +2,22 @@ import numpy as np
 
 from opytimizer.optimizers.multi_objective.evolutionary import moead
 from opytimizer.spaces.search import SearchSpace
-from opytimizer.utils.weights_vector import ref_dirs
+from opytimizer.utils.weights_vector import das_dennis
 
 
 def test_moead_params():
-    params = {"CR": 0.9, "MR": 0.05, "n_subproblems": 100, "neighborhood_size": 10}
+    params = {"n_subproblems": 100, "neighborhood_size": 10, "pbi_penalty": 6}
 
     new_moead = moead.MOEAD(params=params)
 
-    assert new_moead.CR == 0.9
-    assert new_moead.MR == 0.05
     assert new_moead.n_subproblems == 100
     assert new_moead.neighborhood_size == 10
+    assert isinstance(new_moead.pbi_penalty, float)
+    assert new_moead.pbi_penalty == 6.0
 
 
 def test_moead_params_setter():
     new_moead = moead.MOEAD()
-
-    try:
-        new_moead.CR = "a"
-    except:
-        new_moead.CR = 0.9
-
-    try:
-        new_moead.CR = -1
-    except:
-        new_moead.CR = 0.9
-
-    assert new_moead.CR == 0.9
-
-    try:
-        new_moead.MR = "b"
-    except:
-        new_moead.MR = 0.05
-
-    try:
-        new_moead.MR = -1
-    except:
-        new_moead.MR = 0.05
-
-    assert new_moead.MR == 0.05
 
     try:
         new_moead.n_subproblems = "c"
@@ -66,10 +42,17 @@ def test_moead_params_setter():
         new_moead.neighborhood_size = 10
 
     assert new_moead.neighborhood_size == 10
+    
+    try:
+        new_moead.pbi_penalty = 'a'
+    except:
+        new_moead.pbi_penalty = 5
+        
+    assert new_moead.pbi_penalty == 5.0
 
 
 def test_moead_compile():
-    weights, n_agents = ref_dirs(2, 2)
+    weights, n_agents = das_dennis(2, 2)
     search_space = SearchSpace(
         n_agents=n_agents,
         n_variables=2,
@@ -87,7 +70,7 @@ def test_moead_compile():
 
 
 def test_moead_genetic_operators():
-    weights, n_agents = ref_dirs(2, 2)
+    weights, n_agents = das_dennis(2, 2)
     search_space = SearchSpace(
         n_agents=n_agents,
         n_variables=2,
@@ -99,19 +82,21 @@ def test_moead_genetic_operators():
     new_moead = moead.MOEAD(weights_vector=weights)
     new_moead.compile(search_space)
 
-    parent1 = search_space.agents[0].position
-    parent2 = search_space.agents[1].position
+    parent1 = search_space.agents[0]
+    parent2 = search_space.agents[1]
 
-    child1, child2 = new_moead._genetic_operators(parent1, parent2, search_space)
+    children = new_moead._genetic_operators(parent1, parent2)
 
-    assert isinstance(child1, np.ndarray)
-    assert isinstance(child2, np.ndarray)
-    assert child1.shape == parent1.shape
-    assert child2.shape == parent2.shape
+    assert len(children) > 0
+    child1 = children[0]
+    assert child1.position.shape == parent1.position.shape
+    if len(children) == 2:
+        child2 = children[1]
+        assert child2.position.shape == parent2.position.shape
 
 
 def test_moead_select_neighbors():
-    weights, n_agents = ref_dirs(2, 2)
+    weights, n_agents = das_dennis(2, 2)
     search_space = SearchSpace(
         n_agents=n_agents,
         n_variables=2,
@@ -136,7 +121,7 @@ def test_moead_evaluate():
         f2 = np.sum(x)
         return np.array([f1, f2])
 
-    weights, n_agents = ref_dirs(2, 2)
+    weights, n_agents = das_dennis(2, 2)
     search_space = SearchSpace(
         n_agents=n_agents,
         n_variables=2,
@@ -160,7 +145,7 @@ def test_moead_update():
         f2 = np.sum(x)
         return np.array([f1, f2])
 
-    weights, n_agents = ref_dirs(2, 2)
+    weights, n_agents = das_dennis(2, 2)
     search_space = SearchSpace(
         n_agents=n_agents,
         n_variables=2,

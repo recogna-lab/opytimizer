@@ -3,7 +3,7 @@ from learnergy.models.bernoulli import DropoutRBM
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 # Creates training and testing dataset
