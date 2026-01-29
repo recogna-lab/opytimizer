@@ -67,18 +67,30 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - block
         - cell
         - function
+        - hyperheuristic
         - node
         - optimizer
         - space
     - functions
         - constrained
         - multi_objective
-            - standard
             - weighted
+    - hyperheuristics
+        - adaptive
+            - adaptive_hyperheuristic
+        - generation
+            - component_based
+        - hybrid
+            - hybrid_hyperheuristic
+        - selection
+            - selection_hyperheuristic
+        - adaptation_mechanism
+        - selection_strategy
     - math
         - distribution
         - general
         - hyper
+        - metrics
         - random
     - optimizers
         - multi_objective
@@ -121,6 +133,10 @@ Core is the core. Essentially, it is the parent of everything. You should find p
 ### Functions
 
 Instead of using raw and straightforward functions, why not try this module? Compose high-level abstract functions or even new function-based ideas in order to solve your problems. Note that for now, we will only support multi-objective function strategies.
+
+### Hyperheuristics
+
+An adaptive framework designed to automate the selection and generation of optimization strategies, moving beyond fixed meta-heuristics to solve single and multi-objective problems.
 
 ### Math
 
@@ -187,7 +203,7 @@ import numpy as np
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
 def sphere(x):
@@ -217,7 +233,7 @@ from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
-from opytimizer.utils.operators import sbx_crossover, polynomial_mutation
+from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 
 def zdt1(x):
     f1 = x[0]
@@ -238,10 +254,8 @@ space = SearchSpace(
 )
 
 optimizer = NSGA2(
-    crossover_operator=sbx_crossover,
-    mutation_operator=polynomial_mutation,
-    crossover_params={'eta': 20},
-    mutation_params={'eta': 20}
+    crossover_operator=SBXCrossover(rate=1.0, eta=20, return_mode='both'),
+    mutation_operator=PolynomialMutation(rate=1/30, eta=20)
 )
 function = Function(zdt1)
 

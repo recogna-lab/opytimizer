@@ -5,6 +5,23 @@ from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
 class BaseMetric(ABC):
+    
+    @property
+    def pareto_front(self) -> np.ndarray:
+        return self._pareto_front
+    
+    @pareto_front.setter
+    def pareto_front(self, value) -> None:
+        if hasattr(value, 'pareto_front'):
+            points = np.array([agent.fit for agent in value.pareto_front])
+        # agents list
+        elif isinstance(value, list) and len(value) > 0 and hasattr(value[0], 'fit'):
+            points = np.array([agent.fit for agent in value])
+        else:
+             points = np.atleast_2d(value) 
+             
+        self._pareto_front = points
+        
     @abstractmethod
     def __call__(self, pareto_front):
         pass
@@ -27,10 +44,10 @@ class IGDMetric(BaseMetric):
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.size == 0 or self.min_vals is None:
+        self.pareto_front = pareto_front
+        if self.pareto_front.size == 0 or self.min_vals is None:
             return 0.0
-        normalized_front = (pareto_front - self.min_vals) / self.denom
+        normalized_front = (self.pareto_front - self.min_vals) / self.denom
         distances = []
         for optimal in self.normalized_optimal:
             d = np.linalg.norm(normalized_front - optimal, axis=1)
@@ -51,10 +68,10 @@ class GDMetric(BaseMetric):
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.size == 0 or self.min_vals is None:
+        self.pareto_front = pareto_front
+        if self.pareto_front.size == 0 or self.min_vals is None:
             return 0.0
-        normalized_front = (pareto_front - self.min_vals) / self.denom
+        normalized_front = (self.pareto_front - self.min_vals) / self.denom
         distances = []
         for solution in normalized_front:
             d = np.linalg.norm(self.normalized_optimal - solution, axis=1)
@@ -76,10 +93,10 @@ class SpreadMetric(BaseMetric):
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.shape[0] < 2 or self.min_vals is None:
+        self.pareto_front = pareto_front
+        if self.pareto_front.shape[0] < 2 or self.min_vals is None:
             return 0.0
-        pf = (pareto_front - self.min_vals) / self.denom
+        pf = (self.pareto_front - self.min_vals) / self.denom
         pf = pf[np.lexsort(np.rot90(pf))]
         df = np.linalg.norm(pf[1:] - pf[:-1], axis=1)
         d_mean = np.mean(df)
@@ -105,10 +122,10 @@ class ErrorRatioMetric(BaseMetric):
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.size == 0 or self.min_vals is None:
+        self.pareto_front = pareto_front
+        if self.pareto_front.size == 0 or self.min_vals is None:
             return 0.0
-        pf = (pareto_front - self.min_vals) / self.denom
+        pf = (self.pareto_front - self.min_vals) / self.denom
         errors = 0
         for solution in pf:
             distances = np.linalg.norm(self.normalized_optimal - solution, axis=1)
@@ -126,13 +143,14 @@ class R2Metric(BaseMetric):
         self.nadir_point = nadir_point
 
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.size == 0:
+        
+        self.pareto_front = pareto_front
+        if self.pareto_front.size == 0:
             return 0.0
-        current_ideal = self.ideal_point if self.ideal_point is not None else np.min(pareto_front, axis=0)
-        current_nadir = self.nadir_point if self.nadir_point is not None else np.max(pareto_front, axis=0)
+        current_ideal = self.ideal_point if self.ideal_point is not None else np.min(self.pareto_front, axis=0)
+        current_nadir = self.nadir_point if self.nadir_point is not None else np.max(self.pareto_front, axis=0)
         denom = np.where(current_nadir - current_ideal == 0, 1.0, current_nadir - current_ideal)
-        normalized_pf = (pareto_front - current_ideal) / denom
+        normalized_pf = (self.pareto_front - current_ideal) / denom
         r2_values = []
         for w in self.weight_vectors:
             weighted_diff = normalized_pf * w
@@ -142,11 +160,11 @@ class R2Metric(BaseMetric):
 
 class MaximumSpreadMetric(BaseMetric):
     def __call__(self, pareto_front):
-        pareto_front = np.atleast_2d(pareto_front)
-        if pareto_front.shape[0] < 2:
+        self.pareto_front = pareto_front
+        if self.pareto_front.shape[0] < 2:
             return 0.0
         dists = np.linalg.norm(
-            pareto_front[None, :, :] - pareto_front[:, None, :], axis=2
+            self.pareto_front[None, :, :] - self.pareto_front[:, None, :], axis=2
         )
         return np.max(dists)
 
@@ -156,38 +174,31 @@ class HypervolumeMetric(BaseMetric):
         self.reference_point = np.asarray(reference_point)
 
     def __call__(self, pareto_front):
-        # space obj
-        if hasattr(pareto_front, 'pareto_front'):
-            points = np.array([agent.fit for agent in pareto_front.pareto_front])
-            
-        # agents list
-        elif isinstance(pareto_front, list) and len(pareto_front) > 0 and hasattr(pareto_front[0], 'fit'):
-            points = np.array([agent.fit for agent in pareto_front])
-        else:
-             points = np.atleast_2d(pareto_front)   
+        
+        self.pareto_front = pareto_front
        
         # Validation and filtering
-        if points.size == 0:
+        if self.pareto_front.size == 0:
             return 0.0
             
-        n_points, n_dims = points.shape
+        n_points, n_dims = self.pareto_front.shape
         
        
         if n_points <= 1:
             return 0.0
         # remove points worse than reference point
-        is_worse = np.any(points > self.reference_point, axis=1)
-        points = points[~is_worse]
+        is_worse = np.any(self.pareto_front > self.reference_point, axis=1)
+        self.pareto_front= self.pareto_front[~is_worse]
         
         
-        if points.shape[0] < 1:
+        if self.pareto_front.shape[0] < 1:
             return 0.0
 
         # Dispatch based on dimensions
         if n_dims == 2:
-            return self._calculate_hv2d(points)
+            return self._calculate_hv2d(self.pareto_front)
         elif n_dims == 3:
-            return self._calculate_hv3d(points)
+            return self._calculate_hv3d(self.pareto_front)
         else:
             return 0.0 # >3D requires more complex algorithms 
 
@@ -351,6 +362,6 @@ class MonteCarloHypervolumeMetric(BaseMetric):
         return self._calculate_final_hv(total_count)
     
     def __call__(self, pareto_front):
-        
-       return self._exec(pareto_front) 
+       self.pareto_front = pareto_front
+       return self._exec(self.pareto_front) 
    
