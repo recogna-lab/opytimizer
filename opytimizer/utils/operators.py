@@ -329,7 +329,7 @@ class BitFlipMutation(BaseMutation):
 class PolynomialMutation(BaseMutation):
     """Polynomial mutation for real-valued vectors."""
 
-    def __init__(self, rate = 1/30, eta : int = 20):
+    def __init__(self, eta : int = 20, rate = 1/30):
         super().__init__(rate)
         self.eta = eta
         
