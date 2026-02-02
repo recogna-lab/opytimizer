@@ -170,7 +170,7 @@ class MaximumSpreadMetric(BaseMetric):
 
 
 class HypervolumeMetric(BaseMetric):
-    def __init__(self, reference_point):
+    def __init__(self, reference_point=[1.01, 1.01]):
         self.reference_point = np.asarray(reference_point)
 
     def __call__(self, pareto_front):
