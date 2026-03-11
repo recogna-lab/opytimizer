@@ -11,7 +11,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Recogna",
     author_email="d.rodrigues@unesp.br",
-    url="https://github.com/recogna/opytimizer",
+    url="https://github.com/recogna-lab/opytimizer",
     license="Apache 2.0",
     install_requires=[
         "coverage>=5.5",
