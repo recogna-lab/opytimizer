@@ -123,14 +123,12 @@ class Optimizer:
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self) -> None:
+    def update(self, space: Space, function: Function) -> None:
         """Updates the agents' position array.
 
         As each child has a different procedure of update, you will need
         to implement it directly on its class.
 
-        Also, note that function only accept arguments that are
-        found on Opytimizer class.
 
         """
 
