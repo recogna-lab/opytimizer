@@ -7,3 +7,4 @@ from opytimizer.optimizers.multi_objective.evolutionary.nsga2 import NSGA2
 from opytimizer.optimizers.multi_objective.evolutionary.spea2 import SPEA2
 from opytimizer.optimizers.multi_objective.evolutionary.moce import MOCE
 from opytimizer.optimizers.multi_objective.evolutionary.obmoce import OBMOCE
+from opytimizer.optimizers.multi_objective.evolutionary.nsga3 import NSGA3

@@ -120,3 +120,7 @@ ENV/
 
 # line_profiler
 *.lprof
+
+
+# folder for under development features
+dev/
