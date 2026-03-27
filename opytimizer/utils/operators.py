@@ -158,7 +158,7 @@ class GaussianMutation(BaseMutation):
 class SBXCrossover(ContinuousCrossover):
     """Simulated Binary Crossover (SBX) for real-valued vectors."""
 
-    def __init__(self, eta = 20, rate: float = 1.0, gene_rate: float = 0.5, return_mode: str = 'random'):
+    def __init__(self, eta = 20, rate: float = 1.0, gene_rate: float = 1.0, return_mode: str = 'random'):
         super().__init__(rate, gene_rate, return_mode)
         self.eta = eta
 

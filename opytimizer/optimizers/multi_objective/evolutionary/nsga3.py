@@ -53,8 +53,7 @@ class NSGA3(MultiObjectiveOptimizer):
         self.crossover_operator = crossover_operator or SBXCrossover(return_mode="both", eta=30, gene_rate=1.0)
         self.mutation_operator = mutation_operator or PolynomialMutation()
 
-        # Reference points will be fully initialised in compile() once the
-        # number of objectives is known; store the raw inputs for now.
+       
         self._user_reference_points = reference_points
        
 
@@ -62,7 +61,8 @@ class NSGA3(MultiObjectiveOptimizer):
         self.reference_points: np.ndarray = None  # shape (H, M)
         self.rank: np.ndarray = None
         self._ideal_point: np.ndarray = None  # tracks global minimum per obj
-
+        
+        self.is_first_generation = True
         self.build(params)
 
         logger.info("Class overrided.")
@@ -360,13 +360,13 @@ class NSGA3(MultiObjectiveOptimizer):
     # Offspring generation
     # ------------------------------------------------------------------
 
-    def _crossover(self, parent1: "Agent", parent2: "Agent") -> tuple:
+    def _crossover(self, parent1: Agent, parent2: Agent) -> tuple:
         return self.crossover_operator(parent1, parent2)
 
-    def _mutation(self, agent: "Agent") -> "Agent":
+    def _mutation(self, agent: Agent) -> Agent:
         return self.mutation_operator(agent)
 
-    def _create_offspring(self, space: "Space") -> list:
+    def _create_offspring(self, space: Space) -> list:
         """Creates offspring via tournament selection."""
 
         # Tournament selection based on rank only 
@@ -457,8 +457,8 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         offspring = self._create_offspring(space)
-        for child in offspring:
-            child.fit = function(child.position)
+        for i in range(len(offspring)):
+            offspring[i].fit = function(offspring[i].position)
 
         combined = space.agents + offspring
         new_pop = self._select_survivors(combined, len(space.agents))
@@ -478,9 +478,10 @@ class NSGA3(MultiObjectiveOptimizer):
             function: Objective function.
 
         """
-
-        for agent in space.agents:
-            agent.fit = function(agent.position)
+        if self.is_first_generation == True:
+            for agent in space.agents:
+                agent.fit = function(agent.position)
+            self.is_first_generation = False
 
         # Non-dominated sorting to assign initial ranks.
         _ = self._fast_non_dominated_sort(space.agents)

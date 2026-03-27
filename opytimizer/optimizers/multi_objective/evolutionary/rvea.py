@@ -131,14 +131,14 @@ class RVEA(MultiObjectiveOptimizer):
 
         # eq. (11):  v_{t+1,i} = (v0_i ⊙ scale) / ‖v0_i ⊙ scale‖
         adapted = self.reference_vectors * scale[None, :]        
-        norms   = np.linalg.norm(adapted, axis=1, keepdims=True) 
+        norms = np.linalg.norm(adapted, axis=1, keepdims=True) 
         self.current_reference_vectors = adapted / norms
 
     # ------------------------------------------------------------------
     def update(self, space: Space, function: Function):
 
      
-        num_pairs      = len(space.agents) // 2
+        num_pairs = len(space.agents) // 2
         parent_indices = np.random.randint(0, len(space.agents), size=(num_pairs, 2))
         
       
@@ -159,14 +159,14 @@ class RVEA(MultiObjectiveOptimizer):
 
         N_pop = len(current_population)
         N_ref = len(self.current_reference_vectors)
-        M     = space.n_objectives
+        M  = space.n_objectives
 
         #  translation — eq. (5)
         # f'_{t,i} = f_{t,i} − z_min   
         translated = np.array(
             [agent.fit - self.z for agent in current_population]
         )                                              
-        norms      = np.linalg.norm(translated, axis=1)     
+        norms = np.linalg.norm(translated, axis=1)     
         safe_norms = np.where(norms < 1e-10, 1e-10, norms)
 
         # Population partition — eq. (6) & (7) 
@@ -182,7 +182,7 @@ class RVEA(MultiObjectiveOptimizer):
 
         # γ_{v_j}: smallest angle between ref vector j and every other
         # ref vector  (eq. 10)
-        ref_cos    = np.clip(
+        ref_cos  = np.clip(
             self.current_reference_vectors @ self.current_reference_vectors.T,
             -1.0, 1.0,
         )                                                   

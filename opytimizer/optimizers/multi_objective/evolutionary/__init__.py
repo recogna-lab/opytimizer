@@ -9,3 +9,4 @@ from opytimizer.optimizers.multi_objective.evolutionary.moce import MOCE
 from opytimizer.optimizers.multi_objective.evolutionary.obmoce import OBMOCE
 from opytimizer.optimizers.multi_objective.evolutionary.rvea import RVEA
 from opytimizer.optimizers.multi_objective.evolutionary.nsga3 import NSGA3
+from opytimizer.optimizers.multi_objective.evolutionary.knea import KnEA
