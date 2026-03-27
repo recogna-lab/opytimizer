@@ -135,14 +135,13 @@ class KnEA(MultiObjectiveOptimizer):
         k = self.knn_num
         weighted_dists = np.empty(N, dtype=float)
 
-        # Vectorised: for each agent, find k-NN distances and compute DW
-        # argpartition gives the k smallest in O(N log k) per row
+        
         knn_idx = np.argpartition(D, k, axis=1)[:, :k]    
         knn_d = D[np.arange(N)[:, None], knn_idx]       
 
         mean_d = knn_d.mean(axis=1, keepdims=True)          
 
-        # Eq. (3): r_pi = 1 / |dis_{p,pi} - mean|   (avoid division by zero)
+        # Eq. (3): r_pi = 1 / |dis_{p,pi} - mean| 
         diff = np.abs(knn_d - mean_d)
         diff = np.where(diff < 1e-10, 1e-10, diff)
         r = 1.0 / diff                                        
