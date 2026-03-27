@@ -95,7 +95,7 @@ class RVEA(MultiObjectiveOptimizer):
         if len(self.reference_vectors) != space.n_agents:
             raise e.ValueError('Error: The number of `reference_vectors` should be equal to the number of agents.')
         
-        #self.z = np.full(space.n_objectives, fill_value=np.inf)
+       
 
     # ------------------------------------------------------------------
     def evaluate(self, space: Space, function: Function):
@@ -106,7 +106,6 @@ class RVEA(MultiObjectiveOptimizer):
                 all_fits.append(agent.fit)
             all_fits = np.array(all_fits)
             self.z = np.min(all_fits, axis=0)
-            print(self.z.shape)
 
         space.update_pareto_front(space.agents)
 
@@ -151,10 +150,10 @@ class RVEA(MultiObjectiveOptimizer):
                 parent1=space.agents[pair[0]],
                 parent2=space.agents[pair[1]],
             )
-            for off in offsprings:
-                self.mutation_operator(off)         
-                off.fit = function(off.position)
-                self.z = np.minimum(off.fit, self.z)
+            for i in range(len(offsprings)):
+                offsprings[i] = self.mutation_operator(offsprings[i])         
+                offsprings[i].fit = function(offsprings[i].position)
+                self.z = np.minimum(offsprings[i].fit, self.z)
             current_population.extend(offsprings)
 
         N_pop = len(current_population)
