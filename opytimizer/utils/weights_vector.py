@@ -76,3 +76,43 @@ def das_dennis(n_objectives: int, n_partitions: int) -> tuple:
     weights = weights / n_partitions
 
     return weights, n_points
+
+
+
+def two_layered_weights_simplex(m, H1, H2):
+    """
+    Generates widely spread weight vectors using the two-layered approach.
+    
+    Parameters:
+    m  (int): Number of objectives.
+    H1 (int): Divisions along each axis for the outer layer.
+    H2 (int): Divisions along each axis for the inner layer (0 for outer only).
+              
+    Returns:
+        Tuple:
+            1 - numpy.ndarray: Matrix where each row is a generated weight vector.
+            2 - int: The number of weights generated.
+    """
+       
+    # Generate the outer layer 
+    W_outer,n_outter_weights = das_dennis(m, H1)
+    
+    # Return early if no inner layer is requested
+    if H2 == 0:
+        return W_outer
+        
+    # Generate the inner layer
+    W_inner, n_inner_weights = das_dennis(m, H2)
+    
+    if n_inner_weights> 0:
+        # Shrink and shift the inner layer towards the center of the simplex
+        shrink_factor = 0.5
+        center_offset = 1.0 / (2.0 * m)
+        W_inner = (W_inner * shrink_factor) + center_offset
+        
+        # Combine both layers
+        W_combined = np.vstack((W_outer, W_inner))
+    else:
+        W_combined = W_outer
+        
+    return W_combined, n_inner_weights + n_outter_weights

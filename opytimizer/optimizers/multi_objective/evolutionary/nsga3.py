@@ -470,7 +470,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Evaluate
     # ------------------------------------------------------------------
 
-    def evaluate(self, space: "Space", function) -> None:
+    def evaluate(self, space: Space, function) -> None:
         """Evaluates the fitness of all agents and updates the Pareto front.
 
         Args:
