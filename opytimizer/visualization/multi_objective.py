@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import opytimizer.utils.exception as e
 
-from opytimizer.core import Agent
-
 def plot_pareto_front(
     pareto_front: List,
     title: str = "Pareto Front",
