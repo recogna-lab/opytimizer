@@ -488,7 +488,7 @@ class NSGA3(MultiObjectiveOptimizer):
 
         # Initialise the running ideal point.
         fitnesses = np.array([a.fit for a in space.agents], dtype=float)
-        self._ideal_point = fitnesses.min(axis=0)
+        self._ideal_point = np.minimum(self._ideal_point, fitnesses.min(axis=0))
 
         # Update the Pareto front (first non-dominated front).
         space.update_pareto_front(space.agents)

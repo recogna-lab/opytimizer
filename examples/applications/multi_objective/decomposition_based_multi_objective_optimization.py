@@ -4,7 +4,6 @@ from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.weights_vector import das_dennis
-from opytimizer.visualization.multi_objective import plot_pareto_front
 from opytimizer.utils.decomposition import weighted_sum, pbi
 def zdt3(x: np.ndarray) -> np.ndarray:
     """
@@ -45,7 +44,3 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
 opt.start(n_iterations=250)
-
-# Plot the Pareto Set
-
-plot_pareto_front(pareto_front=opt.space.pareto_front, title="Pareto Front ZDT3 - MOEA/D")

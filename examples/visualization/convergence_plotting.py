@@ -1,36 +1,52 @@
-import opytimizer.visualization.convergence as c
+import numpy as np
 
-# Defines agent's position and fitness
-agent_pos = [[0.5, 0.4, 0.3], [0.5, 0.4, 0.3]]
-agent_fit = [0.5, 0.32, 0.18]
 
-# Defines best agent's position and fitness
-best_agent_pos = [[0.01, 0.005, 0.0001], [0.01, 0.005, 0.0001]]
-best_agent_fit = [0.0002, 0.00005, 0.00002]
+from opytimizer.core import Function
+from opytimizer.spaces import SearchSpace
+from opytimizer.optimizers.single_objective.evolutionary import DE
+from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.optimizers.single_objective.population import GWO
+from opytimizer.visualization import convergence
+from opytimizer import Opytimizer
 
-# Plotting the convergence of agent's positions
-c.plot(
-    agent_pos[0],
-    agent_pos[1],
-    labels=["$x_0$", "$x_1$"],
-    title="Sphere Function: $x^2 \mid x \in [-10, 10]$",
-    subtitle="Agent: 0 | Algorithm: Particle Swarm Optimization",
-)
+from opytimark.markers.n_dimensional import Sphere
 
-# Plotting the convergence of best agent's positions
-c.plot(
-    best_agent_pos[0],
-    best_agent_pos[1],
-    labels=["$x^*_0$", "$x^*_1$"],
-    title="Sphere Function: $x^2 \mid x \in [-10, 10]$",
-    subtitle="Agent: Best | Algorithm: Particle Swarm Optimization",
-)
+np.random.seed(0)
 
-# Plotting the convergence of agent's and best agent's fitness
-c.plot(
-    agent_fit,
-    best_agent_fit,
-    labels=["$f(x)$", "$f(x^{*})$"],
-    title="Sphere Function: $x^2 \mid x \in [-10, 10]$",
-    subtitle="Agents: 0 and Best | Algorithm: Particle Swarm Optimization",
-)
+N_AGENTS = 20
+N_GENERATIONS = 250
+
+n_variables = 2
+n_objectives = 1
+lower_bound = [-10, -10]
+upper_bound = [10, 10]
+
+func = Function(Sphere())
+
+space = SearchSpace(n_agents=N_AGENTS, n_variables=n_variables, n_objectives=n_objectives, lower_bound=lower_bound, upper_bound=upper_bound)
+de = DE()
+opt_de = Opytimizer(space=space, optimizer=de, function=func, save_agents=False)
+opt_de.start(N_GENERATIONS)
+
+#############################################################################################
+np.random.seed(0)
+#############################################################################################
+
+
+space = SearchSpace(n_agents=N_AGENTS, n_variables=n_variables, n_objectives=n_objectives, lower_bound=lower_bound, upper_bound=upper_bound)
+pso = PSO()
+opt_pso = Opytimizer(space=space, optimizer=pso, function=func, save_agents=False)
+opt_pso.start(N_GENERATIONS)
+
+
+#############################################################################################
+np.random.seed(0)
+#############################################################################################
+
+space = SearchSpace(n_agents=N_AGENTS, n_variables=n_variables, n_objectives=n_objectives, lower_bound=lower_bound, upper_bound=upper_bound)
+gwo = GWO()
+opt_gwo = Opytimizer(space=space, optimizer=gwo, function=func, save_agents=False)
+opt_gwo.start(N_GENERATIONS)
+
+
+convergence(opt_de.history.best_agent, opt_pso.history.best_agent, opt_gwo.history.best_agent, labels=['DE', 'PSO', 'GWO'], backend='matplotlib').show()
