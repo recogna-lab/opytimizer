@@ -20,5 +20,4 @@ from opytimizer.optimizers.single_objective.evolutionary.hs import (
 )
 from opytimizer.optimizers.single_objective.evolutionary.iwo import IWO
 from opytimizer.optimizers.single_objective.evolutionary.rra import RRA
-from opytimizer.optimizers.single_objective.evolutionary.ce import CE
-from opytimizer.optimizers.single_objective.evolutionary.obce import OBCE
+from opytimizer.optimizers.single_objective.evolutionary.ce import CE, OBCE

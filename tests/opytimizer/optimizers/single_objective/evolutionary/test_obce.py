@@ -1,6 +1,6 @@
 import numpy as np
 from opytimizer.spaces import search
-from opytimizer.optimizers.single_objective.evolutionary import obce
+from opytimizer.optimizers.single_objective.evolutionary import ce as obce
 
 
 def sphere(x):

@@ -1,4 +1,4 @@
-"""NSGA-III."""
+"""NSGA-III"""
 
 import numpy as np
 

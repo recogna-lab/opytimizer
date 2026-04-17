@@ -4,7 +4,7 @@
 
 import numpy as np
 from scipy.spatial.distance import cdist
-from typing import List, Union
+from typing import List
 
 from opytimizer.core import Agent, Function, MultiObjectiveOptimizer
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
@@ -38,42 +38,39 @@ class KnEA(MultiObjectiveOptimizer):
         self.crossover_operator = crossover_operator or SBXCrossover(return_mode="both")
         self.mutation_operator = mutation_operator or PolynomialMutation(rate=1 / 30)
 
-        
-        self._obj_matrix = None # (2N, M) fitness matrix
-        self._weighted_dists = None  # (2N,)  pre-computed weighted distances
+        self._obj_matrix = None  # (2N, M) fitness matrix
+        self._weighted_dists = None  # (2N,) pre-computed weighted distances
 
         self.build(params)
-        
+
     @property
     def knn_num(self) -> int:
         return self._knn_num
+
     @knn_num.setter
     def knn_num(self, value: int) -> None:
         if not isinstance(value, int):
             raise e.TypeError('`k` should be an integer.')
         if value <= 0:
             raise e.ValueError('`k` should be higher than 0.')
-        
         self._knn_num = value
-        
-        
+
     @property
     def T(self) -> float:
         return self._T
+
     @T.setter
-    def T(self, value: int) -> None:
-        if not isinstance(value, float):
+    def T(self, value) -> None:
+        if not isinstance(value, (int, float)):
             raise e.TypeError('`T` should be a float.')
         if value <= 0. or value > 1.0:
             raise e.ValueError('`T` should be within (0, 1] interval.')
-        
-        self._T= value
-        
-        
+        self._T = float(value)
 
     def compile(self, space):
-        self.r = -np.ones(space.n_agents * 2) 
-        self.t = -np.ones(space.n_agents * 2)
+        # Paper: t_0 = 0, r_0 = 1  (Section III-C)
+        self.r = {}  # front_index -> float  (ratio of neighbourhood size)
+        self.t = {}  # front_index -> float  (ratio of knee points)
         self.K = []
 
     # ------------------------------------------------------------------
@@ -82,10 +79,9 @@ class KnEA(MultiObjectiveOptimizer):
     def _mating_selection(self, P: List[Agent], K: List[Agent], N: int) -> List[Agent]:
         """Binary tournament selection using dominance > knee > weighted distance."""
 
-        # weighted distance in objective space
         self._precompute_weighted_distances(P)
 
-        K_set = set(id(a) for a in K)   # O(1) membership test by identity
+        K_set = set(id(a) for a in K)
 
         Q: List[Agent] = []
         indices = list(range(len(P)))
@@ -121,44 +117,37 @@ class KnEA(MultiObjectiveOptimizer):
     def _precompute_weighted_distances(self, P: List[Agent]) -> None:
         """
         Pre-compute weighted distances for ALL agents in P at once.
-
         Equations (1)-(3) from the paper.
         """
-        # (N, M) — objective space
-        obj = np.array([a.fit for a in P], dtype=float)
+        obj = np.array([a.fit for a in P], dtype=float)  # (N, M)
 
-        # Pairwise Euclidean distances in objective space  (N, N)
-        D = cdist(obj, obj, metric="euclidean")
+        D = cdist(obj, obj, metric="euclidean")  # (N, N)
         np.fill_diagonal(D, np.inf)
 
         N = len(P)
         k = self.knn_num
-        weighted_dists = np.empty(N, dtype=float)
 
-        
-        knn_idx = np.argpartition(D, k, axis=1)[:, :k]    
-        knn_d = D[np.arange(N)[:, None], knn_idx]       
+        knn_idx = np.argpartition(D, k, axis=1)[:, :k]
+        knn_d = D[np.arange(N)[:, None], knn_idx]
 
-        mean_d = knn_d.mean(axis=1, keepdims=True)          
+        mean_d = knn_d.mean(axis=1, keepdims=True)
 
-        # Eq. (3): r_pi = 1 / |dis_{p,pi} - mean| 
+        # Eq. (3)
         diff = np.abs(knn_d - mean_d)
         diff = np.where(diff < 1e-10, 1e-10, diff)
-        r = 1.0 / diff                                        
+        r = 1.0 / diff
 
-        # Eq. (2): w_pi = r_pi / sum_j r_pj
-        w = r / r.sum(axis=1, keepdims=True)                
+        # Eq. (2)
+        w = r / r.sum(axis=1, keepdims=True)
 
-        # Eq. (1): DW(p) = sum_i w_pi * dis_{p,pi}
-        weighted_dists = (w * knn_d).sum(axis=1)                 
+        # Eq. (1)
+        self._weighted_dists = (w * knn_d).sum(axis=1)
 
-        self._weighted_dists = weighted_dists
-
-  
     def _genetic_operators(
         self, mating: List[Agent], N: int, function: Function
     ) -> List[Agent]:
-        parents_indices = np.random.randint(0, N, size=(N // 2, 2))
+        n_pairs = (N + 1) // 2
+        parents_indices = np.random.randint(0, N, size=(n_pairs, 2))
         offsprings_list: List[Agent] = []
 
         for p1_idx, p2_idx in parents_indices:
@@ -170,26 +159,22 @@ class KnEA(MultiObjectiveOptimizer):
                 offsprings[i].fit = function(offsprings[i].position)
             offsprings_list.extend(offsprings)
 
-        return offsprings_list
+        return offsprings_list[:N]  # trim to exactly N
 
-    
     def _fast_non_dominated_sort(self, agents: List[Agent]) -> List[List[int]]:
-     
         fits = np.array([a.fit for a in agents], dtype=float)  # (N, M)
         N = len(agents)
 
-         
-        fi = fits[:, None, :] # (N, 1, M)
-        fj = fits[None, :, :] # (1, N, M)
+        fi = fits[:, None, :]  # (N, 1, M)
+        fj = fits[None, :, :]  # (1, N, M)
 
-        all_leq = np.all(fi <= fj, axis=2) # (N, N) — i <= j in every objective
-        any_lt = np.any(fi <  fj, axis=2) # (N, N) — i <  j in at least one
-        dom_mat = all_leq & any_lt  # (N, N) — i dominates j
+        all_leq = np.all(fi <= fj, axis=2)
+        any_lt = np.any(fi < fj, axis=2)
+        dom_mat = all_leq & any_lt  # i dominates j
 
-        # Remove self-domination (diagonal)
         np.fill_diagonal(dom_mat, False)
 
-        domination_count = dom_mat.sum(axis=0).astype(int)        
+        domination_count = dom_mat.sum(axis=0).astype(int)
         dominated_solutions = [list(np.where(dom_mat[i])[0]) for i in range(N)]
 
         fronts = [list(np.where(domination_count == 0)[0])]
@@ -219,41 +204,43 @@ class KnEA(MultiObjectiveOptimizer):
     def _finding_knee_point(
         self, current_population: List[Agent], F: List[List[int]]
     ):
-      
         pop_objs = np.array([ind.fit for ind in current_population], dtype=float)
         M = pop_objs.shape[1]
 
-        all_knee_indices:  List[np.ndarray] = []
+        # Global range used in Eq. (6)
+        global_fmax = pop_objs.max(axis=0)
+        global_fmin = pop_objs.min(axis=0)
+
+        all_knee_indices: List[np.ndarray] = []
         all_sorted_fronts: List[np.ndarray] = []
-        front_map:  List[int] = []  
+        front_map: List[int] = []
 
         for fi_idx, front_indices in enumerate(F):
             if len(front_indices) == 0:
                 continue
 
             front_indices = np.asarray(front_indices)
-            front_values = pop_objs[front_indices]   
+            front_values = pop_objs[front_indices]
             n_points = len(front_indices)
 
-            # Extreme solutions 
-            local_extreme_idxs = np.argmax(front_values, axis=0)
+            # Extreme solutions
+            local_extreme_idxs  = np.argmax(front_values, axis=0)
             unique_extreme_local_idxs = np.unique(local_extreme_idxs)
-            extreme_points = front_values[unique_extreme_local_idxs]
+            extreme_points  = front_values[unique_extreme_local_idxs]
 
-            # Update r ( Eq. 7) 
-            if self.t[fi_idx] == -1:
-                self.r[fi_idx] = 1.0
-            else:
-                self.r[fi_idx] = self.r[fi_idx] / np.exp((1.0 - self.t[fi_idx] / self.T) / M)
+           
+            # Paper initialises t=0, r=1 for a front that has never been seen.
+            t_prev = self.t.get(fi_idx, 0.0)  # t_{g-1}; 0 on first visit
+            r_prev = self.r.get(fi_idx, 1.0)  # r_{g-1}; 1 on first visit
 
-            # fmax / fmin
-            fmax = front_values.max(axis=0)
-            fmin = front_values.min(axis=0)
+            # Eq. (7): r_g = r_{g-1} * exp(-(1 - t_{g-1}/T) / M)
+            r_cur = r_prev * np.exp(-(1.0 - t_prev / self.T) / M)
+            self.r[fi_idx] = r_cur
 
-            # Neighbourhood half-widths R (Eq. 6) 
-            R = (fmax - fmin) * self.r[fi_idx] # (M,)
+            # Eq. (6): R^j = (fmax^j - fmin^j) * r_g  (global range)
+            R = (global_fmax - global_fmin) * r_cur
 
-            # Degenerate case: treat all as knees 
+            # Degenerate case
             if len(unique_extreme_local_idxs) < M or n_points <= M:
                 all_knee_indices.append(front_indices)
                 all_sorted_fronts.append(front_indices)
@@ -261,7 +248,7 @@ class KnEA(MultiObjectiveOptimizer):
                 self.t[fi_idx] = 1.0
                 continue
 
-            # hyperplane L:  extreme_pts · w = 1  ( Eq. 4/5)
+            # Hyperplane L via least-squares: extreme_pts · w = 1
             try:
                 b = np.ones(len(unique_extreme_local_idxs))
                 w, _, _, _ = np.linalg.lstsq(extreme_points, b, rcond=None)
@@ -275,34 +262,29 @@ class KnEA(MultiObjectiveOptimizer):
                 self.t[fi_idx] = 1.0
                 continue
 
-            # --- Signed distance to L (Eq. 5)
-            residuals = np.dot(front_values, w) - 1.0  
-            abs_dist  = np.abs(residuals) / norm_w
+            # Signed distance to L — Eq. (5)
+            residuals = np.dot(front_values, w) - 1.0
+            abs_dist = np.abs(residuals) / norm_w
             signed_distances = np.where(residuals < 0, abs_dist, -abs_dist)
 
-            # --- Sort descending 
-            sorted_local_idx = np.argsort(-signed_distances)       
+            # Sort descending by signed distance
+            sorted_local_idx = np.argsort(-signed_distances)
             global_sorted_front = front_indices[sorted_local_idx]
 
-            # --- Greedy knee sweep
-            size_fi  = n_points
-            remaining = np.ones(n_points, dtype=bool)     
+            # Greedy knee sweep (Algorithm 3, lines 12-16)
+            size_fi   = n_points
+            remaining = np.ones(n_points, dtype=bool)
             knee_local: List[int] = []
 
-            
-           
             for p_local in sorted_local_idx:
                 if not remaining[p_local]:
                     continue
-
                 knee_local.append(p_local)
+                diff  = np.abs(front_values - front_values[p_local])
+                in_nb = np.all(diff <= R, axis=1)
+                remaining[in_nb] = False
 
-                # NB = { a | |f^j_a - f^j_p| <= R^j  for all j } 
-                diff  = np.abs(front_values - front_values[p_local])  # (n, M)
-                in_nb = np.all(diff <= R, axis=1) # (n,)
-                remaining[in_nb] = False # Fi ← Fi \ NB
-
-            # --- t = |K| / SizeFi 
+            # t = |K| / SizeFi  (Algorithm 3, line 17)
             self.t[fi_idx] = len(knee_local) / size_fi
 
             all_knee_indices.append(front_indices[knee_local])
@@ -318,18 +300,16 @@ class KnEA(MultiObjectiveOptimizer):
         self,
         current_population: List[Agent],
         F: List[List[int]],
-        K: List[np.ndarray],    
+        K: List[np.ndarray],
         sorted_fronts: List[np.ndarray],
-        front_map: List[int],  
+        front_map: List[int],
         N: int,
     ) -> List[Agent]:
-       
         Q: List[Agent] = []
 
-        # Build a lookup: F index → position in K/sorted_fronts
         fi_to_k = {fi: ki for ki, fi in enumerate(front_map)}
 
-        critical_fi_idx = None  # index in F of the critical front
+        critical_fi_idx = None
 
         for fi_idx, front in enumerate(F):
             if len(Q) + len(front) <= N:
@@ -341,90 +321,70 @@ class KnEA(MultiObjectiveOptimizer):
                 critical_fi_idx = fi_idx
                 break
 
-        # All fronts fit — no critical front needed
         if critical_fi_idx is None:
             return Q
 
-       
         ki = fi_to_k.get(critical_fi_idx, None)
         if ki is None:
-            
             remaining_slots = N - len(Q)
             for idx in F[critical_fi_idx][:remaining_slots]:
                 Q.append(current_population[idx])
             return Q
 
-        knee_global_idxs = set(int(i) for i in K[ki])
-        sorted_front_idxs = list(sorted_fronts[ki])   
+        knee_global_idxs  = set(int(i) for i in K[ki])
+        sorted_front_idxs = list(sorted_fronts[ki])
 
-        # Knee agents from critical front
-        knee_agents_ordered = [
-            current_population[idx]
-            for idx in sorted_front_idxs
-            if idx in knee_global_idxs
-        ]   
+        knee_idxs_ordered = [idx for idx in sorted_front_idxs if idx in knee_global_idxs]
+        non_knee_idxs_ordered = [idx for idx in sorted_front_idxs if idx not in knee_global_idxs]
+
         remaining_slots = N - len(Q)
-        n_knees = len(knee_agents_ordered)
+        n_knees = len(knee_idxs_ordered)
 
         if n_knees <= remaining_slots:
-           
-            Q.extend(knee_agents_ordered)
+            # All knees fit; fill remainder with non-knees having largest distance
+            Q.extend(current_population[idx] for idx in knee_idxs_ordered)
             remaining_slots -= n_knees
-
-            if remaining_slots > 0:
-                non_knee_agents = [
-                    current_population[idx]
-                    for idx in sorted_front_idxs
-                    if idx not in knee_global_idxs
-                ]   #
-                Q.extend(non_knee_agents[:remaining_slots])
+            Q.extend(current_population[idx] for idx in non_knee_idxs_ordered[:remaining_slots])
         else:
-            # |Q ∪ knees| > N  -> keep only the knees with LARGEST distance
-            Q.extend(knee_agents_ordered[:remaining_slots])
+            kept = 0
+            for idx in sorted_front_idxs:
+                if kept == remaining_slots:
+                    break
+                if idx in knee_global_idxs:
+                    Q.append(current_population[idx])
+                    kept += 1
 
         return Q
 
-    # ------------------------------------------------------------------
-    # Evaluate / Update
-    # ------------------------------------------------------------------
     def evaluate(self, space, function):
-        if self.is_first_generation == True:
+        if self.is_first_generation:
             super().evaluate(space, function)
             self.is_first_generation = False
-            
         else:
             space.update_pareto_front(space.agents)
-            
-       
+
     def update(self, space, function):
         current_population = space.agents.copy()
 
-        # Mating + offspring
         mating = self._mating_selection(P=space.agents, K=self.K, N=space.n_agents)
         offspring = self._genetic_operators(mating, space.n_agents, function)
         current_population.extend(offspring)
 
-        # Non-dominated sort on combined population (2N)
         fronts = self._fast_non_dominated_sort(current_population)
 
-        # Knee point detection
         knee_indices, sorted_fronts, front_map = self._finding_knee_point(
             current_population, fronts
         )
 
-        # Environmental selection -> next generation
         space.agents = self._environmental_selection(
             current_population, fronts, knee_indices, sorted_fronts, front_map,
             space.n_agents,
         )
 
-        
-        surviving_ids = set(id(a) for a in space.agents)
+        surviving_ids  = set(id(a) for a in space.agents)
         flat_knee_idxs = [int(idx) for front in knee_indices for idx in front]
         self.K = [
             current_population[idx]
             for idx in flat_knee_idxs
             if id(current_population[idx]) in surviving_ids
         ]
-        
-       

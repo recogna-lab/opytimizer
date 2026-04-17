@@ -1,6 +1,6 @@
 import numpy as np
 from opytimizer.spaces import search
-from opytimizer.optimizers.multi_objective.evolutionary import obmoce
+from opytimizer.optimizers.multi_objective.evolutionary import moce
 
 
 def zdt1(x):
@@ -14,13 +14,13 @@ def zdt1(x):
 
 def test_obmoce_params():
     params = {"DR": 0.5, "CR": 0.9}
-    opt = obmoce.OBMOCE(params=params)
+    opt = moce.OBMOCE(params=params)
     assert opt.DR == 0.5
     assert opt.CR == 0.9
 
 
 def test_obmoce_params_setter():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     try:
         opt.DR = "a"
     except:
@@ -43,7 +43,7 @@ def test_obmoce_params_setter():
 
 
 def test_obmoce_logistic():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     x = np.random.random((5, 10))
     out = opt._logistic(x)
     assert out.shape == x.shape
@@ -51,7 +51,7 @@ def test_obmoce_logistic():
 
 
 def test_obmoce_tent():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     x = np.random.random((5, 10))
     out = opt._tent(x)
     assert out.shape == x.shape
@@ -59,7 +59,7 @@ def test_obmoce_tent():
 
 
 def test_obmoce_gauss():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     x = np.random.random((5, 10))
     out = opt._gauss(x)
     assert out.shape == x.shape
@@ -67,7 +67,7 @@ def test_obmoce_gauss():
 
 
 def test_obmoce_henon():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     opt.y_henon = np.random.random((5, 10))
     x = np.random.random((5, 10))
     x_old = x.copy()
@@ -77,7 +77,7 @@ def test_obmoce_henon():
 
 
 def test_obmoce_opposite():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     lb = np.full(5, 0.0)
     ub = np.full(5, 1.0)
     pos = np.random.random((10, 5))
@@ -88,7 +88,7 @@ def test_obmoce_opposite():
 
 
 def test_obmoce_compile():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     space = search.SearchSpace(
         n_agents=10,
         n_variables=5,
@@ -105,7 +105,7 @@ def test_obmoce_compile():
 
 
 def test_obmoce_non_dominated_sort():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     fits = np.array([
         [0.0, 1.0],
         [0.5, 0.5],
@@ -118,7 +118,7 @@ def test_obmoce_non_dominated_sort():
 
 
 def test_obmoce_crowding_distance():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     fits = np.array([
         [0.0, 1.0],
         [0.5, 0.5],
@@ -131,7 +131,7 @@ def test_obmoce_crowding_distance():
 
 
 def test_obmoce_update():
-    opt = obmoce.OBMOCE()
+    opt = moce.OBMOCE()
     space = search.SearchSpace(
         n_agents=10,
         n_variables=5,
