@@ -9,3 +9,4 @@ pylint>=2.7.2
 pytest>=6.2.2
 tqdm>=4.49.0
 plotly>=5.13.0
+typing_extensions>=4.15.0
