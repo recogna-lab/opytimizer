@@ -1,14 +1,14 @@
 # Opytimizer: A Nature-Inspired Python Optimizer
 
 <div align="center">
-    <img src="/assets/logo.png" width="300">
+    <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/logo.png" width="300">
 </div>
 
-[![Latest release](https://img.shields.io/github/release/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/releases)
+[![Latest release](https://img.shields.io/github/release/recogna-lab/opytimizer.svg)](https://github.com/recogna-lab/opytimizer/releases)
 [![DOI](http://img.shields.io/badge/DOI-10.5281/zenodo.4594294-006DB9.svg)](https://doi.org/10.5281/zenodo.4594294)
-[![Build status](https://img.shields.io/travis/com/gugarosa/opytimizer/master.svg)](https://github.com/gugarosa/opytimizer/releases)
-[![Open issues](https://img.shields.io/github/issues/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/issues)
-[![License](https://img.shields.io/github/license/gugarosa/opytimizer.svg)](https://github.com/gugarosa/opytimizer/blob/master/LICENSE)
+[![Build status](https://img.shields.io/github/actions/workflow/status/recogna-lab/opytimizer/build-publish-to-pypi.yml?branch=main)](https://github.com/recogna-lab/opytimizer/actions/workflows/build-publish-to-pypi.yml)
+[![Open issues](https://img.shields.io/github/issues/recogna-lab/opytimizer.svg)](https://github.com/recogna-lab/opytimizer/issues)
+[![License](https://img.shields.io/github/license/recogna-lab/opytimizer.svg)](https://github.com/recogna-lab/opytimizer/blob/main/LICENSE)
 
 ## Welcome to Opytimizer.
 Did you ever reach a bottleneck in your computational experiments? Are you tired of selecting suitable parameters for a chosen technique? If yes, Opytimizer is the real deal! This package provides an easy-to-go implementation of meta-heuristic optimizations, supporting both single and multi-objective problems. From agents to search space, from internal functions to external communication, from single to multiple objectives, we will foster all research related to optimizing stuff.
@@ -144,7 +144,7 @@ Just because we are computing stuff does not means that we do not need math. Mat
 
 ### Optimizers
 
-This is why we are called Opytimizer. This is the heart of heuristics, where you can find a large number of meta-heuristics, optimization techniques, anything that can be called an optimizer. Please take a look at the [available optimizers](https://github.com/gugarosa/opytimizer/wiki/Types-of-Optimizers).
+This is why we are called Opytimizer. This is the heart of heuristics, where you can find a large number of meta-heuristics, optimization techniques, anything that can be called an optimizer. Please take a look at the [available optimizers](https://github.com/recogna-lab/opytimizer/wiki/Types-of-Optimizers).
 
 ### Spaces
 
@@ -265,15 +265,8 @@ opt.start(n_iterations=250)
 
 The optimization process will generate a Pareto front, which can be visualized as follows:
 
-<div align="center">
-    <img src="/assets/pareto_front.png" width="400">
-    <p>Final Pareto Front</p>
-</div>
-
-<div align="center">
-    <img src="/assets/pareto_front_evolution.png" width="400">
-    <p>Pareto Front Evolution</p>
-</div>
+<div align="center"> <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/pareto_front.png" width="400"> <p>Final Pareto Front</p> </div>
+<div align="center"> <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/pareto_front_evolution.png" width="400"> <p>Pareto Front Evolution</p> </div>
 
 ---
 

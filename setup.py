@@ -5,13 +5,13 @@ with open("README.md", "r") as f:
 
 setup(
     name="opytimizer",
-    version="4.0.0",
+    version="4.0.1",
     description="Nature-Inspired Python Optimizer",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Recogna",
     author_email="d.rodrigues@unesp.br",
-    url="https://github.com/recogna/opytimizer",
+    url="https://github.com/recogna-lab/opytimizer",
     license="Apache 2.0",
     install_requires=[
         "coverage>=5.5",
