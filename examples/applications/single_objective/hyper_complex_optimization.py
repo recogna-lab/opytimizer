@@ -4,7 +4,7 @@ from opytimark.markers.n_dimensional import Sphere
 import opytimizer.math.hyper as h
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import HyperComplexSpace
 
 # Random seed for experimental consistency
@@ -14,6 +14,7 @@ np.random.seed(0)
 n_agents = 20
 n_variables = 2
 n_dimensions = 4
+n_objectives = 1
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
 lower_bound = [-10, -10]
@@ -28,7 +29,7 @@ def wrapper(x):
 
 
 # Creates the space, optimizer and function
-space = HyperComplexSpace(n_agents, n_variables, n_dimensions)
+space = HyperComplexSpace(n_agents, n_variables, n_dimensions, n_objectives)
 optimizer = PSO()
 function = Function(wrapper)
 

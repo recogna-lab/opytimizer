@@ -13,6 +13,7 @@ np.random.seed(0)
 n_agents = 20
 n_terminals = 2
 n_variables = 2
+n_objectives = 1
 
 # Minimum and maximum depths of the trees
 min_depth = 2
@@ -27,6 +28,7 @@ upper_bound = [10, 10]
 space = TreeSpace(
     n_agents,
     n_variables,
+    n_objectives,
     lower_bound,
     upper_bound,
     n_terminals,

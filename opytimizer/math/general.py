@@ -2,7 +2,7 @@
 """
 
 from itertools import islice
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List
 
 import numpy as np
 

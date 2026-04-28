@@ -50,22 +50,22 @@ def plot_pareto_front(
         raise e.ValueError("Only two and three-objetive problems can be ploted")
 
     if all_solutions is not None:
-        f1_all = [agent.fit[0][0] for agent in all_solutions]
-        f2_all = [agent.fit[1][0] for agent in all_solutions]
+        f1_all = [agent.fit[0] for agent in all_solutions]
+        f2_all = [agent.fit[1] for agent in all_solutions]
 
         if n_dimensions == 3:
-            f3_all = [agent.fit[2][0] for agent in all_solutions]
+            f3_all = [agent.fit[2] for agent in all_solutions]
             ax.scatter(
                 f1_all, f2_all, f3_all, c="lightgray", alpha=0.5, label="All solutions"
             )
         else:
             ax.scatter(f1_all, f2_all, c="lightgray", alpha=0.5, label="All Solutions")
 
-    f1 = [agent.fit[0][0] for agent in pareto_front]
-    f2 = [agent.fit[1][0] for agent in pareto_front]
+    f1 = [agent.fit[0] for agent in pareto_front]
+    f2 = [agent.fit[1] for agent in pareto_front]
 
     if n_dimensions == 3:
-        f3 = [agent.fit[2][0] for agent in pareto_front]
+        f3 = [agent.fit[2] for agent in pareto_front]
 
     idx = np.argsort(f1)
     f1 = np.array(f1)[idx]
@@ -131,8 +131,8 @@ def plot_pareto_evolution(
     colors = plt.cm.viridis(np.linspace(0, 1, len(iterations)))
 
     for i, (front, it) in enumerate(zip(pareto_fronts, iterations)):
-        f1 = [agent.fit[0][0] for agent in front]
-        f2 = [agent.fit[1][0] for agent in front]
+        f1 = [agent.fit[0] for agent in front]
+        f2 = [agent.fit[1] for agent in front]
 
         idx = np.argsort(f1)
         f1 = np.array(f1)[idx]

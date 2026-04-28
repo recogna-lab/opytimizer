@@ -1,7 +1,7 @@
 """Callbacks.
 """
 
-from typing import List, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -315,3 +315,167 @@ class DiscreteSearchCallback(Callback):
                     abs(agent.position[i] - self.allowed_values[i])
                 )
                 agent.position[i] = self.allowed_values[i][min_value_idx]
+
+
+class PerformanceTrackingCallback(Callback):
+    """A PerformanceTrackingCallback class that tracks optimizer performance
+    during hyperheuristic optimization.
+
+    """
+
+    def __init__(self, window_size: int = 10) -> None:
+        """Initialization method.
+
+        Args:
+            window_size: Size of the performance window for analysis.
+        """
+        super(PerformanceTrackingCallback, self).__init__()
+
+        self.window_size = window_size
+        self.performance_history = {}
+        self.selection_history = {}
+        self.timing_history = {}
+        self.iteration_history = []
+        self.current_optimizer = None
+
+    @property
+    def window_size(self) -> int:
+        """Size of the performance window."""
+        return self._window_size
+
+    @window_size.setter
+    def window_size(self, window_size: int) -> None:
+        if not isinstance(window_size, int):
+            raise e.TypeError("`window_size` should be an integer")
+        if window_size < 1:
+            raise e.ValueError("`window_size` should be >= 1")
+        self._window_size = window_size
+
+    def on_task_begin(self, opt_model: Opytimizer) -> None:
+        """Initialize tracking when optimization begins."""
+        # Reset tracking data
+        self.performance_history.clear()
+        self.selection_history.clear()
+        self.timing_history.clear()
+        self.iteration_history.clear()
+
+        # Initialize tracking for each optimizer if it's a hyperheuristic
+        if hasattr(opt_model.optimizer, "optimizers"):
+            for optimizer in opt_model.optimizer.optimizers:
+                optimizer_name = optimizer.__class__.__name__
+                self.performance_history[optimizer_name] = []
+                self.selection_history[optimizer_name] = []
+                self.timing_history[optimizer_name] = []
+
+    def on_iteration_begin(self, iteration: int, opt_model: Opytimizer) -> None:
+        """Track iteration start."""
+        self.iteration_history.append(iteration)
+
+        # Track current optimizer if it's a hyperheuristic
+        if hasattr(opt_model.optimizer, "current_optimizer"):
+            self.current_optimizer = opt_model.optimizer.current_optimizer
+
+    def on_evaluate_after(self, *evaluate_args) -> None:
+        """Track performance after evaluation."""
+        if self.current_optimizer is None:
+            return
+
+        optimizer_name = self.current_optimizer.__class__.__name__
+        space = evaluate_args[0]
+
+        # Track performance (best fitness)
+        performance = space.best_agent.fit
+
+        if optimizer_name not in self.performance_history:
+            self.performance_history[optimizer_name] = []
+
+        self.performance_history[optimizer_name].append(performance)
+
+        # Keep only the last window_size entries
+        if len(self.performance_history[optimizer_name]) > self.window_size:
+            self.performance_history[optimizer_name] = self.performance_history[
+                optimizer_name
+            ][-self.window_size :]
+
+    def on_update_after(self, *update_args) -> None:
+        """Track optimizer selection after update."""
+        if self.current_optimizer is None:
+            return
+
+        optimizer_name = self.current_optimizer.__class__.__name__
+        current_iteration = len(self.iteration_history) - 1
+
+        # Track selection
+        if optimizer_name not in self.selection_history:
+            self.selection_history[optimizer_name] = []
+
+        self.selection_history[optimizer_name].append(current_iteration)
+
+    def get_best_performance(self, optimizer_name: str) -> Optional[float]:
+        """Get the best performance achieved by an optimizer."""
+        if optimizer_name not in self.performance_history:
+            return None
+
+        performances = self.performance_history[optimizer_name]
+        if not performances:
+            return None
+
+        return min(performances)  # Assuming minimization problem
+
+    def get_average_performance(self, optimizer_name: str) -> Optional[float]:
+        """Get the average performance of an optimizer."""
+        if optimizer_name not in self.performance_history:
+            return None
+
+        performances = self.performance_history[optimizer_name]
+        if not performances:
+            return None
+
+        return np.mean(performances)
+
+    def get_selection_frequency(self, optimizer_name: str) -> float:
+        """Get the selection frequency of an optimizer."""
+        if optimizer_name not in self.selection_history:
+            return 0.0
+
+        total_selections = len(self.selection_history[optimizer_name])
+        total_iterations = len(self.iteration_history)
+
+        if total_iterations == 0:
+            return 0.0
+
+        return total_selections / total_iterations
+
+    def get_performance_ranking(self) -> List[tuple]:
+        """Get performance ranking of all optimizers."""
+        rankings = []
+
+        for optimizer_name in self.performance_history:
+            best_performance = self.get_best_performance(optimizer_name)
+            if best_performance is not None:
+                rankings.append((optimizer_name, best_performance))
+
+        # Sort by performance (ascending for minimization)
+        rankings.sort(key=lambda x: x[1])
+        return rankings
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive statistics about all optimizers."""
+        stats = {
+            "performance_history": dict(self.performance_history),
+            "selection_history": dict(self.selection_history),
+            "timing_history": dict(self.timing_history),
+            "performance_ranking": self.get_performance_ranking(),
+        }
+
+        # Add individual optimizer statistics
+        optimizer_stats = {}
+        for optimizer_name in self.performance_history:
+            optimizer_stats[optimizer_name] = {
+                "best_performance": self.get_best_performance(optimizer_name),
+                "average_performance": self.get_average_performance(optimizer_name),
+                "selection_frequency": self.get_selection_frequency(optimizer_name),
+            }
+
+        stats["optimizer_statistics"] = optimizer_stats
+        return stats
