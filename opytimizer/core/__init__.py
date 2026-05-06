@@ -8,4 +8,5 @@ from opytimizer.core.function import Function
 from opytimizer.core.hyperheuristic import HyperHeuristic
 from opytimizer.core.node import Node
 from opytimizer.core.optimizer import MultiObjectiveOptimizer, Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
+from opytimizer.core.environment import Environment 

@@ -1,9 +1,8 @@
 """Particle Swarm Optimization-based algorithms.
 """
 
-import copy
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -13,7 +12,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace, _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -104,25 +103,20 @@ class PSO(Optimizer):
 
     @local_position.setter
     def local_position(self, local_position: np.ndarray) -> None:
-        if not isinstance(local_position, np.ndarray):
-            raise e.TypeError("`local_position` should be a numpy array")
 
         self._local_position = local_position
 
     @property
-    def velocity(self) -> np.ndarray:
+    def velocity(self):
         """Array of velocities."""
 
         return self._velocity
 
     @velocity.setter
     def velocity(self, velocity: np.ndarray) -> None:
-        if not isinstance(velocity, np.ndarray):
-            raise e.TypeError("`velocity` should be a numpy array")
-
         self._velocity = velocity
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -130,14 +124,29 @@ class PSO(Optimizer):
 
         """
 
-        self.local_position = np.zeros(
-            (space.n_agents, space.n_variables, space.n_dimensions)
+        self.local_position = space.env.xp.zeros(
+            (space.n_agents, space.n_variables, space.n_dimensions),
+            dtype=space.env.dtype
         )
-        self.velocity = np.zeros(
-            (space.n_agents, space.n_variables, space.n_dimensions)
+        self.velocity = space.env.xp.zeros(
+            (space.n_agents, space.n_variables, space.n_dimensions),
+            dtype=space.env.dtype
         )
 
-    def evaluate(self, space: Space, function: Function) -> None:
+        self._all_positions_buffer = space.env.xp.zeros(
+        (space.n_agents, space.n_variables, space.n_dimensions),
+        dtype=space.env.dtype
+    )
+        
+        if space.env.backend.value == "cuda":
+            _dummy = space.env.xp.zeros_like(self.velocity)
+            _dummy = self.w * _dummy + space.env.xp.random.uniform(0, 1, _dummy.shape)
+            space.env.xp.where(space.env.xp.zeros(space.n_agents, dtype=bool)[:, None, None], _dummy, _dummy)
+            space.env.xp.cuda.Stream.null.synchronize() 
+            del _dummy
+        
+
+    def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -146,38 +155,59 @@ class PSO(Optimizer):
 
         """
 
+        xp = space.env.xp
+
         for i, agent in enumerate(space.agents):
-            fit = function(agent.position)
-            if fit < agent.fit:
-                agent.fit = fit
-                self.local_position[i] = copy.deepcopy(agent.position)
+            self._all_positions_buffer[i] = agent.position
+
+        all_fits = function(self._all_positions_buffer)  # shape: (n_agents,)
+        
+        current_fits = xp.array([ag.fit for ag in space.agents]) # (n_agents,)
+
+        improved = all_fits < current_fits
+        improved_ = improved.tolist()
+
+        for i, agent in enumerate(space.agents):
+            if improved_[i]:                     
+                agent.fit = all_fits[i]
+                self.local_position[i] = agent.position.copy()
 
             if agent.fit < space.best_agent.fit:
-                space.best_agent.position = copy.deepcopy(self.local_position[i])
-                space.best_agent.fit = copy.deepcopy(agent.fit)
+                space.best_agent.position = agent.position.copy()
+                space.best_agent.fit = agent.fit
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: Space) -> None:
+
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Wraps Particle Swarm Optimization over all agents and variables.
 
         Args:
-            space: Space containing agents and update-related information.
+            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
 
         """
 
+        xp = space.env.xp
+        g_best = space.best_agent.position  # (n_vars, n_dims)
+
+        r1 = xp.random.uniform(0, 1, self.velocity.shape).astype(space.env.dtype)
+        r2 = xp.random.uniform(0, 1, self.velocity.shape).astype(space.env.dtype)
+
+        all_positions = xp.stack([ag.position for ag in space.agents])
+
+        self.velocity = (
+            self.w * self.velocity
+            + self.c1 * r1 * (self.local_position - all_positions)
+            + self.c2 * r2 * (g_best - all_positions)
+        )
+
+        all_positions += self.velocity
+
         for i, agent in enumerate(space.agents):
-            r1 = r.generate_uniform_random_number()
-            r2 = r.generate_uniform_random_number()
+            agent.position = all_positions[i]
 
-            # Updates agent's velocity (p. 294)
-            self.velocity[i] = (
-                self.w * self.velocity[i]
-                + self.c1 * r1 * (self.local_position[i] - agent.position)
-                + self.c2 * r2 * (space.best_agent.position - agent.position)
-            )
+        space.clip_by_bound()
 
-            # Updates agent's position (p. 294)
-            agent.position += self.velocity[i]
+
 
 
 class AIWPSO(PSO):
@@ -273,11 +303,11 @@ class AIWPSO(PSO):
 
         self.w = (self.w_max - self.w_min) * (p / len(agents)) + self.w_min
 
-    def update(self, space: Space, iteration: int) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], iteration: int) -> None:
         """Wraps Adaptive Inertia Weight Particle Swarm Optimization over all agents and variables.
 
         Args:
-            space: Space containing agents and update-related information.
+            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
             iteration: Current iteration.
 
         """
@@ -340,7 +370,7 @@ class RPSO(PSO):
 
         self._mass = mass
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -358,11 +388,11 @@ class RPSO(PSO):
             size=(space.n_agents, space.n_variables, space.n_dimensions)
         )
 
-    def update(self, space: Space) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Wraps Relativistic Particle Swarm Optimization over all agents and variables.
 
         Args:
-            space: Space containing agents and update-related information.
+            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
 
         """
 
@@ -410,11 +440,11 @@ class SAVPSO(PSO):
 
         logger.info("Class overrided.")
 
-    def update(self, space: Space) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Wraps Self-adaptive Velocity Particle Swarm Optimization over all agents and variables.
 
         Args:
-            space: Space containing agents and update-related information.
+            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
 
         """
 
@@ -494,7 +524,7 @@ class VPSO(PSO):
 
         self._v_velocity = v_velocity
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -512,11 +542,11 @@ class VPSO(PSO):
             (space.n_agents, space.n_variables, space.n_dimensions)
         )
 
-    def update(self, space: Space) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Wraps Vertical Particle Swarm Optimization over all agents and variables.
 
         Args:
-            space: Space containing agents and update-related information.
+            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
 
         """
 

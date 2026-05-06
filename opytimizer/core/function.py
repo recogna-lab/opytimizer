@@ -55,9 +55,7 @@ class Function:
         """
 
         result = self.pointer(x)
-        if isinstance(result, (int, float)):
-            return np.array([result])
-        return np.array(result).flatten()
+        return result
 
     @property
     def pointer(self) -> callable:

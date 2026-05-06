@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, TypeVar, Union
 import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
 
 Opytimizer = TypeVar("Opytimizer")
 
@@ -305,7 +305,7 @@ class DiscreteSearchCallback(Callback):
 
         space = evaluate_args[0]
         assert isinstance(
-            space, Space
+            space, (_SingleObjectiveSpace, _MultiObjectiveSpace)
         ), "`evaluate_args[0]` is not derived from Space class."
 
         for agent in space.agents:

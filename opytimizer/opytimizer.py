@@ -3,7 +3,7 @@
 
 import time
 from inspect import signature
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import dill
 import numpy as np
@@ -12,7 +12,7 @@ from tqdm import tqdm
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.callback import Callback, CallbackVessel
 from opytimizer.utils.history import History
@@ -28,7 +28,7 @@ class Opytimizer:
 
     def __init__(
         self,
-        space: Space,
+        space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace],
         optimizer: Optimizer,
         function: Function,
         save_agents: bool = False,
@@ -66,13 +66,13 @@ class Opytimizer:
         logger.info("Class created.")
 
     @property
-    def space(self) -> Space:
+    def space(self) -> Union[_SingleObjectiveSpace, _MultiObjectiveSpace]:
         """Space-child instance (SearchSpace, HyperComplexSpace, etc)."""
 
         return self._space
 
     @space.setter
-    def space(self, space: Space) -> None:
+    def space(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         if not space.built:
             raise e.BuildError("`space` should be built before using Opytimizer")
 

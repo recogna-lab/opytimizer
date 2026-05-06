@@ -3,12 +3,12 @@
 
 import copy
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, Union
 
 import opytimizer.utils.exception as e
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -90,7 +90,7 @@ class Optimizer:
             self.built,
         )
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         """Compiles additional information that is used by this optimizer.
 
         This method is called before the optimization procedure and makes sure
@@ -100,7 +100,7 @@ class Optimizer:
 
         pass
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         If you need a specific evaluate method, please re-implement
@@ -123,7 +123,7 @@ class Optimizer:
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         """Updates the agents' position array.
 
         As each child has a different procedure of update, you will need
@@ -146,7 +146,7 @@ class MultiObjectiveOptimizer(Optimizer):
 
         super().__init__()
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:

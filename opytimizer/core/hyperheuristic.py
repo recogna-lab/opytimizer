@@ -1,14 +1,14 @@
 """HyperHeuristic.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -147,7 +147,7 @@ class HyperHeuristic(Optimizer):
                 break
         logger.debug("Removed optimizer: %s.", optimizer_name)
 
-    def select_optimizer(self, space: Space, function: Function) -> Optimizer:
+    def select_optimizer(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> Optimizer:
         if not self.optimizers:
             raise e.ValueError("No optimizers available for selection")
         selected_index = self.iteration % len(self.optimizers)
@@ -158,7 +158,7 @@ class HyperHeuristic(Optimizer):
         logger.debug("Selected optimizer: %s.", optimizer_name)
         return selected_optimizer
 
-    def update_performance(self, optimizer: Optimizer, space: Space) -> None:
+    def update_performance(self, optimizer: Optimizer, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         if not isinstance(optimizer, Optimizer):
             raise e.TypeError("`optimizer` should be an Optimizer instance")
         optimizer_name = optimizer.__class__.__name__
@@ -190,7 +190,7 @@ class HyperHeuristic(Optimizer):
             return None
         return np.mean(performances)
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
         for optimizer in self.optimizers:
             optimizer.compile(space)
         if self.optimizers:
@@ -199,13 +199,13 @@ class HyperHeuristic(Optimizer):
             "Compiled hyperheuristic with %d optimizers.", len(self.optimizers)
         )
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         if not self.current_optimizer:
             raise e.ValueError("No optimizer selected for evaluation")
         self.current_optimizer.evaluate(space, function)
         self.update_performance(self.current_optimizer, space)
 
-    def update(self, space: Space, function: Function = None) -> None:
+    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function = None) -> None:
         if not self.current_optimizer:
             raise e.ValueError("No optimizer selected for update")
 

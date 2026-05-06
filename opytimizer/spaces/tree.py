@@ -9,13 +9,14 @@ import numpy as np
 import opytimizer.math.random as r
 import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
-from opytimizer.core import Agent, Node, Space
+from opytimizer.core import Agent, Node
+from opytimizer.core.space import _Space
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
 
 
-class TreeSpace(Space):
+class TreeSpace(_Space):
     """A TreeSpace class for trees, agents, variables and methods
     related to a tree-based search space.
 

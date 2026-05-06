@@ -1,18 +1,17 @@
 """Search space.
 """
 
-from typing import List, Optional, Tuple, Union
-
-import numpy as np
+from typing import List, Optional, Tuple, Union, Any
+from abc import ABC, abstractmethod
 
 import opytimizer.utils.exception as e
 from opytimizer.core import Agent
 from opytimizer.utils import logging
-
+from opytimizer.core.environment import Environment
 logger = logging.get_logger(__name__)
 
 
-class Space:
+class _Space(ABC):
     """A Space class for agents, variables and methods
     related to the search space.
 
@@ -24,9 +23,10 @@ class Space:
         n_variables: int = 1,
         n_dimensions: int = 1,
         n_objectives: int = 1,
-        lower_bound: Optional[Union[float, List, Tuple, np.ndarray]] = 0.0,
-        upper_bound: Optional[Union[float, List, Tuple, np.ndarray]] = 1.0,
+        lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
+        upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
         mapping: Optional[List[str]] = None,
+        env: Environment = Environment().set_backend('cpu')
     ) -> None:
         """Initialization method.
 
@@ -38,6 +38,7 @@ class Space:
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
             mapping: String-based identifiers for mapping variables' names.
+            env: Environment class object.
 
         """
 
@@ -46,23 +47,15 @@ class Space:
         self.n_dimensions = n_dimensions
         self.n_objectives = n_objectives
 
-        self.lb = np.asarray(lower_bound)
-        self.ub = np.asarray(upper_bound)
+        self.lb = env.xp.asarray(lower_bound)
+        self.ub = env.xp.asarray(upper_bound)
 
         self.mapping = mapping
 
-        self.agents = []
-        self.best_agent = Agent(
-            n_variables=n_variables,
-            n_dimensions=n_dimensions,
-            n_objectives=n_objectives,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
-            mapping=mapping,
-        )
-        self.pareto_front = []
+        self.env = env
 
-        self.built = False
+        self.agents = []
+
 
     @property
     def n_agents(self) -> int:
@@ -124,34 +117,30 @@ class Space:
         self._n_objectives = n_objectives
 
     @property
-    def lb(self) -> np.ndarray:
+    def lb(self):
         """Minimum possible values."""
 
         return self._lb
 
     @lb.setter
-    def lb(self, lb: np.ndarray) -> None:
-        if not isinstance(lb, np.ndarray):
-            raise e.TypeError("`lb` should be a numpy array")
+    def lb(self, lb) -> None:
         if not lb.shape:
-            lb = np.expand_dims(lb, -1)
+            lb = self.env.xp.expand_dims(lb, -1)
         if lb.shape[0] != self.n_variables:
             raise e.SizeError("`lb` should be the same size as `n_variables`")
 
         self._lb = lb
 
     @property
-    def ub(self) -> np.ndarray:
+    def ub(self):
         """Maximum possible values."""
 
         return self._ub
 
     @ub.setter
-    def ub(self, ub: np.ndarray) -> None:
-        if not isinstance(ub, np.ndarray):
-            raise e.TypeError("`ub` should be a numpy array")
+    def ub(self, ub) -> None:
         if not ub.shape:
-            ub = np.expand_dims(ub, -1)
+            ub = self.env.xp.expand_dims(ub, -1)
         if not ub.shape or ub.shape[0] != self.n_variables:
             raise e.SizeError("`ub` should be the same size as `n_variables`")
 
@@ -175,6 +164,15 @@ class Space:
             self._mapping = [f"x{i}" for i in range(self.n_variables)]
 
     @property
+    def env(self) -> Environment:
+        return self._env
+    
+    @env.setter
+    def env(self, env_instance) -> None:
+        if not isinstance(env_instance, Environment):
+            raise e.TypeError("Error: please, pass a valiable environment.")
+        self._env = env_instance
+    @property
     def agents(self) -> List[Agent]:
         """list: Agents that belongs to the space."""
 
@@ -187,30 +185,6 @@ class Space:
 
         self._agents = agents
 
-    @property
-    def best_agent(self) -> Agent:
-        """Agent: Best agent."""
-
-        return self._best_agent
-
-    @best_agent.setter
-    def best_agent(self, best_agent: Agent) -> None:
-        if not isinstance(best_agent, Agent):
-            raise e.TypeError("`best_agent` should be an Agent")
-
-        self._best_agent = best_agent
-
-    @property
-    def pareto_front(self) -> List[Agent]:
-        """List of non-dominated solutions."""
-        return self._pareto_front
-
-    @pareto_front.setter
-    def pareto_front(self, pareto_front: List[Agent]) -> None:
-        if not isinstance(pareto_front, list):
-            raise e.TypeError("`pareto_front` should be a list")
-
-        self._pareto_front = pareto_front
 
     @property
     def built(self) -> bool:
@@ -225,30 +199,11 @@ class Space:
 
         self._built = built
 
+    @abstractmethod
     def _create_agents(self) -> None:
         """Creates a list of agents."""
-
-        self.agents = [
-            Agent(
-                n_variables=self.n_variables,
-                n_dimensions=self.n_dimensions,
-                n_objectives=self.n_objectives,
-                lower_bound=self.lb,
-                upper_bound=self.ub,
-                mapping=self.mapping,
-            )
-            for _ in range(self.n_agents)
-        ]
-
-        self.best_agent = Agent(
-            n_variables=self.n_variables,
-            n_dimensions=self.n_dimensions,
-            n_objectives=self.n_objectives,
-            lower_bound=self.lb,
-            upper_bound=self.ub,
-            mapping=self.mapping,
-        )
-
+        pass
+    
     def _initialize_agents(self) -> None:
         """Initializes agents with their positions and defines a best agent.
 
@@ -287,6 +242,152 @@ class Space:
         for agent in self.agents:
             agent.clip_by_bound()
 
+
+### SINGLE OBJECTIVE SPACE ---------------------------------------------------
+class _SingleObjectiveSpace(_Space):
+    def __init__(
+        self,
+        n_agents: int = 1,
+        n_variables: int = 1,
+        n_dimensions: int = 1,
+        n_objectives: int = 1,
+        lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
+        upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
+        mapping: Optional[List[str]] = None,
+        env: Environment = Environment().set_backend('cpu')
+    ) -> None:
+        """Initialization method.
+
+        Args:
+            n_agents: Number of agents.
+            n_variables: Number of decision variables.
+            n_dimensions: Dimension of search space.
+            n_objectives: Number of objective functions.
+            lower_bound: Minimum possible values.
+            upper_bound: Maximum possible values.
+            mapping: String-based identifiers for mapping variables' names.
+            env: Enviromennt class object.
+
+        """
+        super().__init__(n_agents, n_variables, n_dimensions, n_objectives, lower_bound, upper_bound, mapping, env)
+
+        self.best_agent = Agent(
+            n_variables=n_variables,
+            n_dimensions=n_dimensions,
+            n_objectives=n_objectives,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+            mapping=mapping,
+            env=env,
+        )
+
+        self.built = False
+
+
+    @property
+    def best_agent(self) -> Agent:
+        """Agent: Best agent."""
+
+        return self._best_agent
+
+    @best_agent.setter
+    def best_agent(self, best_agent: Agent) -> None:
+        if not isinstance(best_agent, Agent):
+            raise e.TypeError("`best_agent` should be an Agent")
+
+        self._best_agent = best_agent
+
+
+    def _create_agents(self) -> None:
+        """Creates a list of agents."""
+
+        self.agents = [
+            Agent(
+                n_variables=self.n_variables,
+                n_dimensions=self.n_dimensions,
+                n_objectives=self.n_objectives,
+                lower_bound=self.lb,
+                upper_bound=self.ub,
+                mapping=self.mapping,
+                env=self.env
+            )
+            for _ in range(self.n_agents)
+        ]
+
+
+
+    
+## --------MULTI-OBJECTIVE SPACE ---------------------------------
+
+class _MultiObjectiveSpace(_Space):
+    def __init__(
+        self,
+        n_agents: int = 1,
+        n_variables: int = 1,
+        n_dimensions: int = 1,
+        n_objectives: int = 1,
+        lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
+        upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
+        mapping: Optional[List[str]] = None,
+        env: Environment = Environment().set_backend('cpu')
+    ) -> None:
+        """Initialization method.
+
+        Args:
+            n_agents: Number of agents.
+            n_variables: Number of decision variables.
+            n_dimensions: Dimension of search space.
+            n_objectives: Number of objective functions.
+            lower_bound: Minimum possible values.
+            upper_bound: Maximum possible values.
+            mapping: String-based identifiers for mapping variables' names.
+            env: Environment class object.
+
+        """
+        super().__init__(n_agents, n_variables, n_dimensions, n_objectives, lower_bound, upper_bound, mapping, env)
+
+        self.pareto_front = []
+
+        self.built = False
+
+    @property
+    def pareto_front(self) -> List[Agent]:
+        """List of non-dominated solutions."""
+        return self._pareto_front
+
+    @pareto_front.setter
+    def pareto_front(self, pareto_front: List[Agent]) -> None:
+        if not isinstance(pareto_front, list):
+            raise e.TypeError("`pareto_front` should be a list")
+
+        self._pareto_front = pareto_front
+
+    def _create_agents(self) -> None:
+        """Creates a list of agents."""
+
+        self.agents = [
+            Agent(
+                n_variables=self.n_variables,
+                n_dimensions=self.n_dimensions,
+                n_objectives=self.n_objectives,
+                lower_bound=self.lb,
+                upper_bound=self.ub,
+                mapping=self.mapping,
+                env=self.env
+            )
+            for _ in range(self.n_agents)
+        ]
+
+        self.best_agent = Agent(
+            n_variables=self.n_variables,
+            n_dimensions=self.n_dimensions,
+            n_objectives=self.n_objectives,
+            lower_bound=self.lb,
+            upper_bound=self.ub,
+            mapping=self.mapping,
+            env=self.env
+        )
+
     def update_pareto_front(self, agents: List[Agent]) -> None:
         """Updates the Pareto front with non-dominated solutions.
 
@@ -298,7 +399,7 @@ class Space:
         for agent in agents:
             is_dominated = False
             is_duplicate = any(
-                np.array_equal(agent.fit, existing_agent.fit)
+                self.env.xp.array_equal(agent.fit, existing_agent.fit)
                 for existing_agent in self.pareto_front
             )
             if is_duplicate:
