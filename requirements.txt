@@ -10,3 +10,4 @@ pytest>=6.2.2
 tqdm>=4.49.0
 plotly>=5.13.0
 typing_extensions>=4.15.0
+scipy>=1.14.0

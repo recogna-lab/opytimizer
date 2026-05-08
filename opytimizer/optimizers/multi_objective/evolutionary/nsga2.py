@@ -1,13 +1,13 @@
 """NSGA-II."""
 
-import copy
 
 import numpy as np
 
+from typing import List, Tuple
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 
@@ -77,7 +77,7 @@ class NSGA2(MultiObjectiveOptimizer):
 
         self._crowding_distance = crowding_distance
 
-    def compile(self, space: "Space") -> None:
+    def compile(self, space: _MultiObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -88,7 +88,7 @@ class NSGA2(MultiObjectiveOptimizer):
         self.rank = np.zeros(space.n_agents)
         self.crowding_distance = np.zeros(space.n_agents)
 
-    def _fast_non_dominated_sort(self, agents: list) -> list:
+    def _fast_non_dominated_sort(self, agents:List[Agent]) -> List[Agent]:
         """Performs the fast non-dominated sort.
 
         Args:
@@ -176,7 +176,7 @@ class NSGA2(MultiObjectiveOptimizer):
 
         return distances
 
-    def _tournament_selection(self, agents: list) -> list:
+    def _tournament_selection(self, agents: List[Agent]) -> List[Agent]:
         """Performs tournament selection.
 
         Args:
@@ -208,7 +208,7 @@ class NSGA2(MultiObjectiveOptimizer):
 
         return selected
 
-    def _crossover(self, parent1: "Agent", parent2: "Agent") -> tuple:
+    def _crossover(self, parent1: Agent, parent2: Agent) -> Tuple:
         """Performs the crossover between two parents.
 
         The operator used can be customized via the constructor.
@@ -225,7 +225,7 @@ class NSGA2(MultiObjectiveOptimizer):
         
         return children
 
-    def _mutation(self, agent: "Agent") -> Agent:
+    def _mutation(self, agent: Agent) -> Agent:
         """Performs the mutation on an agent.
 
         The operator used can be customized via the constructor.
@@ -239,7 +239,7 @@ class NSGA2(MultiObjectiveOptimizer):
         mutated = self.mutation_operator(agent)
         return mutated
 
-    def _create_offspring(self, space: "Space") -> list:
+    def _create_offspring(self, space: _MultiObjectiveSpace) -> List[Agent]:
         """Generates offspring using SBX crossover and PM mutation.
 
         Args:
@@ -262,7 +262,7 @@ class NSGA2(MultiObjectiveOptimizer):
             offspring.extend(children_list)
         return offspring[: len(space.agents)]
 
-    def _select_survivors(self, combined_population: list, space, function) -> list:
+    def _select_survivors(self, combined_population: List[Agent], space: _MultiObjectiveSpace, function) -> List[Agent]:
         """Selects the next generation of agents based on non-dominated sorting and crowding distance.
 
         Args:
@@ -300,7 +300,7 @@ class NSGA2(MultiObjectiveOptimizer):
 
         return new_population
 
-    def update(self, space: "Space", function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function) -> None:
         """Wraps NSGA-II over all agents and variables.
 
         Args:

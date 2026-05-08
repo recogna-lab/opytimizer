@@ -1,9 +1,11 @@
 import numpy as np
 
+from typing import List, Tuple
+
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 
@@ -82,13 +84,13 @@ class SPEA2(MultiObjectiveOptimizer):
             raise e.TypeError("`density` should be a numpy array")
         self._density = density
 
-    def compile(self, space: "Space") -> None:
+    def compile(self, space: _MultiObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer."""
         self.strength = np.zeros(space.n_agents)
         self.raw_fitness = np.zeros(space.n_agents)
         self.density = np.zeros(space.n_agents)
 
-    def _calculate_strength(self, agents: list) -> None:
+    def _calculate_strength(self, agents: List[Agent]) -> None:
         """Calculates the strength of each solution (S(i))."""
         n_agents = len(agents)
         self.strength = np.zeros(n_agents)
@@ -98,7 +100,7 @@ class SPEA2(MultiObjectiveOptimizer):
                 if i != j and agents[i].dominates(agents[j]):
                     self.strength[i] += 1
 
-    def _calculate_raw_fitness(self, agents: list) -> None:
+    def _calculate_raw_fitness(self, agents: List[Agent]) -> None:
         """Calculates the raw fitness of each solution (R(i))."""
         n_agents = len(agents)
         self.raw_fitness = np.zeros(n_agents)
@@ -138,13 +140,13 @@ class SPEA2(MultiObjectiveOptimizer):
             
             self.density[i] = 1.0 / (k_dist + 2.0)
 
-    def _update_metrics(self, agents: list) -> None:
+    def _update_metrics(self, agents: List[Agent]) -> None:
         """Helper to update all SPEA2 metrics for a given list of agents."""
         self._calculate_strength(agents)
         self._calculate_raw_fitness(agents)
         self._calculate_density(agents)
 
-    def _environmental_selection(self, agents: list) -> list:
+    def _environmental_selection(self, agents: List[Agent]) -> List[Agent]:
         """Performs environmental selection to maintain the archive."""
         
         # Calculate metrics for the combined population (P + Q)
@@ -177,7 +179,7 @@ class SPEA2(MultiObjectiveOptimizer):
 
         return [agents[i] for i in selected_indices]
 
-    def _tournament_selection(self, agents: list) -> list:
+    def _tournament_selection(self, agents: List) -> List:
         """Binary tournament selection based on SPEA2 fitness."""
         selected = []
         n_agents = len(agents)
@@ -198,13 +200,13 @@ class SPEA2(MultiObjectiveOptimizer):
 
         return selected
 
-    def _crossover(self, parent1: "Agent", parent2: "Agent") -> tuple:
+    def _crossover(self, parent1: Agent, parent2: Agent) -> Tuple:
         return self.crossover_operator(parent1, parent2)
 
-    def _mutation(self, agent: "Agent") -> Agent:
+    def _mutation(self, agent: Agent) -> Agent:
         return self.mutation_operator(agent)
 
-    def _create_offspring(self, space: "Space") -> list:
+    def _create_offspring(self, space: _MultiObjectiveSpace) -> List:
         parents = self._tournament_selection(space.agents)
         offspring = []
 
@@ -219,7 +221,7 @@ class SPEA2(MultiObjectiveOptimizer):
 
         return offspring[: len(space.agents)]
 
-    def update(self, space: "Space", function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function) -> None:
         """Wraps SPEA2 over all agents."""
         
         

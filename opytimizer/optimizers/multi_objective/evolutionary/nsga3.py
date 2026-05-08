@@ -1,11 +1,12 @@
 """NSGA-III"""
 
 import numpy as np
+from typing import List, Tuple
 
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 from opytimizer.utils.weights_vector import das_dennis
@@ -97,7 +98,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Compile
     # ------------------------------------------------------------------
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _MultiObjectiveSpace) -> None:
         """Compiles additional information used by this optimizer.
 
         Args:
@@ -138,7 +139,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Non-dominated sorting 
     # ------------------------------------------------------------------
 
-    def _fast_non_dominated_sort(self, agents: list) -> list:
+    def _fast_non_dominated_sort(self, agents: list) -> List:
         """Performs the fast non-dominated sort.
 
         Args:
@@ -251,7 +252,7 @@ class NSGA3(MultiObjectiveOptimizer):
 
     def _associate(
         self, f_n: np.ndarray, ref_points: np.ndarray
-    ) -> tuple:
+    ) -> Tuple:
         """Associates each population member with its closest reference line.
 
         The reference line for reference point z is the ray from the origin
@@ -302,7 +303,7 @@ class NSGA3(MultiObjectiveOptimizer):
         pi: np.ndarray,
         d: np.ndarray,
         fl_local: list,
-    ) -> list:
+    ) -> List:
         """Chooses K members from the last front Fl using niche preservation.
 
         Args:
@@ -360,13 +361,13 @@ class NSGA3(MultiObjectiveOptimizer):
     # Offspring generation
     # ------------------------------------------------------------------
 
-    def _crossover(self, parent1: Agent, parent2: Agent) -> tuple:
+    def _crossover(self, parent1: Agent, parent2: Agent) -> Tuple:
         return self.crossover_operator(parent1, parent2)
 
     def _mutation(self, agent: Agent) -> Agent:
         return self.mutation_operator(agent)
 
-    def _create_offspring(self, space: Space) -> list:
+    def _create_offspring(self, space: _MultiObjectiveSpace) -> List:
         """Creates offspring via tournament selection."""
 
         # Tournament selection based on rank only 
@@ -381,7 +382,7 @@ class NSGA3(MultiObjectiveOptimizer):
 
         return offspring[: len(space.agents)]
 
-    def _tournament_selection(self, agents: list) -> list:
+    def _tournament_selection(self, agents: list) -> List:
         """Rank-based binary tournament selection."""
         selected = []
         for _ in range(len(agents)):
@@ -394,7 +395,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Survivor selection 
     # ------------------------------------------------------------------
 
-    def _select_survivors(self, combined: list, n_agents: int) -> list:
+    def _select_survivors(self, combined: list, n_agents: int) -> List:
         """Selects the next generation using non-dominated sorting + niching.
  
         Implements the main body of Algorithm 1 from the paper.
@@ -447,7 +448,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Main update step
     # ------------------------------------------------------------------
 
-    def update(self, space: Space, function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function) -> None:
         """Wraps NSGA-III over all agents and variables.
 
         Args:
@@ -470,7 +471,7 @@ class NSGA3(MultiObjectiveOptimizer):
     # Evaluate
     # ------------------------------------------------------------------
 
-    def evaluate(self, space: Space, function) -> None:
+    def evaluate(self, space: _MultiObjectiveSpace, function) -> None:
         """Evaluates the fitness of all agents and updates the Pareto front.
 
         Args:

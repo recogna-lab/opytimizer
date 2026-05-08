@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, Union
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.core.function import Function
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
@@ -91,14 +91,14 @@ class RVEA(MultiObjectiveOptimizer):
     
            
     # ------------------------------------------------------------------
-    def compile(self, space: Space):
+    def compile(self, space: _MultiObjectiveSpace):
         if len(self.reference_vectors) != space.n_agents:
             raise e.ValueError('Error: The number of `reference_vectors` should be equal to the number of agents.')
         
        
 
     # ------------------------------------------------------------------
-    def evaluate(self, space: Space, function: Function):
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         if self.currentGeneration == 0:
             all_fits = []
             for agent in space.agents:
@@ -110,7 +110,7 @@ class RVEA(MultiObjectiveOptimizer):
         space.update_pareto_front(space.agents)
 
     # ------------------------------------------------------------------
-    def _adapt_reference_vectors(self, space: Space):
+    def _adapt_reference_vectors(self, space: _MultiObjectiveSpace):
         """Reference vector adaptation strategy — Algorithm 3, eq. (11).
 
         Adapts current_reference_vectors according to the objective value
@@ -134,7 +134,7 @@ class RVEA(MultiObjectiveOptimizer):
         self.current_reference_vectors = adapted / norms
 
     # ------------------------------------------------------------------
-    def update(self, space: Space, function: Function):
+    def update(self, space: _MultiObjectiveSpace, function: Function):
 
      
         num_pairs = len(space.agents) // 2

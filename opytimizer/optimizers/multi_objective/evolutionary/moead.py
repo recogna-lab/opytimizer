@@ -10,7 +10,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import MultiObjectiveOptimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.decomposition import tchebycheff
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
@@ -142,7 +142,7 @@ class MOEAD(MultiObjectiveOptimizer):
             ref = np.array(ref)
         self._z = ref
 
-    def compile(self, space: Space, **kwargs) -> None:
+    def compile(self, space: _MultiObjectiveSpace, **kwargs) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -179,7 +179,7 @@ class MOEAD(MultiObjectiveOptimizer):
 
         self.T = np.argsort(distances, axis=1)[:, : self.neighborhood_size]
 
-    def _select_neighbors(self, index: int, space: Space) -> np.ndarray:
+    def _select_neighbors(self, index: int, space: _MultiObjectiveSpace) -> np.ndarray:
         """Selects neighbors for reproduction.
 
         Args:
@@ -228,7 +228,7 @@ class MOEAD(MultiObjectiveOptimizer):
         return mutated_children
 
     def _update_neighborhood(
-        self, index: int, new_agents: np.ndarray, new_f_values: np.ndarray, space: Space
+        self, index: int, new_agents: np.ndarray, new_f_values: np.ndarray, space: _MultiObjectiveSpace
     ) -> None:
         """Updates the population in the neighborhood.
 
@@ -266,7 +266,7 @@ class MOEAD(MultiObjectiveOptimizer):
                 )
                 space.agents[agent_idx].fit = copy.deepcopy(new_f_values[better_idx])
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Evaluates the fitness of the agents.
 
         Args:
@@ -285,7 +285,7 @@ class MOEAD(MultiObjectiveOptimizer):
         # Update Pareto front
         space.update_pareto_front(space.agents)
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Updates the population using MOEA/D.
 
         Args:
@@ -508,7 +508,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
         
         
         
-    def compile(self, space: Space, **kwargs) -> None:
+    def compile(self, space: _MultiObjectiveSpace, **kwargs) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -625,7 +625,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
     def _update_neighborhood(
         self,
         new_agent: Agent,
-        space: Space,
+        space: _MultiObjectiveSpace,
         mating_pool: np.ndarray,
     ) -> None:
         """Updates the population in the neighborhood.
@@ -677,7 +677,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
             return np.array([i for i in range(self.n_subproblems)])
 
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Evaluates the fitness of the agents.
 
         Args:
@@ -697,7 +697,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
         space.update_pareto_front(space.agents)
 
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Updates the population using MOEA/D.
 
         Args:

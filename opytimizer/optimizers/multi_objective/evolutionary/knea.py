@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from typing import List
 
-from opytimizer.core import Agent, Function, MultiObjectiveOptimizer
+from opytimizer.core import Agent, Function, MultiObjectiveOptimizer, _MultiObjectiveSpace
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 import opytimizer.math.random as opt_r
 import opytimizer.utils.exception as e
@@ -356,14 +356,14 @@ class KnEA(MultiObjectiveOptimizer):
 
         return Q
 
-    def evaluate(self, space, function):
+    def evaluate(self, space: _MultiObjectiveSpace, function):
         if self.is_first_generation:
             super().evaluate(space, function)
             self.is_first_generation = False
         else:
             space.update_pareto_front(space.agents)
 
-    def update(self, space, function):
+    def update(self, space: _MultiObjectiveSpace, function):
         current_population = space.agents.copy()
 
         mating = self._mating_selection(P=space.agents, K=self.K, N=space.n_agents)

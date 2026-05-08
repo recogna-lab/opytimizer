@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List
 from typing_extensions import Literal, get_args
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 import opytimizer.utils.exception as e
 
@@ -110,7 +110,7 @@ class MOCE(MultiObjectiveOptimizer):
     def _define_chaotic_system(self):
         return getattr(self, f'_{self.chaotic_system}')
 
-    def compile(self, space: Space):
+    def compile(self, space: _MultiObjectiveSpace):
         self.D = np.where(
             np.random.random((space.n_agents, space.n_variables)) < self.DR,
             -1.0, 1.0
@@ -221,7 +221,7 @@ class MOCE(MultiObjectiveOptimizer):
         return distances
 
 
-    def evaluate(self, space: Space, function: Function):
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         if self.currentGen == 0:
             for ag in space.agents:
                 ag.fit = function(ag.position)
@@ -229,7 +229,7 @@ class MOCE(MultiObjectiveOptimizer):
         self.currentGen += 1
         space.update_pareto_front(space.agents)
 
-    def update(self, space: Space, function: Function):
+    def update(self, space: _MultiObjectiveSpace, function: Function):
      
         chaotic_agents = copy.deepcopy(space.agents)
 
@@ -388,7 +388,7 @@ class OBMOCE(MultiObjectiveOptimizer):
     def _define_chaotic_system(self):
         return getattr(self, f'_{self.chaotic_system}')
 
-    def compile(self, space: Space):
+    def compile(self, space: _MultiObjectiveSpace):
         self.D = np.where(
             np.random.random((space.n_agents, space.n_variables)) < self.DR,
             -1.0, 1.0
@@ -449,15 +449,20 @@ class OBMOCE(MultiObjectiveOptimizer):
         Returns:
             List of Pareto fronts (list of index lists).
         """
+    
         n = len(fits)
+
 
         fits_i = fits[:, np.newaxis, :]   # (n, 1, n_obj)
         fits_j = fits[np.newaxis, :, :]   # (1, n, n_obj)
+
         dom = (
             np.all(fits_i <= fits_j, axis=2) &
             np.any(fits_i < fits_j, axis=2)
         )  # dom[i,j] = True if i dominates j
+        
         np.fill_diagonal(dom, False)
+
 
         dominated_count = dom.sum(axis=0).astype(int)
         dominates_set = [list(np.where(dom[i])[0]) for i in range(n)]
@@ -514,7 +519,7 @@ class OBMOCE(MultiObjectiveOptimizer):
         return distances
 
   
-    def evaluate(self, space: Space, function: Function):
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         if self.currentGen == 0:
             for ag in space.agents:
                 ag.fit = function(ag.position)
@@ -522,7 +527,7 @@ class OBMOCE(MultiObjectiveOptimizer):
         self.currentGen += 1
         space.update_pareto_front(space.agents)
 
-    def update(self, space: Space, function: Function):
+    def update(self, space: _MultiObjectiveSpace, function: Function):
       
         lb = space.agents[0].lb
         ub = space.agents[0].ub
@@ -563,8 +568,8 @@ class OBMOCE(MultiObjectiveOptimizer):
         # Pool = current (PS) + chaotic (PS) + opposite (PS) 
         pool = space.agents + chaotic_agents + opposite_agents  # 3 × PS
 
-        fits = np.array([np.atleast_1d(ag.fit) for ag in pool])  # (3*PS, n_obj)
-
+        fits = np.array([np.atleast_1d(ag.fit) for ag in pool])# (3*PS, n_obj)
+        
         # Non-dominated sorting 
         fronts = self._non_dominated_sort(fits)
 
