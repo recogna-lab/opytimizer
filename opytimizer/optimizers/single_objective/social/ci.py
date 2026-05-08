@@ -11,7 +11,7 @@ import opytimizer.math.random as rnd
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -104,7 +104,7 @@ class CI(Optimizer):
 
         self._upper = upper
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -118,7 +118,7 @@ class CI(Optimizer):
         upper = np.expand_dims(np.expand_dims(space.ub, -1), 0).astype(float)
         self.upper = np.repeat(upper, space.n_agents, axis=0)
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Cohort Intelligence over all agents and variables.
 
         Args:

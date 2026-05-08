@@ -11,7 +11,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -101,7 +101,7 @@ class BPSO(Optimizer):
 
         self._velocity = velocity
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -116,7 +116,7 @@ class BPSO(Optimizer):
             (space.n_agents, space.n_variables, space.n_dimensions), dtype=bool
         )
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -137,7 +137,7 @@ class BPSO(Optimizer):
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Boolean Particle Swarm Optimization over all agents and variables.
 
         Args:

@@ -10,7 +10,7 @@ from typing_extensions import Literal, get_args
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 import opytimizer.math.random as opt_r
 logger = logging.get_logger(__name__)
@@ -157,7 +157,7 @@ class CE(Optimizer):
         
         
         
-    def update(self, space: Space, function: Function):
+    def update(self, space: _SingleObjectiveSpace, function: Function):
        chaotic_agents = copy.deepcopy(space.agents) 
        for i in range(space.n_agents):
 
@@ -289,7 +289,7 @@ class OBCE(Optimizer):
     def _define_chaotic_system(self):
         return getattr(self, f'_{self.chaotic_system}')
 
-    def compile(self, space: Space):
+    def compile(self, space: _SingleObjectiveSpace):
         self.D = np.where(
             np.random.random((space.n_agents, space.n_variables)) < self.DR,
             -1.0, 1.0
@@ -336,12 +336,12 @@ class OBCE(Optimizer):
         """
         return lb + ub - positions
 
-    def evaluate(self, space: Space, function: Function):
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function):
         if self.currentGen == 0:
             super().evaluate(space, function)
         self.currentGen += 1
 
-    def update(self, space: Space, function: Function):
+    def update(self, space: _SingleObjectiveSpace, function: Function):
        
         lb = space.agents[0].lb
         ub = space.agents[0].ub

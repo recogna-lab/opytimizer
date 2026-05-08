@@ -9,7 +9,7 @@ import numpy as np
 import opytimizer.math.random as r
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -43,7 +43,7 @@ class PVS(Optimizer):
 
         logger.info("Class overrided.")
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Passing Vehicle Search over all agents and variables.
 
         Args:

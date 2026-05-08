@@ -11,7 +11,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -199,7 +199,7 @@ class HGSO(Optimizer):
 
         self._constant = constant
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -250,7 +250,7 @@ class HGSO(Optimizer):
         return new_position
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
     ) -> None:
         """Wraps Henry Gas Solubility Optimization over all agents and variables.
 

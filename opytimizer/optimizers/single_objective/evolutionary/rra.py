@@ -13,7 +13,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -208,7 +208,7 @@ class RRA(Optimizer):
 
         return selected[0]
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Runner-Root Algorithm over all agents and variables.
 
         Args:

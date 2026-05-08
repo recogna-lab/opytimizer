@@ -12,7 +12,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -72,7 +72,7 @@ class FFOA(Optimizer):
 
         self._y_axis = y_axis
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -84,7 +84,7 @@ class FFOA(Optimizer):
         self.x_axis = copy.deepcopy(space.agents)
         self.y_axis = copy.deepcopy(space.agents)
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Fruit-Fly Optimization Algorithm over all agents and variables.
 
         Args:

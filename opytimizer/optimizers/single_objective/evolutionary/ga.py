@@ -8,13 +8,12 @@ import numpy as np
 
 import opytimizer.math.distribution as d
 import opytimizer.math.general as g
-import opytimizer.math.random as r
 import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import ArithmeticCrossover, GaussianMutation
 
@@ -49,8 +48,6 @@ class GA(Optimizer):
         super(GA, self).__init__()
 
         self.p_selection = 0.75
-        self.p_mutation = 0.25
-        self.p_crossover = 0.5
         self.crossover_operator = crossover_operator or ArithmeticCrossover()
         self.mutation_operator = mutation_operator or GaussianMutation()
 
@@ -73,35 +70,6 @@ class GA(Optimizer):
 
         self._p_selection = p_selection
 
-    @property
-    def p_mutation(self) -> float:
-        """Probability of mutation."""
-
-        return self._p_mutation
-
-    @p_mutation.setter
-    def p_mutation(self, p_mutation: float) -> None:
-        if not isinstance(p_mutation, (float, int)):
-            raise e.TypeError("`p_mutation` should be a float or integer")
-        if p_mutation < 0 or p_mutation > 1:
-            raise e.ValueError("`p_mutation` should be between 0 and 1")
-
-        self._p_mutation = p_mutation
-
-    @property
-    def p_crossover(self) -> float:
-        """Probability of crossover."""
-
-        return self._p_crossover
-
-    @p_crossover.setter
-    def p_crossover(self, p_crossover: float) -> None:
-        if not isinstance(p_crossover, (float, int)):
-            raise e.TypeError("`p_crossover` should be a float or integer")
-        if p_crossover < 0 or p_crossover > 1:
-            raise e.ValueError("`p_crossover` should be between 0 and 1")
-
-        self._p_crossover = p_crossover
 
     def _roulette_selection(self, n_agents: int, fitness: List[float]) -> List[int]:
         """Performs a roulette selection on the population (p. 8).
@@ -145,12 +113,9 @@ class GA(Optimizer):
 
         """
 
-        if np.random.rand() < self.p_crossover:
-            child1, child2 = self.crossover_operator(father, mother)
-        else:
-            child1 = copy.deepcopy(father)
-            child2 = copy.deepcopy(mother)
-
+        
+        child1, child2 = self.crossover_operator(father, mother)
+        
         return child1, child2
 
     def _mutation(self, agent: Agent) -> Agent:
@@ -165,15 +130,14 @@ class GA(Optimizer):
 
         """
 
-        if np.random.rand() < self.p_mutation:
-            mutated = self.mutation_operator(agent)
-        else:
-            mutated = copy.deepcopy(agent)
+        
+        mutated = self.mutation_operator(agent)
+       
 
         mutated.clip_by_bound()
         return mutated
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Genetic Algorithm over all agents and variables.
 
         Args:
@@ -191,12 +155,16 @@ class GA(Optimizer):
         for s in g.n_wise(selected):
             parent1 = space.agents[s[0]]
             parent2 = space.agents[s[1]]
-            child1, child2 = self._crossover(parent1, parent2)
+            children = self._crossover(parent1, parent2)
+            child1, child2 = children
+           
             child1 = self._mutation(child1)
+            
             child2 = self._mutation(child2)
 
             child1.fit = function(child1.position)
             child2.fit = function(child2.position)
+
 
             new_agents.extend([child1, child2])
 

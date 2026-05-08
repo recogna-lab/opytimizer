@@ -105,7 +105,7 @@ class BaseMutation(ABC):
 class ArithmeticCrossover(ContinuousCrossover):
     """Arithmetic crossover for real-valued vectors."""
 
-    def __init__(self, rate: float = 1.0, gene_rate: float = 0.5, return_mode = 'both'):
+    def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, return_mode = 'both'):
         super().__init__(rate, gene_rate, return_mode)
       
     def __call__(self, parent1: Agent, parent2: Agent) -> tuple:
@@ -136,7 +136,7 @@ class GaussianMutation(BaseMutation):
 
     def __call__(self, agent: Agent) -> Agent:
         mutant = copy.deepcopy(agent)
-
+      
         x = agent.position
         lb = agent.lb
         ub = agent.ub
@@ -150,7 +150,7 @@ class GaussianMutation(BaseMutation):
             new_position = np.copy(x)
             new_position[mask] += noise[mask]
 
-            mutant.position = np.clip(new_position, lb, ub)
+            mutant.position = np.clip(new_position, lb.reshape(-1,1), ub.reshape(-1,1))
             
         return mutant
 

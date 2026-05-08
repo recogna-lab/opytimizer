@@ -9,7 +9,7 @@ import numpy as np
 import opytimizer.math.random as r
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -66,7 +66,7 @@ class GWO(Optimizer):
         return A, C
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
     ) -> None:
         """Wraps Grey Wolf Optimization over all agents and variables.
 

@@ -10,7 +10,7 @@ import opytimizer.math.random as rnd
 import opytimizer.utils.exception as ex
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -164,7 +164,7 @@ class BA(Optimizer):
 
         self._pulse_rate = pulse_rate
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -181,7 +181,7 @@ class BA(Optimizer):
         self.loudness = rnd.generate_uniform_random_number(0, self.A, space.n_agents)
         self.pulse_rate = rnd.generate_uniform_random_number(0, self.r, space.n_agents)
 
-    def update(self, space: Space, function: Function, iteration: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function, iteration: int) -> None:
         """Wraps Bat Algorithm over all agents and variables.
 
         Args:

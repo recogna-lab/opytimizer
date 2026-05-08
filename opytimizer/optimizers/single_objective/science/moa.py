@@ -10,7 +10,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -77,7 +77,7 @@ class MOA(Optimizer):
 
         self._rho = rho
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -88,7 +88,7 @@ class MOA(Optimizer):
         if not np.sqrt(space.n_agents).is_integer():
             raise e.SizeError("`n_agents` should have a perfect square")
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Magnetic Optimization Algorithm over all agents and variables.
 
         Args:

@@ -9,7 +9,7 @@ import numpy as np
 
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -62,7 +62,7 @@ class LEO(Optimizer):
         self._local_position = local_position
 
         
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -74,7 +74,7 @@ class LEO(Optimizer):
             (space.n_agents, space.n_variables, space.n_dimensions)
         )
         
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -97,7 +97,7 @@ class LEO(Optimizer):
 
         
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """
         Args:
             space: Space containing a list of Agent objects, each with 'position' (NumPy array of shape (n, 1)) and 'fit' (scalar).

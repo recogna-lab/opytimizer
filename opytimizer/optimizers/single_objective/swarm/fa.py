@@ -10,7 +10,7 @@ import opytimizer.math.general as g
 import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -93,7 +93,7 @@ class FA(Optimizer):
 
         self._gamma = gamma
 
-    def update(self, space: Space, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, n_iterations: int) -> None:
         """Wraps Firefly Algorithm over all agents and variables (eq. 3-9).
 
         Args:

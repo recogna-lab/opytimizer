@@ -10,7 +10,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -92,7 +92,7 @@ class WCA(Optimizer):
 
         self._flows = flows
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -178,7 +178,7 @@ class WCA(Optimizer):
 
             agents[i].fit = function(agents[i].position)
 
-    def update(self, space: Space, function: Function, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function, n_iterations: int) -> None:
         """Wraps Water Cycle Algorithm over all agents and variables.
 
         Args:

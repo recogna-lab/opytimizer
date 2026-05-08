@@ -11,7 +11,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -76,7 +76,7 @@ class SMA(Optimizer):
 
         self._weight = weight
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
         Args:
             space: A Space object containing meta-information.
@@ -111,7 +111,7 @@ class SMA(Optimizer):
                     (best - agents[i].fit) / ((best - worst) + c.EPSILON) + 1
                 )
 
-    def update(self, space: Space, iteration: int, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
         """Wraps Slime Mould Algorithm over all agents and variables.
 
         Args:

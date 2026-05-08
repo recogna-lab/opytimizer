@@ -8,7 +8,7 @@ import numpy as np
 import opytimizer.math.random as rnd
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -73,7 +73,7 @@ class DOA(Optimizer):
 
         self._chaotic_map = chaotic_map
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -102,7 +102,7 @@ class DOA(Optimizer):
 
         return c_map
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Darcy Optimization Algorithm over all agents and variables.
 
         Args:

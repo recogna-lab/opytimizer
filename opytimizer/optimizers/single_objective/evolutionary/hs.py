@@ -12,7 +12,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -125,7 +125,7 @@ class HS(Optimizer):
 
         return a
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Harmony Search over all agents and variables.
 
         Args:
@@ -244,7 +244,7 @@ class IHS(HS):
         self._bw_max = bw_max
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
     ) -> None:
         """Wraps Improved Harmony Search over all agents and variables.
 
@@ -512,7 +512,7 @@ class SGHS(HS):
 
         self._PAR_history = PAR_history
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -555,7 +555,7 @@ class SGHS(HS):
         return a
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
     ) -> None:
         """Wraps Self-Adaptive Global-Best Harmony Search over all agents and variables.
 
@@ -674,7 +674,7 @@ class NGHS(HS):
 
         return a
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Novel Global Harmony Search over all agents and variables.
 
         Args:
@@ -755,7 +755,7 @@ class GOGHS(NGHS):
 
         return a
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Generalized Opposition Global-Best Harmony Search over all agents and variables.
 
         Args:

@@ -66,11 +66,13 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - agent
         - block
         - cell
+        - environment
         - function
         - hyperheuristic
         - node
         - optimizer
         - space
+        - stopping
     - functions
         - constrained
         - multi_objective
@@ -108,7 +110,6 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - graph
         - grid
         - hyper_complex
-        - pareto
         - search
         - tree
     - utils
@@ -205,6 +206,7 @@ from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
+from opytimizer.core.stopping import MaxIterations
 
 def sphere(x):
     return np.sum(x ** 2)
@@ -220,7 +222,10 @@ optimizer = PSO()
 function = Function(sphere)
 
 opt = Opytimizer(space, optimizer, function)
-opt.start(n_iterations=1000)
+
+stopping = MaxIterations(1000)
+
+opt.start(stopping_criteria=stopping)
 ```
 
 ## How-To-Use: Minimal Multi-Objective Example
@@ -234,6 +239,7 @@ from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
+from opytimizer.core.stopping import MaxIterations
 
 def zdt1(x):
     f1 = x[0]
@@ -259,8 +265,12 @@ optimizer = NSGA2(
 )
 function = Function(zdt1)
 
+
 opt = Opytimizer(space, optimizer, function)
-opt.start(n_iterations=250)
+
+stopping = MaxIterations(100)
+
+opt.start(stopping_criteria=stopping)
 ```
 
 The optimization process will generate a Pareto front, which can be visualized as follows:
@@ -276,6 +286,40 @@ The optimization process will generate a Pareto front, which can be visualized a
 </div>
 
 ---
+
+## How-To-Use: GPU-based Optimization Example
+```Python
+import cupy as cp
+
+from opytimizer import Opytimizer
+from opytimizer.core import Function
+from opytimizer.core import Environment
+from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.spaces import SearchSpace
+from opytimizer.core.stopping import MaxIterations
+
+def sphere(x):
+    return cp.sum(x ** 2, axis=(1,2))
+
+n_agents = 60
+n_variables = 10000
+n_objectives = 1
+lower_bound = [-10] * n_variables
+upper_bound = [10] * n_variables
+
+gpu_environment = Environment().set_backend('cuda').set_dtype('float64')
+
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound, env=gpu_environment)
+optimizer = PSO()
+function = Function(sphere)
+
+opt = Opytimizer(space, optimizer, function)
+
+stopping = MaxIterations(1000)
+
+opt.start(stopping_criteria=stopping)
+```
+
 
 ## Support
 

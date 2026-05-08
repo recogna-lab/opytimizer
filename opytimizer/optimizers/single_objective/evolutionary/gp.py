@@ -13,7 +13,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
 from opytimizer.core.node import Node
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.spaces.tree import TreeSpace
 from opytimizer.utils import logging
 
@@ -300,7 +300,7 @@ class GP(Optimizer):
 
         return father, mother
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -320,7 +320,7 @@ class GP(Optimizer):
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Genetic Programming over all trees and variables.
 
         Args:

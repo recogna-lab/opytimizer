@@ -11,7 +11,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -64,7 +64,7 @@ class FSO(Optimizer):
         self._beta = beta
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
     ) -> None:
         """Wraps Flying Squirrel Optimizer over all agents and variables.
 

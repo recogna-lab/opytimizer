@@ -9,7 +9,7 @@ import numpy as np
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -98,7 +98,7 @@ class NDS(Optimizer):
 
         self._status = status
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -137,7 +137,7 @@ class NDS(Optimizer):
 
         return gte == n_objectives and gt > 0
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Non-Dominated Sorting over all agents and variables.
 
         Args:

@@ -7,7 +7,7 @@ import numpy as np
 
 import opytimizer.math.random as r
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -41,7 +41,7 @@ class SSA(Optimizer):
 
         logger.info("Class overrided.")
 
-    def update(self, space: Space, iteration: int, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
         """Wraps Salp Swarm Algorithm over all agents and variables.
 
         Args:

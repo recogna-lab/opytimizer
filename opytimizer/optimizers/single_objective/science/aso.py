@@ -10,7 +10,7 @@ import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -89,7 +89,7 @@ class ASO(Optimizer):
 
         self._velocity = velocity
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -227,7 +227,7 @@ class ASO(Optimizer):
 
         return acceleration
 
-    def update(self, space: Space, iteration: int, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
         """Wraps Atom Search Optimization over all agents and variables.
 
         Args:

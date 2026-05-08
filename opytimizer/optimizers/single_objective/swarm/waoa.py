@@ -11,7 +11,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.logging as l
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 
 logger = l.get_logger(__name__)
 
@@ -43,7 +43,7 @@ class WAOA(Optimizer):
 
         logger.info("Class overrided.")
 
-    def evaluate(self, space: Space) -> None:
+    def evaluate(self, space: _SingleObjectiveSpace) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -57,7 +57,7 @@ class WAOA(Optimizer):
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: Space, function: Function, iteration: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function, iteration: int) -> None:
         """Wraps Walrus Optimization Algorithm over all agents and variables.
 
         Args:

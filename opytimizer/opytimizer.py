@@ -7,7 +7,6 @@ from typing import Any, List, Optional, Union
 
 import dill
 import numpy as np
-from tqdm import tqdm
 
 import opytimizer.utils.exception as e
 from opytimizer.utils.exception import BudgetExhausted
@@ -224,7 +223,8 @@ class Opytimizer:
         """
 
         logger.info("Starting optimization task.")
-
+        self.n_iterations = n_iterations
+        
         if stopping_criteria is None:
             stopping_criteria = [MaxIterations(n_iterations)]
 

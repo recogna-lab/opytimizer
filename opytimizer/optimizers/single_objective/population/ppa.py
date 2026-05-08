@@ -10,7 +10,7 @@ import opytimizer.math.general as g
 import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -57,7 +57,7 @@ class PPA(Optimizer):
 
         self._velocity = velocity
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -96,7 +96,7 @@ class PPA(Optimizer):
 
         return int(n_crows), int(n_cats), int(n_cuckoos)
 
-    def _nesting_phase(self, space: Space, n_crows: int):
+    def _nesting_phase(self, space: _SingleObjectiveSpace, n_crows: int):
         """Performs the nesting phase using the current number of crows.
 
         Args:
@@ -119,7 +119,7 @@ class PPA(Optimizer):
 
     def _parasitism_phase(
         self,
-        space: Space,
+        space: _SingleObjectiveSpace,
         n_crows: int,
         n_cuckoos: int,
         iteration: int,
@@ -161,7 +161,7 @@ class PPA(Optimizer):
 
     def _predation_phase(
         self,
-        space: Space,
+        space: _SingleObjectiveSpace,
         n_crows: int,
         n_cuckoos: int,
         n_cats: int,
@@ -196,7 +196,7 @@ class PPA(Optimizer):
             cat.position += self.velocity[idx]
             cat.clip_by_bound()
 
-    def update(self, space: Space, iteration: int, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
         """Wraps Parasitism-Predation Algorithm over all agents and variables.
 
         Args:

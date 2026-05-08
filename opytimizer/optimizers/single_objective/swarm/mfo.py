@@ -9,7 +9,7 @@ import numpy as np
 import opytimizer.math.random as rnd
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -60,7 +60,7 @@ class MFO(Optimizer):
 
         self._b = b
 
-    def update(self, space: Space, iteration: int, n_iterations: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
         """Wraps Moth-Flame Optimization over all agents and variables.
 
         Args:

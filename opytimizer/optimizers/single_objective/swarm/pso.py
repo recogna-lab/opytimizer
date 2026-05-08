@@ -12,7 +12,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import _MultiObjectiveSpace, _SingleObjectiveSpace
+from opytimizer.core.space import  _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -116,7 +116,7 @@ class PSO(Optimizer):
     def velocity(self, velocity: np.ndarray) -> None:
         self._velocity = velocity
 
-    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -146,7 +146,7 @@ class PSO(Optimizer):
             del _dummy
         
 
-    def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
         Args:
@@ -178,7 +178,7 @@ class PSO(Optimizer):
                 space.best_agent.ts = int(time.time())
 
 
-    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Particle Swarm Optimization over all agents and variables.
 
         Args:
@@ -303,7 +303,7 @@ class AIWPSO(PSO):
 
         self.w = (self.w_max - self.w_min) * (p / len(agents)) + self.w_min
 
-    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], iteration: int) -> None:
+    def update(self, space: _SingleObjectiveSpace, iteration: int) -> None:
         """Wraps Adaptive Inertia Weight Particle Swarm Optimization over all agents and variables.
 
         Args:
@@ -370,7 +370,7 @@ class RPSO(PSO):
 
         self._mass = mass
 
-    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -388,7 +388,7 @@ class RPSO(PSO):
             size=(space.n_agents, space.n_variables, space.n_dimensions)
         )
 
-    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Relativistic Particle Swarm Optimization over all agents and variables.
 
         Args:
@@ -440,7 +440,7 @@ class SAVPSO(PSO):
 
         logger.info("Class overrided.")
 
-    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Self-adaptive Velocity Particle Swarm Optimization over all agents and variables.
 
         Args:
@@ -524,7 +524,7 @@ class VPSO(PSO):
 
         self._v_velocity = v_velocity
 
-    def compile(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -542,7 +542,7 @@ class VPSO(PSO):
             (space.n_agents, space.n_variables, space.n_dimensions)
         )
 
-    def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Vertical Particle Swarm Optimization over all agents and variables.
 
         Args:

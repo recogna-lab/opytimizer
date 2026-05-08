@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -70,7 +70,7 @@ class HC(Optimizer):
 
         self._r_var = r_var
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _SingleObjectiveSpace) -> None:
         """Wraps Hill Climbing over all agents and variables (p. 252).
 
         Args:
