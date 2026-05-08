@@ -14,7 +14,7 @@ logger = logging.get_logger(__name__)
 class Function:
     """A Function class used to hold single-objective or multi-objective functions."""
 
-    def __init__(self, pointer: callable) -> None:
+    def __init__(self, pointer: callable, budget: int = None) -> None:
         """Initialization method.
 
         Args:
@@ -38,6 +38,9 @@ class Function:
             else:
                 self.name = pointer.__class__.__name__
 
+        self.n_calls = 0
+        self.budget = budget # None = ilimited
+
         self.built = True
 
         logger.debug("Function: %s | Built: %s.", self.name, self.built)
@@ -53,9 +56,26 @@ class Function:
             (np.ndarray): Function fitness value(s).
 
         """
-
+        if self.budget is not None and self.n_calls >= self.budget:
+            raise e.BudgetExhausted(f'Evaluation budget of {self.budget} calls exhausted')
+        self.n_calls += 1
+        
         result = self.pointer(x)
         return result
+
+    @property
+    def budget(self):
+        return self._budget
+    
+    @budget.setter
+    def budget(self, budget):
+        if budget is not None:
+            if not isinstance(budget, int):
+                raise e.TypeError("`budget` should be an integer")
+            if budget <= 0:
+                raise e.ValueError("`budget` should be > 0")
+            
+        self._budget = budget
 
     @property
     def pointer(self) -> callable:

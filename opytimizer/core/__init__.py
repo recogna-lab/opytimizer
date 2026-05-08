@@ -9,4 +9,5 @@ from opytimizer.core.hyperheuristic import HyperHeuristic
 from opytimizer.core.node import Node
 from opytimizer.core.optimizer import MultiObjectiveOptimizer, Optimizer
 from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
-from opytimizer.core.environment import Environment 
+from opytimizer.core.environment import Environment
+from opytimizer.core.stopping import MaxEvaluations, MaxIterations, NoImprovement 

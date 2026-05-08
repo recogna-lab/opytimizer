@@ -10,6 +10,8 @@ import numpy as np
 from tqdm import tqdm
 
 import opytimizer.utils.exception as e
+from opytimizer.utils.exception import BudgetExhausted
+from opytimizer.core.stopping import _StoppingVessel, MaxIterations, _StoppingCriterion
 from opytimizer.core.function import Function
 from opytimizer.core.optimizer import Optimizer
 from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
@@ -148,6 +150,10 @@ class Opytimizer:
         self._total_iterations = total_iterations
 
     @property
+    def n_evals(self) -> int:
+        return self.function.n_calls
+
+    @property
     def evaluate_args(self) -> List[Any]:
         """Converts the optimizer `evaluate` arguments into real variables.
 
@@ -204,6 +210,7 @@ class Opytimizer:
     def start(
         self,
         n_iterations: int = 1,
+        stopping_criteria=None,
         callbacks: Optional[List[Callback]] = None,
         metrics: Optional[List] = None,
     ) -> None:
@@ -211,13 +218,20 @@ class Opytimizer:
 
         Args:
             n_iterations: Maximum number of iterations.
+            stopping_criteria: List of stopping criteria
             callbacks: List of callbacks.
             metrics: List of metric callables (opcional, apenas para MOO).
         """
 
         logger.info("Starting optimization task.")
 
-        self.n_iterations = n_iterations
+        if stopping_criteria is None:
+            stopping_criteria = [MaxIterations(n_iterations)]
+
+        elif isinstance(stopping_criteria, _StoppingCriterion):
+            stopping_criteria = [stopping_criteria]
+
+        stopping_vessel = _StoppingVessel(stopping_criteria)
         callbacks = CallbackVessel(callbacks)
 
         start = time.time()
@@ -226,23 +240,25 @@ class Opytimizer:
 
         self.evaluate(callbacks)
 
-        with tqdm(total=n_iterations, ascii=True) as b:
-            for t in range(n_iterations):
-                logger.to_file(f"Iteration {t+1}/{n_iterations}")
-
+        stopping_vessel.init_pbars()
+        
+        try:
+            while not stopping_vessel.should_stop(self):
+           
                 self.total_iterations += 1
-                self.iteration = t
-
+                
                 callbacks.on_iteration_begin(self.total_iterations, self)
 
                 self.update(callbacks)
                 self.evaluate(callbacks)
 
+                stopping_vessel.update_pbars(self)
+
                 if self.space.n_objectives == 1:
-                    b.set_postfix(fitness=self.space.best_agent.fit)
+                    stopping_vessel.set_postfix(fitness=self.space.best_agent.fit)
                     self.history.dump(
                         agents=self.space.agents, best_agent=self.space.best_agent
-                    )
+                        )   
                     logger.to_file(f"Fitness: {self.space.best_agent.fit}")
                     logger.to_file(f"Position: {self.space.best_agent.position}")
                 else:
@@ -254,19 +270,30 @@ class Opytimizer:
                         for metric in metrics:
                             value = metric(pareto_front)
                             metric_values[metric.name.lower()] = value
-                        b.set_postfix(**metric_values)
+                        stopping_vessel.set_postfix(**metric_values)
                     
                     self.history.dump(
                         agents=self.space.agents,
                         pareto_front=self.space.pareto_front,
                         metric_values=metric_values,
-                    )
+                        )
                     logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
                     for name, value in metric_values.items():
                         logger.to_file(f"{name}: {value}")
-                b.update()
+                
+            stopping_vessel.update_pbars(self)
+            callbacks.on_iteration_end(self.total_iterations, self)
+            
+        except BudgetExhausted:
+            logger.info("Evaluation budget exhausted at %d calls. "
+                            "Finalizing with current population.",
+                            self.n_evals
+                            )
+                
+            self._finalize_after_budget_exhaustion()
 
-                callbacks.on_iteration_end(self.total_iterations, self)
+        finally:
+            stopping_vessel.close_pbars()
 
         callbacks.on_task_end(self)
 
@@ -277,6 +304,17 @@ class Opytimizer:
 
         logger.info("Optimization task ended.")
         logger.info("It took %s seconds.", opt_time)
+
+
+    def _finalize_after_budget_exhaustion(self) -> None:
+        """Ensures consistent state when budget is hit mid-iteration."""
+        if self.space.n_objectives > 1:
+            self.space.update_pareto_front(self.space.agents)
+            self.history.dump(
+                agents=self.space.agents,
+                pareto_front=self.space.pareto_front)
+
+        
 
     def save(self, file_path: str) -> None:
         """Saves the optimization model to a dill (pickle) file.
