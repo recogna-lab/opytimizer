@@ -488,7 +488,7 @@ class NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
                 for (int j = 0; j < k; j++) {
                     bool j_dominates_i = true;
                     for (int l = 0; l < m; l++) {
-                        // Mapeamento flat 2D (Row-major): row * width + col
+                        
                         if (!(Fs[j * m + l] < F[n_idx * m + l])) {
                             j_dominates_i = false;
                             break; // Early exit
