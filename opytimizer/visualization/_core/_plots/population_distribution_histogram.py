@@ -9,7 +9,10 @@ def extract_data(agents: List[Agent], *args, **kwargs) -> Dict:
     Extracts fitness values from a list of Agent objects.
     """
     # Convert list of agents to a 2D numpy array [n_agents, n_objectives]
-    fitness_matrix = np.array([agent.fit for agent in agents])
+    fitness_matrix = np.array([
+    agent.fit.get() if hasattr(agent.fit, 'get') else agent.fit
+    for agent in agents
+    ])
     
     target_obj = kwargs.get('target', 1)
     

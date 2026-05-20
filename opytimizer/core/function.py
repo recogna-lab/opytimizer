@@ -2,6 +2,7 @@
 """
 
 from inspect import signature
+from typing import Any
 
 import numpy as np
 
@@ -46,11 +47,12 @@ class Function:
         logger.debug("Function: %s | Built: %s.", self.name, self.built)
         logger.info("Class created.")
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: Any, xp: Any = None) -> np.ndarray:
         """Callable to avoid using the `pointer` property.
 
         Args:
             x: Array of positions.
+            xp: numpy or cupy object
 
         Returns:
             (np.ndarray): Function fitness value(s).
@@ -59,8 +61,15 @@ class Function:
         if self.budget is not None and self.n_calls >= self.budget:
             raise e.BudgetExhausted(f'Evaluation budget of {self.budget} calls exhausted')
         self.n_calls += 1
-        
+
+        if xp is None:
+            xp = np
+            
         result = self.pointer(x)
+        
+        result = xp.asarray(result)
+        if result.ndim == 1:
+            result = result.flatten()
         return result
 
     @property

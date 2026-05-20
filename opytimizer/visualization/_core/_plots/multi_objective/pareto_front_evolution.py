@@ -18,7 +18,7 @@ def extract_data(Pareto_Fronts: List[List[Agent]], *args, **kwargs) -> Dict:
         # Extract ONLY the specific indices requested by the user
         try:
             pareto_evolution = [
-                np.array([ag.fit for ag in Pareto_Fronts[i - 1]]) 
+                np.array([ag.fit.get() if hasattr(ag.fit, 'get') else ag.fit for ag in Pareto_Fronts[i - 1]]) 
                 for i in requested_iters
             ]
             iterations = requested_iters
@@ -26,7 +26,7 @@ def extract_data(Pareto_Fronts: List[List[Agent]], *args, **kwargs) -> Dict:
             raise e.ValueError("One or more indices in 'iterations' are out of range.")
     else:
         # Default: extract all iterations
-        pareto_evolution = [np.array([ag.fit for ag in pf]) for pf in Pareto_Fronts]
+        pareto_evolution = [np.array([ag.fit.get() if hasattr(ag.fit, 'get') else ag.fit for ag in pf]) for pf in Pareto_Fronts]
         iterations = list(range(len(pareto_evolution)))
 
     n_obj = pareto_evolution[0].shape[1]

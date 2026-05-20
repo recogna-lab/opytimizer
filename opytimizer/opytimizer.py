@@ -208,7 +208,6 @@ class Opytimizer:
 
     def start(
         self,
-        n_iterations: int = 1,
         stopping_criteria=None,
         callbacks: Optional[List[Callback]] = None,
         metrics: Optional[List] = None,
@@ -223,10 +222,10 @@ class Opytimizer:
         """
 
         logger.info("Starting optimization task.")
-        self.n_iterations = n_iterations
+        self.n_iterations = getattr(stopping_criteria, "n", None)
         
         if stopping_criteria is None:
-            stopping_criteria = [MaxIterations(n_iterations)]
+            stopping_criteria = [MaxIterations(250)]
 
         elif isinstance(stopping_criteria, _StoppingCriterion):
             stopping_criteria = [stopping_criteria]
@@ -263,7 +262,7 @@ class Opytimizer:
                     logger.to_file(f"Position: {self.space.best_agent.position}")
                 else:
                     pareto_front = [ag.fit for ag in self.space.pareto_front]
-                    pareto_front = np.array(pareto_front)
+                    pareto_front = self.space.env.xp.asarray(pareto_front)
                     metric_values = {}
                     
                     if metrics:
@@ -280,7 +279,6 @@ class Opytimizer:
                     logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
                     for name, value in metric_values.items():
                         logger.to_file(f"{name}: {value}")
-                
             stopping_vessel.update_pbars(self)
             callbacks.on_iteration_end(self.total_iterations, self)
             
@@ -298,6 +296,9 @@ class Opytimizer:
         callbacks.on_task_end(self)
 
         end = time.time()
+        
+        if hasattr(self.space, 'update_pareto_front'): self.space.update_pareto_front()    
+        
         opt_time = end - start
 
         self.history.dump(time=opt_time)

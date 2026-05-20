@@ -10,7 +10,10 @@ def extract_data(agents: List[Agent], *args, **kwargs) -> Dict:
     Each agent must have an .fit attribute (numpy array).
     """
     # Convert list of agents to a 2D numpy array [n_agents, n_objectives]
-    fitness_matrix = np.array([agent.fit for agent in agents])
+    fitness_matrix = np.array([
+    agent.fit.get() if hasattr(agent.fit, 'get') else agent.fit
+    for agent in agents
+    ])
     
     n_obj = fitness_matrix.shape[1]
     if n_obj not in [2, 3]:

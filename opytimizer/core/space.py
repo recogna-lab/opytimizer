@@ -388,7 +388,7 @@ class _MultiObjectiveSpace(_Space):
             env=self.env
         )
 
-    def update_pareto_front(self, agents: List[Agent]) -> None:
+    def update_pareto_front(self) -> None:
         """Updates the Pareto front with non-dominated solutions.
 
         Args:
@@ -396,7 +396,7 @@ class _MultiObjectiveSpace(_Space):
 
         """
         self.pareto_front = []
-        for agent in agents:
+        for agent in self.agents:
             is_dominated = False
             is_duplicate = any(
                 self.env.xp.array_equal(agent.fit, existing_agent.fit)
