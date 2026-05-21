@@ -9,7 +9,7 @@ from opytimizer.core.agent import Agent
 from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 
 logger = logging.get_logger(__name__)
 

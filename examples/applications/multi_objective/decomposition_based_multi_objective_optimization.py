@@ -3,7 +3,7 @@ from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 from opytimizer.spaces import SearchSpace
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 from opytimizer.utils.decomposition import weighted_sum, pbi
 def zdt3(x: np.ndarray) -> np.ndarray:
     """

@@ -3,7 +3,7 @@ import numpy as np
 from opytimizer.core.agent import Agent
 from opytimizer.optimizers.multi_objective.evolutionary import rvea
 from opytimizer.spaces.search import SearchSpace
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 
 
 REFERENCE_VECTORS, N_AGENTS = das_dennis(2, 9) # 10 agents/reference vectors

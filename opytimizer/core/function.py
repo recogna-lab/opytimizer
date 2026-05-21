@@ -65,12 +65,13 @@ class Function:
         if xp is None:
             xp = np
             
-        result = self.pointer(x)
         
+
+        result = self.pointer(x)
         result = xp.asarray(result)
-        if result.ndim == 1:
-            result = result.flatten()
         return result
+
+
 
     @property
     def budget(self):

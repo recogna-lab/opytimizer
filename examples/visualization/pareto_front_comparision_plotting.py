@@ -5,7 +5,7 @@ from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA, MOEAD
 from opytimizer.visualization import  pareto_front_comparision
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 from opytimizer import Opytimizer
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
 

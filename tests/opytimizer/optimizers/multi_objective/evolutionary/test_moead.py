@@ -2,7 +2,7 @@ import numpy as np
 
 from opytimizer.optimizers.multi_objective.evolutionary import moead
 from opytimizer.spaces.search import SearchSpace
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 
 
 def test_moead_params():

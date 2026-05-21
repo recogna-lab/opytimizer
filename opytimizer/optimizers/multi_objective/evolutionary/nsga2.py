@@ -36,7 +36,7 @@ class NSGA2:
          
 
 @dataclass
-class NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
+class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
     """NSGA2 class, inherited from MultiObjectiveOptimizer.
 
     References:
@@ -406,7 +406,11 @@ class NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
 
 
 @dataclass
-class NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
+class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
+    """Based on:
+        Aguilar-Rivera, A. (2020). A GPU fully vectorized approach to accelerate performance of NSGA-2 based on stochastic non-domination sorting and grid-crowding.
+        Applied Soft Computing, 88, 106047.
+    """
     def __init__(
         self,
         params: dict = None,

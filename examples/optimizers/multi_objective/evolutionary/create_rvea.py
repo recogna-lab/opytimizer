@@ -1,5 +1,5 @@
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 
 reference_vectors, _ = das_dennis(n_objectives=3, n_partitions=23)
 

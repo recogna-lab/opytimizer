@@ -11,7 +11,7 @@ from opytimizer.math.metrics import HypervolumeMetric
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
-from opytimizer.utils.weights_vector import das_dennis
+from opytimizer.utils.reference_vectors import das_dennis
 
 
 # Define a multi-objective function (ZDT1)
