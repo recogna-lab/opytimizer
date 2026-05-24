@@ -4,7 +4,7 @@ import numpy as np
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA, MOEAD
-from opytimizer.visualization import  pareto_front_comparision
+from opytimizer.visualization import  plot_pareto_front_comparison
 from opytimizer.utils.reference_vectors import das_dennis
 from opytimizer import Opytimizer
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
@@ -58,4 +58,4 @@ opt_moead.start(N_GENERATIONS)
 
 #####################################################################################################################################
 
-pareto_front_comparision(opt_rvea.space.pareto_front, opt_moead.space.pareto_front, backend="matplotlib", title="RVEA x MOEA/D - ZDT1",labels=['RVEA', 'MOEA/D']).show()
+plot_pareto_front_comparison(opt_rvea.space.pareto_front, opt_moead.space.pareto_front, backend="matplotlib", title="RVEA x MOEA/D - ZDT1",labels=['RVEA', 'MOEA/D']).show()

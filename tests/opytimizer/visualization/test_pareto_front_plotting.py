@@ -2,7 +2,7 @@ import numpy as np
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
-from opytimizer.visualization import pareto_front
+from opytimizer.visualization import plot_pareto_front
 from opytimizer import Opytimizer
 
 def test_pareto_front_plot():
@@ -12,6 +12,6 @@ def test_pareto_front_plot():
     opt.start(5)
 
     try:
-        pareto_front(opt.space.pareto_front, labels=['F1', 'F2'], backend="matplotlib")
+        plot_pareto_front(opt.space.pareto_front, labels=['F1', 'F2'], backend="matplotlib")
     except:
-        pareto_front(opt.space.pareto_front, backend="matplotlib")
+        plot_pareto_front(opt.space.pareto_front, backend="matplotlib")

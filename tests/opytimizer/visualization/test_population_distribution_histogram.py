@@ -2,7 +2,7 @@ import numpy as np
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
-from opytimizer.visualization import population_distribution_histogram
+from opytimizer.visualization import plot_population_distribution_histogram
 from opytimizer import Opytimizer
 
 def test_population_distribution_plot():
@@ -12,6 +12,6 @@ def test_population_distribution_plot():
     opt.start(5)
 
     try:
-        population_distribution_histogram(opt.space.pareto_front, target=1, backend="matplotlib")
+        plot_population_distribution_histogram(opt.space.pareto_front, target=1, backend="matplotlib")
     except:
-        population_distribution_histogram(opt.space.pareto_front, backend="matplotlib")
+        plot_population_distribution_histogram(opt.space.pareto_front, backend="matplotlib")

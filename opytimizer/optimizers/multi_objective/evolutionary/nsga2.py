@@ -364,7 +364,7 @@ class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
             offspring[i].position = offspring.tensor[i].reshape(agent_shape)
 
         for i in range(n_offspring):
-            offspring[i].fit = function(offspring[i].position)
+            offspring[i].fit = function(offspring[i].position).squeeze()
 
         combined_population = space.agents + list(offspring)[:n_offspring]
 
@@ -385,7 +385,7 @@ class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
         """
         if self._isFirstIteration == True:
             for agent in space.agents:
-                agent.fit = function(agent.position)
+                agent.fit = function(agent.position).squeeze()
             self._isFirstIteration = False
 
         # Non-dominated sorting

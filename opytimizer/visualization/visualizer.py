@@ -1,23 +1,51 @@
-from typing import Any, List
+from typing import Any, List, FrozenSet, Optional, Set, Union
 import importlib
 
 from opytimizer.core import Agent
 from opytimizer.visualization._core.router import PlotRouter, MatplotlibRenderer
 from opytimizer.visualization._core.result import PlotResult
 
-def _call_plot(name: str, result, backend: str | None = None, *args, **kwargs) -> PlotResult:
+_router = PlotRouter(default_backend="matplotlib")
+
+_MAPPING: dict[str, str] = {
+    "pareto_front": (
+        "opytimizer.visualization._core._plots"
+        ".multi_objective.plot_pareto_front"
+    ),
+    "pareto_front_evolution": (
+        "opytimizer.visualization._core._plots"
+        ".multi_objective.plot_pareto_front_evolution"
+    ),
+    "pareto_front_comparison": (
+        "opytimizer.visualization._core._plots"
+        ".multi_objective.plot_pareto_front_comparison"
+    ),
+    "population_distribution_histogram": (
+        "opytimizer.visualization._core._plots"
+        ".plot_population_distribution_histogram"
+    ),
+    "convergence": (
+        "opytimizer.visualization._core._plots"
+        ".single_objective.plot_convergence"
+    ),
+}
+
+FieldsParam = Optional[Union[Set[str], FrozenSet[str]]]
+
+def _call_plot(name, result, backend=None, *args, **kwargs) -> PlotResult:
    
-    b = backend or _router.default_backend
-    renderer = _router._resolve_backend(b)
-    
+    resolved_backend = backend or _router.default_backend
+    renderer = _router._resolve_backend(resolved_backend)
+
     draw_mpl, draw_ply, data = _load_plot(name, result, *args, **kwargs)
-    
+
     target_fn = draw_mpl if isinstance(renderer, MatplotlibRenderer) else draw_ply
     return PlotResult(renderer.render(target_fn, data), renderer)
 
+
 # Public API Functions
 
-def pareto_front(
+def plot_pareto_front(
     result, 
     backend: str | None = None, 
     title: str = "Pareto Front",
@@ -37,7 +65,8 @@ def pareto_front(
     """
     return _call_plot("pareto_front", result, backend, title=title, color=color, labels=labels, **kwargs)
 
-def pareto_front_evolution(
+
+def plot_pareto_front_evolution(
     result: List[List[Agent]], 
     backend: str | None = None, 
     title: str = "Pareto Front Evolution",
@@ -59,10 +88,10 @@ def pareto_front_evolution(
     """
     return _call_plot("pareto_front_evolution", result, backend, title=title, cmap=cmap, labels=labels, iterations=iterations, **kwargs)
 
-def pareto_front_comparision(
+def plot_pareto_front_comparison(
     *args, 
     backend: str | None = None, 
-    title: str = "Pareto Front Comparision",
+    title: str = "Pareto Front Comparison",
     labels: List[str] | None = None,
     obj_labels: List[str] | None = None,
     **kwargs
@@ -77,12 +106,10 @@ def pareto_front_comparision(
         obj_labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front_comparision", None, backend, *args, title=title, labels=labels, obj_labels=obj_labels, **kwargs)
+    return _call_plot("pareto_front_comparison", None, backend, *args, title=title, labels=labels, obj_labels=obj_labels, **kwargs)
 
 
-
-
-def population_distribution_histogram(
+def plot_population_distribution_histogram(
     result, 
     backend: str | None = None, 
     target: int = 0,
@@ -104,7 +131,7 @@ def population_distribution_histogram(
     """
     return _call_plot("population_distribution_histogram", result, backend, target=target, title=title, color=color, label=label, **kwargs)
     
-def convergence(
+def plot_convergence(
     *args, 
     backend: str | None = None, 
     title: str | None = "Convergence Comparision",
@@ -130,17 +157,8 @@ def convergence(
     """
     return _call_plot("convergence", None, backend, *args, title=title, labels=labels, x_axis=x_axis, xlabel=xlabel, ylabel=ylabel, iterations=iterations,**kwargs)
     
-
-_router = PlotRouter(default_backend="matplotlib")
     
-def _load_plot(name: str, result: Any, *args, **kwargs):
-    # Mapping to internal implementation modules
-    mapping = {
-        "pareto_front": "opytimizer.visualization._core._plots.multi_objective.pareto_front",
-        "pareto_front_evolution": "opytimizer.visualization._core._plots.multi_objective.pareto_front_evolution",
-        "population_distribution_histogram": "opytimizer.visualization._core._plots.population_distribution_histogram",
-        "convergence": "opytimizer.visualization._core._plots.single_objective.convergence",
-        "pareto_front_comparision": "opytimizer.visualization._core._plots.multi_objective.pareto_front_comparision",
-    }
-    module = importlib.import_module(mapping[name])
-    return module.draw_mpl, module.draw_ply, module.extract_data(result, *args, **kwargs)
+def _load_plot(name, result, *args, **kwargs):
+    module = importlib.import_module(_MAPPING[name])
+    data = module.extract_data(result, *args, **kwargs) 
+    return module.draw_mpl, module.draw_ply, data

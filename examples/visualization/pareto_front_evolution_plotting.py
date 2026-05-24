@@ -4,7 +4,7 @@ import numpy as np
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
-from opytimizer.visualization import  pareto_front_evolution
+from opytimizer.visualization import plot_pareto_front_evolution
 from opytimizer import Opytimizer
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
 
@@ -39,5 +39,5 @@ opt = Opytimizer(space=space, optimizer=optimizer, function=func, save_agents=Fa
 
 opt.start(N_GENERATIONS)
 
-pareto_front_evolution(opt.history.pareto_front, backend="matplotlib", title="NSGA2 - Pareto Front Evolution", labels=['F1', 'F2'], iterations=[1, 25, 50, 75, 100]).show()
+plot_pareto_front_evolution(opt.history.pareto_front, backend="matplotlib", title="NSGA2 - Pareto Front Evolution", labels=['F1', 'F2'], iterations=[1, 25, 50, 75, 100]).show()
 

@@ -1,3 +1,7 @@
 """Visualization package for all common opytimizer modules.
 """
-from opytimizer.visualization.visualizer import pareto_front, population_distribution_histogram, pareto_front_evolution, convergence, pareto_front_comparision
+from opytimizer.visualization.visualizer import plot_pareto_front, \
+                                                plot_population_distribution_histogram, \
+                                                plot_pareto_front_evolution, \
+                                                plot_convergence, \
+                                                plot_pareto_front_comparison

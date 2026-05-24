@@ -6,7 +6,7 @@ from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.single_objective.evolutionary import DE
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.optimizers.single_objective.population import GWO
-from opytimizer.visualization import convergence
+from opytimizer.visualization import plot_convergence
 from opytimizer import Opytimizer
 
 from opytimark.markers.n_dimensional import Sphere
@@ -49,4 +49,4 @@ opt_gwo = Opytimizer(space=space, optimizer=gwo, function=func, save_agents=Fals
 opt_gwo.start(N_GENERATIONS)
 
 
-convergence(opt_de.history.best_agent, opt_pso.history.best_agent, opt_gwo.history.best_agent, labels=['DE', 'PSO', 'GWO'], backend='matplotlib').show()
+plot_convergence(opt_de.history.best_agent, opt_pso.history.best_agent, opt_gwo.history.best_agent, labels=['DE', 'PSO', 'GWO'], backend='matplotlib').show()

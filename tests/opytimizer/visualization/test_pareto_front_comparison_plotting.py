@@ -2,7 +2,7 @@ import numpy as np
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA, MOEAD
-from opytimizer.visualization import pareto_front_comparision
+from opytimizer.visualization import plot_pareto_front_comparison
 from opytimizer.utils.reference_vectors import das_dennis
 from opytimizer import Opytimizer
 
@@ -25,6 +25,6 @@ def test_pareto_comparison_plot():
     o2.start(5)
 
     try:
-        pareto_front_comparision(o1.space.pareto_front, o2.space.pareto_front, labels=['RVEA', 'MOEAD'], backend="matplotlib")
+        plot_pareto_front_comparison(o1.space.pareto_front, o2.space.pareto_front, labels=['RVEA', 'MOEAD'], backend="matplotlib")
     except:
-        pareto_front_comparision(o1.space.pareto_front, o2.space.pareto_front, backend="matplotlib")
+        plot_pareto_front_comparison(o1.space.pareto_front, o2.space.pareto_front, backend="matplotlib")
