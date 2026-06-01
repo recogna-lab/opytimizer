@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
 
-from typing import List, Tuple, Optional, Any, Union
+from typing import List, Tuple, Optional, Any, Dict
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer, Environment
 from opytimizer.core.agent import Agent
@@ -47,7 +47,7 @@ class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
 
     def __init__(
         self,
-        params: dict = None,
+        params: Dict = None,
         crossover_operator=None,
         mutation_operator=None,
         **kwargs
