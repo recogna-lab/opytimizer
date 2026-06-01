@@ -1,10 +1,5 @@
-"""CMA-ES — Covariance Matrix Adaptation Evolution Strategy
-
-Reference
----------
-Hansen, N. (2023). The CMA Evolution Strategy: A Tutorial.
-arXiv:1604.00772v2 [cs.LG]. https://arxiv.org/abs/1604.00772
-
+"""
+CMA-ES — Covariance Matrix Adaptation Evolution Strategy
 All equation numbers in comments refer to that paper.
 """
 
@@ -26,7 +21,12 @@ from opytimizer.utils import logging
 logger = logging.get_logger(__name__)
 
 class CMAES:
-    """"""
+    """
+        Reference
+        ---------
+        Hansen, N. (2023). The CMA Evolution Strategy: A Tutorial.
+        arXiv:1604.00772v2 [cs.LG]. https://arxiv.org/abs/1604.00772
+    """
 
     _registry: Dict[str, type] = {}
 
