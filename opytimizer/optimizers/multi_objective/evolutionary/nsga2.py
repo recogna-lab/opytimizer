@@ -441,7 +441,7 @@ class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
         self.build(params)
 
         self._isFirstIteration = True
-
+        self.DTYPE = None
         logger.info("Class overrided.")
 
 
@@ -463,6 +463,7 @@ class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
 
     def compile(self, space: _MultiObjectiveSpace) -> None:
         xp = space.env.xp
+        self.DTYPE = space.env.dtype
         self.rank = xp.zeros(space.n_agents)
         self.crowding_distance = xp.zeros(space.n_agents)
         if self.k is None:
@@ -472,8 +473,8 @@ class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
         self.mutation_operator.env = space.env
 
         # chache bounds
-        self._LB = xp.stack([xp.asarray(a.lb).ravel() for a in space.agents])
-        self._UB = xp.stack([xp.asarray(a.ub).ravel() for a in space.agents])
+        self._LB = xp.stack([xp.asarray(a.lb, dtype=self.DTYPE).ravel() for a in space.agents])
+        self._UB = xp.stack([xp.asarray(a.ub, dtype=self.DTYPE).ravel() for a in space.agents])
         
 
         # Raw Kernel compilation
@@ -593,12 +594,14 @@ class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
         n, m = F.shape
         k = min(self.k, n)
 
+        eps = xp.finfo(xp.float64).tiny
+
         x_min = F.min(axis=0) if x_min is None else xp.asarray(x_min)
         x_max = F.max(axis=0) if x_max is None else xp.asarray(x_max)
         
         # Eq. 5: cell width per objective; guard against zero-range objectives
-        delta = (x_max - x_min) / (self.delta_n - 1)
-        delta = xp.where(delta == 0, xp.full_like(delta, 1e-10), delta)
+        delta = (x_max - x_min) / xp.array(self.delta_n - 1)
+        delta = xp.where(delta == 0, xp.full_like(delta, eps), delta)
 
         # Eq. 4: map each individual to its integer grid cell
         Xg = xp.floor((F - x_min) / delta) # (n, m)
@@ -615,7 +618,7 @@ class _NSGA2Cuda(MultiObjectiveOptimizer, NSGA2, backend=Backend.CUDA):
 
         # Normalization
         g_cwd = xp.maximum(count - 1, 0)
-        return g_cwd / (n + 1e-10)
+        return g_cwd / xp.array(n).clip(eps)
     
     def _combined_fitness(self, F: Any, xp, x_min=None, x_max=None) -> Any:
         # Lower value = better individual (low rank, low density)

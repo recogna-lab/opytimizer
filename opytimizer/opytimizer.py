@@ -279,8 +279,9 @@ class Opytimizer:
                     logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
                     for name, value in metric_values.items():
                         logger.to_file(f"{name}: {value}")
+
+                callbacks.on_iteration_end(self.total_iterations, self)
             stopping_vessel.update_pbars(self)
-            callbacks.on_iteration_end(self.total_iterations, self)
             
         except BudgetExhausted:
             logger.info("Evaluation budget exhausted at %d calls. "
@@ -295,9 +296,7 @@ class Opytimizer:
 
         callbacks.on_task_end(self)
 
-        end = time.time()
-        
-        if hasattr(self.space, 'update_pareto_front'): self.space.update_pareto_front()    
+        end = time.time()   
         
         opt_time = end - start
 

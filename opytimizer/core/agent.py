@@ -53,7 +53,7 @@ class Agent:
         self.ub = self.xp.asarray(upper_bound)
 
         self.position = self.xp.zeros((n_variables, n_dimensions), dtype=self.env.dtype)
-        self._fit = self.xp.full((n_objectives,), c.FLOAT_MAX, dtype=self.env.dtype)
+        self._fit = self.xp.full((n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64)
 
         self.mapping = mapping
 
@@ -125,7 +125,7 @@ class Agent:
 
     @fit.setter
     def fit(self, fit: Union[int, float, Any]) -> None:
-        self._fit = self.xp.asarray(fit, dtype=self.env.dtype)
+        self._fit = self.xp.asarray(fit, dtype=self.xp.float64)
 
     @property
     def lb(self) -> np.ndarray:

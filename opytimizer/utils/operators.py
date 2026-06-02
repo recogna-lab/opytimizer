@@ -136,23 +136,45 @@ class ArithmeticCrossover(ContinuousCrossover):
     def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, return_mode = 'both'):
         super().__init__(rate, gene_rate, return_mode)
       
-    def __call__(self, parent1: Agent, parent2: Agent) -> tuple:
-        child1 = copy.deepcopy(parent1)
-        child2 = copy.deepcopy(parent2)
+    def _arithmetic_positions(self, P1, P2):
+        xp = self.env.xp
+        active = xp.random.random(P1.shape) < self.gene_rate
+        alpha = xp.random.random(P1.shape)
+        C1 = xp.where(active, alpha * P1 + (1.0 - alpha) * P2, P1)
+        C2 = xp.where(active, alpha * P2 + (1.0 - alpha) * P1, P2)
 
-        if self.rate < np.random.random():
-            
-            x1 = parent1.position
-            x2 = parent2.position
-            mask = np.random.rand(*x1.shape) < self.gene_rate
-            alpha = np.random.uniform(0.0, 1.0, size=x1.shape)
+        return C1, C2
+    
+    def __call__(self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        xp = self.env.xp
+        is_batch = isinstance(parent1, list)
+        p1_list = parent1 if is_batch else [parent1]
+        p2_list = parent2 if is_batch else [parent2]
+        pop = len(p1_list)
+ 
+        children1 = [copy.copy(p) for p in p1_list]
+        children2 = [copy.copy(p) for p in p2_list]
+ 
+        P1 = xp.stack([p.position.ravel() for p in p1_list])
+        P2 = xp.stack([p.position.ravel() for p in p2_list])
+        LB = xp.stack([p.lb.ravel() for p in p1_list])
+        UB = xp.stack([p.ub.ravel() for p in p1_list])
+ 
+        gate = (xp.random.random((pop,)) < self.rate)[:, None]
+ 
+        C1, C2 = self._arithmetic_positions(P1, P2)
+ 
+        C1 = xp.clip(xp.where(gate, C1, P1), LB, UB)
+        C2 = xp.clip(xp.where(gate, C2, P2), LB, UB)
+ 
+        if is_batch:
+            C_combined = xp.concatenate([C1, C2], axis=0)
+            return BatchList(children1 + children2, tensor=C_combined)
+ 
+        children1[0].position = C1[0].reshape(parent1.position.shape)
+        children2[0].position = C2[0].reshape(parent2.position.shape)
+        return self._return_offspring(children1, children2)
 
-            alpha = r.generate_uniform_random_number(0.0, 1.0, size=x1.shape)
-
-            child1.position[mask] = alpha[mask] * x1[mask] + (1 - alpha[mask]) * x2[mask]
-            child2.position[mask] = alpha[mask] * x2[mask] + (1 - alpha[mask]) * x1[mask]
-
-        return self._return_offspring([child1, child2])
 
 
 class GaussianMutation(BaseMutation):
@@ -162,25 +184,39 @@ class GaussianMutation(BaseMutation):
         super().__init__(rate=rate)
         self.std = std
 
-    def __call__(self, agent: Agent) -> Agent:
-        mutant = copy.deepcopy(agent)
-      
-        x = agent.position
-        lb = agent.lb
-        ub = agent.ub
+    def _gaussian_positions(self, X, LB, UB):
+        xp = self.env.xp
+        active = (
+            (xp.random.random(X.shape) < self.rate) &
+            (LB != UB)
+        )
+        noise  = xp.random.normal(0.0, self.std, X.shape)
+        X_new  = xp.clip(X + noise, LB, UB)
+        return xp.where(active, X_new, X)
 
-        mask = np.random.rand(*x.shape) < self.rate
-        if np.any(mask):
-            noise = r.generate_gaussian_random_number(
-                mean=0.0, variance=self.std, size=x.shape
-            )
 
-            new_position = np.copy(x)
-            new_position[mask] += noise[mask]
-
-            mutant.position = np.clip(new_position, lb.reshape(-1,1), ub.reshape(-1,1))
-            
+    def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        xp = self.env.xp
+        is_batch = isinstance(agent, list)
+        agents   = agent if is_batch else [agent]
+ 
+        if isinstance(agent, BatchList) and hasattr(agent, 'tensor'):
+            X = agent.tensor
+        else:
+            X = xp.stack([a.position.ravel() for a in agents])
+ 
+        LB = xp.stack([a.lb.ravel() for a in agents])
+        UB = xp.stack([a.ub.ravel() for a in agents])
+ 
+        X_new = self._gaussian_positions(X, LB, UB)
+ 
+        if is_batch:
+            return BatchList(agents, tensor=X_new)
+ 
+        mutant = copy.copy(agents[0])
+        mutant.position = X_new[0].reshape(agents[0].position.shape)
         return mutant
+
 
 
 class SBXCrossover(ContinuousCrossover):
@@ -274,32 +310,64 @@ class OnePointCrossover(BaseCrossover):
     
     def __init__(self, rate = 1.0, return_mode = 'random'):
         super().__init__(rate, return_mode)
-    def __call__(self, parent1: Agent, parent2: Agent) -> tuple:
-        child1 = copy.deepcopy(parent1)
-        child2 = copy.deepcopy(parent2)
-        
-        if np.random.rand() < self.rate:
-            
-            p1 = parent1.position
-            p2 = parent2.position
-            lb = parent1.lb
-            ub = parent1.ub
-            
-            # chromossome length
-            n_vars = p1.shape[0]
-            
-            if n_vars > 1:
-                point = r.generate_integer_random_number(1, p1.shape[0])
+    
+    def _one_point_positions(self, P1, P2, LB, UB):
+        """
+        Vectorized one-point crossover over a batch (pop, n_vars).
+        Each pair draws an independent cut point; the split is 1-D along n_vars.
+        """
+        xp  = self.env.xp
+        pop, n_vars = P1.shape
+ 
+        # random cut points in [1, n_vars-1] — one per pair
+        # shape (pop, 1) for broadcasting
+        points = xp.random.randint(1, n_vars, size=(pop, 1))         
+        idx    = xp.arange(n_vars)[None, :]                           
+ 
+        mask = idx < points                                           
+ 
+        C1 = xp.where(mask, P1, P2)
+        C2 = xp.where(mask, P2, P1)
+ 
+        C1 = xp.clip(C1, LB, UB)
+        C2 = xp.clip(C2, LB, UB)
+        return C1, C2
 
-        c1 = np.concatenate((p1[:point], p2[point:]))
-        c2 = np.concatenate((p2[:point], p1[point:]))
-        c1 = np.clip(c1, lb, ub)
-        c2 = np.clip(c2, lb, ub)
-        
-        child1.position = c1
-        child2.position = c2
-        
-        return self._return_offspring([child1, child2])
+    def __call__(self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        xp = self.env.xp
+        is_batch = isinstance(parent1, list)
+        p1_list = parent1 if is_batch else [parent1]
+        p2_list = parent2 if is_batch else [parent2]
+        pop = len(p1_list)
+ 
+        children1 = [copy.copy(p) for p in p1_list]
+        children2 = [copy.copy(p) for p in p2_list]
+ 
+        P1 = xp.stack([p.position.ravel() for p in p1_list])
+        P2 = xp.stack([p.position.ravel() for p in p2_list])
+        LB = xp.stack([p.lb.ravel() for p in p1_list])
+        UB = xp.stack([p.ub.ravel() for p in p1_list])
+ 
+        n_vars = P1.shape[1]
+ 
+        gate = (xp.random.random((pop,)) < self.rate)[:, None]
+ 
+        if n_vars > 1:
+            C1, C2 = self._one_point_positions(P1, P2, LB, UB)
+        else:
+            C1, C2 = P1, P2
+ 
+        C1 = xp.where(gate, C1, P1)
+        C2 = xp.where(gate, C2, P2)
+ 
+        if is_batch:
+            C_combined = xp.concatenate([C1, C2], axis=0)
+            return BatchList(children1 + children2, tensor=C_combined)
+ 
+        children1[0].position = C1[0].reshape(parent1.position.shape)
+        children2[0].position = C2[0].reshape(parent2.position.shape)
+        return self._return_offspring(children1, children2)
+
 
 
 class BitFlipMutation(BaseMutation):
@@ -307,14 +375,31 @@ class BitFlipMutation(BaseMutation):
     def __init__(self, rate = 0.025):
         super().__init__(rate)
 
-    def __call__(self, agent: Agent) -> Agent:
-        mutant = copy.deepcopy(agent)
-        x = mutant.position
-        mask = np.random.rand(*x.shape) < self.rate
-        if np.any(mask):
-            x[mask] = 1 - x[mask]
-        mutant.position = x
+    def _bitflip_positions(self, X):
+        xp = self.env.xp
+        active = xp.random.random(X.shape) < self.rate
+        return xp.where(active, 1 - X, X)
+
+
+    def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        xp = self.env.xp
+        is_batch = isinstance(agent, list)
+        agents   = agent if is_batch else [agent]
+ 
+        if isinstance(agent, BatchList) and hasattr(agent, 'tensor'):
+            X = agent.tensor
+        else:
+            X = xp.stack([a.position.ravel() for a in agents])
+ 
+        X_new = self._bitflip_positions(X)
+ 
+        if is_batch:
+            return BatchList(agents, tensor=X_new)
+ 
+        mutant = copy.copy(agents[0])
+        mutant.position = X_new[0].reshape(agents[0].position.shape)
         return mutant
+
 
 
 class PolynomialMutation(BaseMutation):

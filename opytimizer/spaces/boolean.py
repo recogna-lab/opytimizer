@@ -95,8 +95,8 @@ class _MultiObjectiveBooleanSpace(_MultiObjectiveSpace):
 
         n_dimensions = 1
 
-        lower_bound = env.xp.zeros(n_variables, dtype=self.env.dtype)
-        upper_bound = env.xp.ones(n_variables, dtype=self.env.dtype)
+        lower_bound = env.xp.zeros(n_variables, dtype=env.dtype)
+        upper_bound = env.xp.ones(n_variables, dtype=env.dtype)
 
         super(_MultiObjectiveBooleanSpace, self).__init__(
             n_agents=n_agents,
