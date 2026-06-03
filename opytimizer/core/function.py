@@ -65,8 +65,7 @@ class Function:
         if xp is None:
             xp = np
             
-        
-
+            
         result = self.pointer(x)
         result = xp.asarray(result)
         return result

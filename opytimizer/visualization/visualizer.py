@@ -134,7 +134,7 @@ def plot_population_distribution_histogram(
 def plot_convergence(
     *args, 
     backend: str | None = None, 
-    title: str | None = "Convergence Comparision",
+    title: str | None = "Convergence Comparison",
     labels: List[str] | None = None,
     x_axis: str | None = None,
     xlabel: str | None = None,

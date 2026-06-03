@@ -1,15 +1,19 @@
 """Particle Swarm Optimization-based algorithms.
 """
 
+import copy
 import time
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
+from dataclasses import dataclass
+
 import opytimizer.math.random as r
 import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
-from opytimizer.core import Optimizer
+from opytimizer.core import Optimizer, Environment
+from opytimizer.core.environment import Backend
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
 from opytimizer.core.space import  _SingleObjectiveSpace
@@ -17,8 +21,26 @@ from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
 
+class PSO:
+    _registry = {}
 
-class PSO(Optimizer):
+
+    def __new__(cls, env: Optional[Environment] = None, **kwargs):
+        if env is None: env = Environment().set_backend('cpu')
+        if cls is PSO:
+            target = cls._registry.get(env.backend)
+            return super().__new__(target)
+        return super().__new__(cls)
+
+    def __init_subclass__(cls, backend: Backend = None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if backend:
+            key = backend.value if hasattr(backend, 'value') else backend
+            PSO._registry[key] = cls
+
+
+@dataclass
+class _PSODefault(Optimizer, PSO, backend=Backend.CPU):
     """A PSO class, inherited from Optimizer.
 
     This is the designed class to define PSO-related
@@ -30,7 +52,7 @@ class PSO(Optimizer):
 
     """
 
-    def __init__(self, params: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         """Initialization method.
 
         Args:
@@ -40,7 +62,159 @@ class PSO(Optimizer):
 
         logger.info("Overriding class: Optimizer -> PSO.")
 
-        super(PSO, self).__init__()
+        super().__init__()
+
+        self.w = 0.7
+        self.c1 = 1.7
+        self.c2 = 1.7
+
+        self.build(params)
+
+        logger.info("Class overrided.")
+
+    @property
+    def w(self) -> float:
+        """Inertia weight."""
+
+        return self._w
+
+    @w.setter
+    def w(self, w: float) -> None:
+        if not isinstance(w, (float, int)):
+            raise e.TypeError("`w` should be a float or integer")
+        if w < 0:
+            raise e.ValueError("`w` should be >= 0")
+
+        self._w = w
+
+    @property
+    def c1(self) -> float:
+        """Cognitive constant."""
+
+        return self._c1
+
+    @c1.setter
+    def c1(self, c1: float) -> None:
+        if not isinstance(c1, (float, int)):
+            raise e.TypeError("`c1` should be a float or integer")
+        if c1 < 0:
+            raise e.ValueError("`c1` should be >= 0")
+
+        self._c1 = c1
+
+    @property
+    def c2(self) -> float:
+        """Social constant."""
+
+        return self._c2
+
+    @c2.setter
+    def c2(self, c2: float) -> None:
+        if not isinstance(c2, (float, int)):
+            raise e.TypeError("`c2` should be a float or integer")
+        if c2 < 0:
+            raise e.ValueError("`c2` should be >= 0")
+
+        self._c2 = c2
+
+    @property
+    def local_position(self) -> np.ndarray:
+        """Array of velocities."""
+
+        return self._local_position
+
+    @local_position.setter
+    def local_position(self, local_position: np.ndarray) -> None:
+        if not isinstance(local_position, np.ndarray):
+            raise e.TypeError("`local_position` should be a numpy array")
+
+        self._local_position = local_position
+
+    @property
+    def velocity(self) -> np.ndarray:
+        """Array of velocities."""
+
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, velocity: np.ndarray) -> None:
+        if not isinstance(velocity, np.ndarray):
+            raise e.TypeError("`velocity` should be a numpy array")
+
+        self._velocity = velocity
+
+    def compile(self, space: _SingleObjectiveSpace) -> None:
+        """Compiles additional information that is used by this optimizer.
+
+        Args:
+            space: A Space object containing meta-information.
+
+        """
+
+        self.local_position = np.zeros(
+            (space.n_agents, space.n_variables, space.n_dimensions)
+        )
+        self.velocity = np.zeros(
+            (space.n_agents, space.n_variables, space.n_dimensions)
+        )
+
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
+        """Evaluates the search space according to the objective function.
+
+        Args:
+            space: A Space object that will be evaluated.
+            function: A Function object that will be used as the objective function.
+
+        """
+
+        for i, agent in enumerate(space.agents):
+            fit = function(agent.position)
+            if fit < agent.fit:
+                agent.fit = fit
+                self.local_position[i] = copy.deepcopy(agent.position)
+
+            if agent.fit < space.best_agent.fit:
+                space.best_agent.position = copy.deepcopy(self.local_position[i])
+                space.best_agent.fit = copy.deepcopy(agent.fit)
+                space.best_agent.ts = int(time.time())
+
+    def update(self, space: _SingleObjectiveSpace) -> None:
+        """Wraps Particle Swarm Optimization over all agents and variables.
+
+        Args:
+            space: Space containing agents and update-related information.
+
+        """
+
+        for i, agent in enumerate(space.agents):
+            r1 = r.generate_uniform_random_number()
+            r2 = r.generate_uniform_random_number()
+
+            # Updates agent's velocity (p. 294)
+            self.velocity[i] = (
+                self.w * self.velocity[i]
+                + self.c1 * r1 * (self.local_position[i] - agent.position)
+                + self.c2 * r2 * (space.best_agent.position - agent.position)
+            )
+
+            # Updates agent's position (p. 294)
+            agent.position += self.velocity[i]
+
+
+
+@dataclass
+class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA): 
+    def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
+        """Initialization method.
+
+        Args:
+            params: Contains key-value parameters to the meta-heuristics.
+
+        """
+
+        logger.info("Overriding class: Optimizer -> PSO.")
+
+        super().__init__()
 
         self.w = 0.7
         self.c1 = 1.7
@@ -138,12 +312,12 @@ class PSO(Optimizer):
         dtype=space.env.dtype
     )
         
-        if space.env.backend.value == "cuda":
-            _dummy = space.env.xp.zeros_like(self.velocity)
-            _dummy = self.w * _dummy + space.env.xp.random.uniform(0, 1, _dummy.shape)
-            space.env.xp.where(space.env.xp.zeros(space.n_agents, dtype=bool)[:, None, None], _dummy, _dummy)
-            space.env.xp.cuda.Stream.null.synchronize() 
-            del _dummy
+        
+        _dummy = space.env.xp.zeros_like(self.velocity)
+        _dummy = self.w * _dummy + space.env.xp.random.uniform(0, 1, _dummy.shape)
+        space.env.xp.where(space.env.xp.zeros(space.n_agents, dtype=bool)[:, None, None], _dummy, _dummy)
+        space.env.xp.cuda.Stream.null.synchronize() 
+        del _dummy
         
 
     def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
@@ -160,7 +334,7 @@ class PSO(Optimizer):
         for i, agent in enumerate(space.agents):
             self._all_positions_buffer[i] = agent.position
 
-        all_fits = function(self._all_positions_buffer)  # shape: (n_agents,)
+        all_fits = function(self._all_positions_buffer, xp)  # shape: (n_agents,)
         
         current_fits = xp.array([ag.fit for ag in space.agents]) # (n_agents,)
 
@@ -169,7 +343,7 @@ class PSO(Optimizer):
 
         for i, agent in enumerate(space.agents):
             if improved_[i]:                     
-                agent.fit = all_fits[i]
+                agent.fit = all_fits[i][0]
                 self.local_position[i] = agent.position.copy()
 
             if agent.fit < space.best_agent.fit:
@@ -189,8 +363,8 @@ class PSO(Optimizer):
         xp = space.env.xp
         g_best = space.best_agent.position  # (n_vars, n_dims)
 
-        r1 = xp.random.uniform(0, 1, self.velocity.shape).astype(space.env.dtype)
-        r2 = xp.random.uniform(0, 1, self.velocity.shape).astype(space.env.dtype)
+        r1 = xp.random.uniform(0, 1, self.velocity.shape).astype(xp.float64)
+        r2 = xp.random.uniform(0, 1, self.velocity.shape).astype(xp.float64)
 
         all_positions = xp.stack([ag.position for ag in space.agents])
 
@@ -206,8 +380,6 @@ class PSO(Optimizer):
             agent.position = all_positions[i]
 
         space.clip_by_bound()
-
-
 
 
 class AIWPSO(PSO):

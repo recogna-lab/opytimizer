@@ -56,7 +56,7 @@ def extract_data(
             x_axis = requested_indices
         else:
             for opt in args:
-                curves.append([opt[i][1] for i in range(len(opt))])
+                curves.append([float(opt[i][1]) for i in range(len(opt))])
             x_axis = list(range(1, len(args[0]) + 1))
 
         if F.wants(fmap, "curves"):

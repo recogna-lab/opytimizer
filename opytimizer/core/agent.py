@@ -53,7 +53,7 @@ class Agent:
         self.ub = self.xp.asarray(upper_bound)
 
         self.position = self.xp.zeros((n_variables, n_dimensions), dtype=self.env.dtype)
-        self._fit = self.xp.full((n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64)
+        self._fit = self.xp.full((n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64).squeeze()
 
         self.mapping = mapping
 
