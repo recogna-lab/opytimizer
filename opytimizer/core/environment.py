@@ -15,7 +15,7 @@ class Backend(str, Enum):
 class Environment:
     """Singleton thread-safe"""
 
-    def __init__(self, device: Literal['cpu', 'cuda'] = 'cpu', dtype: str = 'float64'):
+    def __init__(self, device: Literal['cpu', 'cuda'] = 'cpu', dtype: str = 'float32'):
         self._backend: Backend = (Backend.CUDA if device == "cuda" else Backend.CPU)
         self._dtype: str = dtype
 

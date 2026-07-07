@@ -147,6 +147,7 @@ class HyperComplexSpace:
             env: Environment class object.
 
         """
+        if env is None: env = Environment('cpu', 'float32')
 
         if n_objectives <= 0: raise e.ValueError('`n_objectives` should be a positive integer.')
         elif n_objectives == 1: return _SingleObjectiveHyperComplexSpace(n_agents, n_variables, n_dimensions, n_objectives, mapping, env)
