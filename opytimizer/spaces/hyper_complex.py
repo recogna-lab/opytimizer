@@ -24,7 +24,7 @@ class _SingleObjectiveHyperComplexSpace(_SingleObjectiveSpace):
         n_dimensions: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -80,7 +80,7 @@ class _MultiObjectiveHyperComplexSpace(_MultiObjectiveSpace):
         n_dimensions: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -134,7 +134,7 @@ class HyperComplexSpace:
         n_dimensions: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> Union[_SingleObjectiveHyperComplexSpace, _MultiObjectiveHyperComplexSpace]:
         """Initialization method.
 

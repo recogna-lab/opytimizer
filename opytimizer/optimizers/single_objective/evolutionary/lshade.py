@@ -77,7 +77,7 @@ class _LSHADEDefault(Optimizer, LSHADE, backend=Backend.CPU):
         self.A = []
 
     def _get_population_matrix(self, space: _SingleObjectiveSpace) -> np.ndarray:
-        """Extrai as posições dos agentes do espaço em uma única matriz NumPy (N_G x D)"""
+        """"""
        
         return np.array([ag.position.flatten() for ag in space.agents])
 
@@ -252,7 +252,7 @@ class _LSHADEDefault(Optimizer, LSHADE, backend=Backend.CPU):
                     space.best_agent.ts = int(time.time())
 
 @dataclass
-class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
+class _LSHADECuda(Optimizer, LSHADE, backend=Backend.CUDA):
     def __init__(self,
                  params: Dict = None,
                  MAX_NFE: int = 100,
@@ -261,7 +261,8 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
                  f_arc: float = 2.6,
                  **kwds):
         
-        logger.info("Overriding class: Optimizer -> L-SHADE (GPU Híbrido).")
+        logger.info("Overriding class: Optimizer -> L-SHADE (CUDA).")
+        
         super().__init__()
 
         self.MAX_NFE = MAX_NFE
@@ -273,7 +274,6 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
 
         self.build(params)
         
-        # O Arquivo A continua na CPU (em NumPy) para poupar memória VRAM da placa gráfica
         self.A: List[np.ndarray] = []  
         self.N_A = 0
         self.N_G = None
@@ -296,10 +296,10 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
     def _mutate_hybrid(self, X_gpu: Any, F_cpu: np.ndarray, space: _SingleObjectiveSpace, xp: Any) -> Any:
         N_G = self.N_G
 
-        # 1. Extrai o fit dos agentes (0-d array da GPU) de forma segura para a CPU
+       
         fits_cpu = np.array([float(ag.fit) for ag in space.agents])
         
-        # Lógica de índices super rápida na CPU
+      
         pbest_bound = max(2, int(np.round(N_G * self.p)))
         p_best_indices_pool = np.argsort(fits_cpu)[:pbest_bound]
         
@@ -316,18 +316,18 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
         idx_r2_cpu = np.where(idx_r2_cpu >= exc1, idx_r2_cpu + 1, idx_r2_cpu)
         idx_r2_cpu = np.where(idx_r2_cpu >= exc2, idx_r2_cpu + 1, idx_r2_cpu)
 
-        # 2. Transferência dos índices ordenados para a GPU
+       
         idx_pbest_gpu = xp.asarray(idx_pbest_cpu)
         idx_r1_gpu = xp.asarray(idx_r1_cpu)
         idx_r2_gpu = xp.asarray(idx_r2_cpu)
         F_gpu = xp.asarray(F_cpu, dtype=self.DTYPE)[:, xp.newaxis]
 
-        # 3. Fatiamento puramente na GPU
+        
         X_pbest_gpu = X_gpu[idx_pbest_gpu]
         X_r1_gpu = X_gpu[idx_r1_gpu]
 
         if len(self.A) > 0:
-            # Envia o Arquivo A para a GPU estritamente durante o crossover
+           
             A_gpu = xp.asarray(self.A, dtype=self.DTYPE)
             X_union_gpu = xp.vstack([X_gpu, A_gpu])
         else:
@@ -335,10 +335,10 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
 
         X_r2_gpu = X_union_gpu[idx_r2_gpu]
 
-        # Equação de Mutação Paralela
+        
         V_gpu = X_gpu + F_gpu * (X_pbest_gpu - X_gpu) + F_gpu * (X_r1_gpu - X_r2_gpu)
 
-        # Usamos os bounds nativos (já na GPU) 
+        
         lb = space.lb.flatten()
         ub = space.ub.flatten()
 
@@ -363,10 +363,10 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
     def update(self, space: _SingleObjectiveSpace, function: Function):
         xp = space.env.xp  
 
-        # Empilha a posição (array GPU) nativamente
+        
         X_gpu = xp.stack([ag.position.flatten() for ag in space.agents])
 
-        # --- 1. GERAÇÃO DE PARÂMETROS NA CPU ---
+        
         selected_indices = np.random.randint(low=0, high=self.H, size=self.N_G)
         mu_CR = self.M_CR[selected_indices]
         mu_F = self.M_F[selected_indices]
@@ -383,18 +383,17 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
             invalid_mask = (F <= 0.0)
         F = np.clip(F, 0.0, 1.0)
 
-        # --- 2. ÁLGEBRA DA GPU ---
         V_gpu = self._mutate_hybrid(X_gpu, F, space, xp)
         U_gpu = self._crossover_gpu(CR, V_gpu, X_gpu, space, xp)   
 
-        # Função Objetivo
+        
         f_U_gpu = function(U_gpu, xp=xp)
         
-        # --- 3. SINCRONIZAÇÃO E EXTRAÇÃO SEGURA PARA A CPU ---
+       
         f_U_cpu = xp.asnumpy(f_U_gpu).squeeze()
         X_old_cpu = xp.asnumpy(X_gpu) 
         
-        # Extrai o fit atual garantindo que venham como floats para o NumPy
+        
         fits_cpu = np.array([float(ag.fit) for ag in space.agents])
         
         survival_mask = f_U_cpu <= fits_cpu
@@ -404,11 +403,11 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
         S_F = F[success_mask]
         DELTA_F = np.abs(fits_cpu[success_mask] - f_U_cpu[success_mask])
 
-        # Substituição com manutenção estrita de tipos
+        
         for i, ag in enumerate(space.agents):
             if survival_mask[i]:
                 ag.position = U_gpu[i].reshape(ag.position.shape).copy()
-                # Injeta de volta como um array GPU (scalar array) para respeitar o framework
+                
                 ag.fit = xp.asarray(f_U_cpu[i], dtype=self.DTYPE) 
                 
                 if success_mask[i]:
@@ -419,12 +418,12 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
                     space.best_agent.fit = ag.fit.copy()
                     space.best_agent.ts = int(time.time())
 
-        # Gerenciamento do Arquivo A
+        
         if len(self.A) > self.N_A:
             indices_to_keep = np.random.choice(len(self.A), size=self.N_A, replace=False)
             self.A = [self.A[idx] for idx in indices_to_keep]
 
-        # Lehmer Mean (Média Histórica)
+        
         if len(S_CR) > 0:
             weights = DELTA_F / np.sum(DELTA_F)
             
@@ -436,7 +435,7 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
             self.M_F[self.k] = np.sum(weights * (S_F ** 2)) / np.sum(weights * S_F)
             self.k = (self.k + 1) % self.H
 
-        # Redução Linear (LPSR) - Ordenamos convertendo para float no lambda
+       
         N_min = 4
         N_target = int(np.round(((N_min - self.N_init) / self.MAX_NFE) * function.n_calls + self.N_init))
         N_target = max(N_min, N_target)
@@ -459,7 +458,7 @@ class _LSHADEGPU(Optimizer, LSHADE, backend=Backend.CUDA):
             fits_cpu = xp.asnumpy(fits_gpu).squeeze()
 
             for i, agent in enumerate(space.agents):
-                # Guarda o fitness como xp.ndarray
+                
                 agent.fit = xp.asarray(fits_cpu[i], dtype=self.DTYPE)
                 
                 if fits_cpu[i] < float(space.best_agent.fit):

@@ -24,7 +24,7 @@ class _SingleObjectiveSearchSpace(_SingleObjectiveSpace):
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -78,7 +78,7 @@ class _MultiObjectiveSearchSpace(_MultiObjectiveSpace):
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -128,7 +128,7 @@ class SearchSpace:
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> Union[_SingleObjectiveSearchSpace, _MultiObjectiveSearchSpace]:
         
         if n_objectives <= 0: raise e.ValueError('`n_objectives` should be a positive integer.')

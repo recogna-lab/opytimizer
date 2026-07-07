@@ -24,7 +24,7 @@ class _SingleObjectiveBooleanSpace(_SingleObjectiveSpace):
         n_variables: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -77,7 +77,7 @@ class _MultiObjectiveBooleanSpace(_MultiObjectiveSpace):
         n_variables: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -128,7 +128,7 @@ class BooleanSpace:
         n_variables: int,
         n_objectives: int,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> Union[_SingleObjectiveBooleanSpace, _MultiObjectiveBooleanSpace]:
         
         if n_objectives <= 0: raise e.ValueError('`n_objectives` should be a positive integer.')

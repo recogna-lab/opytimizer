@@ -78,7 +78,7 @@ class _SingleObjectiveGridSpace(_SingleObjectiveSpace, _GridOps):
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -135,7 +135,7 @@ class _MultiObjectiveGridSpace(_MultiObjectiveSpace, _GridOps):
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -189,7 +189,7 @@ class GridSpace:
         lower_bound: Union[float, List, Tuple, Any],
         upper_bound: Union[float, List, Tuple, Any],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> Union[_SingleObjectiveGridSpace, _MultiObjectiveGridSpace]:
         """Initialization method.
 

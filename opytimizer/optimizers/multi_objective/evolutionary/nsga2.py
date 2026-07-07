@@ -385,7 +385,7 @@ class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
         """
         if self._isFirstIteration == True:
             for agent in space.agents:
-                agent.fit = function(agent.position).squeeze()
+                agent.fit = function(agent.position).reshape(-1)
             self._isFirstIteration = False
 
         # Non-dominated sorting
@@ -401,8 +401,6 @@ class _NSGA2Default(MultiObjectiveOptimizer, NSGA2, backend=Backend.CPU):
                 front, space.agents
             )
 
-        # Updates the Pareto front
-        #space.update_pareto_front()
 
 
 @dataclass

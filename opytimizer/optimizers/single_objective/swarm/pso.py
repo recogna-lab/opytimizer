@@ -201,19 +201,67 @@ class _PSODefault(Optimizer, PSO, backend=Backend.CPU):
             agent.position += self.velocity[i]
 
 
+_VELOCITY_UPDATE_KERNEL_SRC = r"""
+extern "C" __global__
+void velocity_update(
+    double* __restrict__ vel,         
+    const double* __restrict__ lbest,  
+    const double* __restrict__ pos,    
+    const double* __restrict__ gbest,  
+    const double* __restrict__ r1,     
+    const double* __restrict__ r2,     
+    const double w,
+    const double c1,
+    const double c2,
+    const int vars_dims,               
+    const int N                        
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N) return;
+ 
+    int agent_idx = idx / vars_dims;
+    int var_idx   = idx % vars_dims;
+ 
+    double v = w * vel[idx]
+             + c1 * r1[agent_idx] * (lbest[idx] - pos[idx])
+             + c2 * r2[agent_idx] * (gbest[var_idx] - pos[idx]);
+    vel[idx] = v;
+}
+"""
+ 
+_VELOCITY_UPDATE_KERNEL_F32_SRC = r"""
+extern "C" __global__
+void velocity_update_f32(
+    float* __restrict__ vel,
+    const float* __restrict__ lbest,
+    const float* __restrict__ pos,
+    const float* __restrict__ gbest,
+    const float* __restrict__ r1,
+    const float* __restrict__ r2,
+    const float w,
+    const float c1,
+    const float c2,
+    const int vars_dims,
+    const int N
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N) return;
+ 
+    int agent_idx = idx / vars_dims;
+    int var_idx   = idx % vars_dims;
+ 
+    float v = w * vel[idx]
+            + c1 * r1[agent_idx] * (lbest[idx] - pos[idx])
+            + c2 * r2[agent_idx] * (gbest[var_idx] - pos[idx]);
+    vel[idx] = v;
+}
+"""
+
 
 @dataclass
-class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA): 
+class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
     def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
-        """Initialization method.
-
-        Args:
-            params: Contains key-value parameters to the meta-heuristics.
-
-        """
-
         logger.info("Overriding class: Optimizer -> PSO.")
-
         super().__init__()
 
         self.w = 0.7
@@ -221,13 +269,12 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
         self.c2 = 1.7
 
         self.build(params)
+        self._vel_kernel = None
 
         logger.info("Class overrided.")
 
     @property
     def w(self) -> float:
-        """Inertia weight."""
-
         return self._w
 
     @w.setter
@@ -236,13 +283,10 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
             raise e.TypeError("`w` should be a float or integer")
         if w < 0:
             raise e.ValueError("`w` should be >= 0")
-
         self._w = w
 
     @property
     def c1(self) -> float:
-        """Cognitive constant."""
-
         return self._c1
 
     @c1.setter
@@ -251,13 +295,10 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
             raise e.TypeError("`c1` should be a float or integer")
         if c1 < 0:
             raise e.ValueError("`c1` should be >= 0")
-
         self._c1 = c1
 
     @property
     def c2(self) -> float:
-        """Social constant."""
-
         return self._c2
 
     @c2.setter
@@ -266,118 +307,114 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
             raise e.TypeError("`c2` should be a float or integer")
         if c2 < 0:
             raise e.ValueError("`c2` should be >= 0")
-
         self._c2 = c2
 
     @property
-    def local_position(self) -> np.ndarray:
-        """Array of velocities."""
-
+    def local_position(self):
         return self._local_position
 
     @local_position.setter
-    def local_position(self, local_position: np.ndarray) -> None:
-
+    def local_position(self, local_position) -> None:
         self._local_position = local_position
 
     @property
     def velocity(self):
-        """Array of velocities."""
-
         return self._velocity
 
     @velocity.setter
-    def velocity(self, velocity: np.ndarray) -> None:
+    def velocity(self, velocity) -> None:
         self._velocity = velocity
 
     def compile(self, space: _SingleObjectiveSpace) -> None:
-        """Compiles additional information that is used by this optimizer.
+        xp = space.env.xp
+        dtype = space.env.dtype
+        n_a = space.n_agents
+        n_v = space.n_variables
+        n_d = space.n_dimensions
 
-        Args:
-            space: A Space object containing meta-information.
+        self.local_position = xp.zeros((n_a, n_v, n_d), dtype=dtype)
+        self.velocity = xp.zeros((n_a, n_v, n_d), dtype=dtype)
+        self._all_positions_buffer = xp.zeros((n_a, n_v, n_d), dtype=dtype)
+        self._fits_buffer = xp.full(n_a, xp.inf, dtype=dtype)
 
-        """
-
-        self.local_position = space.env.xp.zeros(
-            (space.n_agents, space.n_variables, space.n_dimensions),
-            dtype=space.env.dtype
-        )
-        self.velocity = space.env.xp.zeros(
-            (space.n_agents, space.n_variables, space.n_dimensions),
-            dtype=space.env.dtype
-        )
-
-        self._all_positions_buffer = space.env.xp.zeros(
-        (space.n_agents, space.n_variables, space.n_dimensions),
-        dtype=space.env.dtype
-    )
+        use_f64 = (dtype == xp.float64 or dtype == 'float64')
+        if use_f64:
+            self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_SRC, 'velocity_update')
+        else:
+            self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_F32_SRC, 'velocity_update_f32')
         
-        
-        _dummy = space.env.xp.zeros_like(self.velocity)
-        _dummy = self.w * _dummy + space.env.xp.random.uniform(0, 1, _dummy.shape)
-        space.env.xp.where(space.env.xp.zeros(space.n_agents, dtype=bool)[:, None, None], _dummy, _dummy)
-        space.env.xp.cuda.Stream.null.synchronize() 
-        del _dummy
-        
+        self._vars_dims = n_v * n_d
+        self._kernel_N = n_a * self._vars_dims
+        self._block_size = 256
+        self._kernel_grid = (self._kernel_N + self._block_size - 1) // self._block_size
+        self._dtype = dtype
+
+        initial_pos = xp.stack([xp.asarray(ag.position, dtype=dtype) for ag in space.agents])
+        xp.copyto(self.local_position, initial_pos)
+
 
     def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
-        """Evaluates the search space according to the objective function.
-
-        Args:
-            space: A Space object that will be evaluated.
-            function: A Function object that will be used as the objective function.
-
-        """
-
         xp = space.env.xp
 
+        self._all_positions_buffer = xp.stack([
+            xp.asarray(ag.position, dtype=self._dtype) for ag in space.agents
+        ])
+
+        all_fits = function(self._all_positions_buffer, xp)
+        improved_mask = all_fits < self._fits_buffer  
+
+        xp.copyto(
+            self.local_position,
+            self._all_positions_buffer,
+            where=improved_mask[:, None, None]
+        )
+
+        xp.minimum(self._fits_buffer, all_fits, out=self._fits_buffer)
+
+        best_idx = int(xp.argmin(self._fits_buffer))
+        best_fit_val = float(self._fits_buffer[best_idx])
+
+        if best_fit_val < space.best_agent.fit:
+            space.best_agent.position = self.local_position[best_idx].copy()
+            space.best_agent.fit = best_fit_val
+            space.best_agent.ts = int(time.time())
+
+        fits_list = xp.asnumpy(self._fits_buffer).tolist()
         for i, agent in enumerate(space.agents):
-            self._all_positions_buffer[i] = agent.position
-
-        all_fits = function(self._all_positions_buffer, xp)  # shape: (n_agents,)
-        
-        current_fits = xp.array([ag.fit for ag in space.agents]) # (n_agents,)
-
-        improved = all_fits < current_fits
-        improved_ = improved.tolist()
-
-        for i, agent in enumerate(space.agents):
-            if improved_[i]:                     
-                agent.fit = all_fits[i][0]
-                self.local_position[i] = agent.position.copy()
-
-            if agent.fit < space.best_agent.fit:
-                space.best_agent.position = agent.position.copy()
-                space.best_agent.fit = agent.fit
-                space.best_agent.ts = int(time.time())
+            agent.fit = fits_list[i]
 
 
     def update(self, space: _SingleObjectiveSpace) -> None:
-        """Wraps Particle Swarm Optimization over all agents and variables.
-
-        Args:
-            space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace] containing agents and update-related information.
-
-        """
-
         xp = space.env.xp
-        g_best = space.best_agent.position  # (n_vars, n_dims)
+        n_agents = space.n_agents
+        dtype = self._dtype
 
-        r1 = xp.random.uniform(0, 1, self.velocity.shape).astype(xp.float64)
-        r2 = xp.random.uniform(0, 1, self.velocity.shape).astype(xp.float64)
+        r1_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
+        r2_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
+        gbest_flat = xp.asarray(space.best_agent.position, dtype=dtype).ravel()
 
-        all_positions = xp.stack([ag.position for ag in space.agents])
+        scalar_type = np.dtype(dtype).type
 
-        self.velocity = (
-            self.w * self.velocity
-            + self.c1 * r1 * (self.local_position - all_positions)
-            + self.c2 * r2 * (g_best - all_positions)
+        self._vel_kernel(
+            (self._kernel_grid,), (self._block_size,),
+            (self.velocity,                 
+             self.local_position,
+             self._all_positions_buffer,
+             gbest_flat,
+             r1_buf, 
+             r2_buf,
+             scalar_type(self.w),            
+             scalar_type(self.c1),           
+             scalar_type(self.c2),           
+             np.int32(self._vars_dims), 
+             np.int32(self._kernel_N))
         )
 
-        all_positions += self.velocity
+        self._all_positions_buffer += self.velocity
 
+        
         for i, agent in enumerate(space.agents):
-            agent.position = all_positions[i]
+            agent.position[:] = self._all_positions_buffer[i]
 
         space.clip_by_bound()
 

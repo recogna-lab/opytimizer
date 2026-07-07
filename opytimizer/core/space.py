@@ -26,7 +26,7 @@ class _Space(ABC):
         lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
         upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -51,7 +51,7 @@ class _Space(ABC):
         self.ub = env.xp.asarray(upper_bound)
 
         self.mapping = mapping
-
+        if env is None: env = Environment().set_backend('cpu')
         self.env = env
 
         self.agents = []
@@ -254,7 +254,7 @@ class _SingleObjectiveSpace(_Space):
         lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
         upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -329,7 +329,7 @@ class _MultiObjectiveSpace(_Space):
         lower_bound: Optional[Union[float, List, Tuple, Any]] = 0.0,
         upper_bound: Optional[Union[float, List, Tuple, Any]] = 1.0,
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -390,26 +390,36 @@ class _MultiObjectiveSpace(_Space):
 
     def update_pareto_front(self) -> None:
         """Updates the Pareto front with non-dominated solutions.
-
-        Args:
-            agents: List of agents to be evaluated.
-
         """
-        self.pareto_front = []
-        for agent in self.agents:
-            is_dominated = False
-            is_duplicate = any(
-                self.env.xp.array_equal(agent.fit, existing_agent.fit)
-                for existing_agent in self.pareto_front
-            )
-            if is_duplicate:
-                continue
-            for pareto_agent in self.pareto_front:
-                if pareto_agent.dominates(agent):
-                    is_dominated = True
-                    break
-            if not is_dominated:
-                self.pareto_front = [
-                    a for a in self.pareto_front if not agent.dominates(a)
-                ]
-                self.pareto_front.append(agent)
+
+        if not self.agents:
+            self.pareto_front = []
+            return
+        
+        xp = self.env.xp
+
+        costs = xp.stack([agent.fit for agent in self.agents])
+        n_agents = costs.shape[0]
+
+        targets = costs[:, xp.newaxis, :]
+        opponents = costs[xp.newaxis, :, :]
+
+        no_worse = xp.all(opponents <= targets, axis=-1)
+        better = xp.any(opponents < targets, axis=-1)
+
+        dominates = no_worse & better
+
+        is_dominated = xp.any(dominates, axis=1)
+
+        identical = xp.all(opponents == targets, axis=-1)
+
+        lower_tri = xp.tril(xp.ones((n_agents, n_agents), dtype=bool), k=-1)
+
+        is_duplicate = xp.any(identical & lower_tri, axis=1)
+
+        valid_mask = ~(is_dominated | is_duplicate)
+
+        if hasattr(valid_mask, 'get'):
+            valid_mask = valid_mask.get()
+
+        self.pareto_front = [self.agents[i] for i in range(n_agents) if valid_mask[i]]
