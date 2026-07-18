@@ -89,6 +89,7 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - adaptation_mechanism
         - selection_strategy
     - math
+        - aggregation
         - distribution
         - general
         - hyper
@@ -115,12 +116,11 @@ Opytimizer is based on the following structure, and you should pay attention to 
     - utils
         - callback
         - constant
-        - decomposition
         - exception
         - history
         - logging
         - operators
-        - weights_vector
+        - reference_vectors
     - visualization
         - convergence
         - multi_objective
@@ -260,7 +260,7 @@ space = SearchSpace(
 )
 
 optimizer = NSGA2(
-    crossover_operator=SBXCrossover(rate=1.0, eta=20, return_mode='both'),
+    crossover_operator=SBXCrossover(rate=1.0, eta=20, n_offspring=2),
     mutation_operator=PolynomialMutation(rate=1/30, eta=20)
 )
 function = Function(zdt1)
@@ -307,7 +307,7 @@ n_objectives = 1
 lower_bound = [-10] * n_variables
 upper_bound = [10] * n_variables
 
-gpu_environment = Environment().set_backend('cuda').set_dtype('float64')
+gpu_environment = Environment().set_backend('cuda').set_dtype('float32')
 
 space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound, env=gpu_environment)
 optimizer = PSO()

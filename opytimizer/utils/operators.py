@@ -1,50 +1,28 @@
 import copy
 from abc import ABC, abstractmethod
-
 import numpy as np
 
-from typing_extensions import Literal
-from typing import Union, List, Tuple
-import opytimizer.math.random as r
+from typing import Union, List, Tuple, Any
 from opytimizer.core.agent import Agent
 from opytimizer.core import Environment
-from opytimizer.core.environment import Backend
 import opytimizer.utils.exception as e
 
-class BatchList(list):
-    """Native python list carrying GPU tensors """
-    def __init__(self, iterable, tensor=None):
-        super().__init__(iterable)
-        self.tensor = tensor
-    
+
+# BASE ABSTRACT CLASSES 
 
 
 class BaseCrossover(ABC):
-    """Abstract base class for crossover operators."""
+    """Abstract base class for CPU crossover operators handling Agent objects."""
     
-    def __init__(self, rate: float = 1.0, return_mode: Literal['first','second', 'both', 'random'] = 'both') -> None:
+    def __init__(self, rate: float = 1.0, n_offspring: int = 2) -> None:
         self.rate = rate
-        self.return_mode = return_mode
-        self.env = Environment().set_backend('cpu').set_dtype('float64')
+        self.n_offspring = n_offspring
 
-
-             
-    def _return_offspring(self, children1: List[Agent], children2: List[Agent]) -> Union[List[Agent], Tuple[List[Agent], List[Agent]]]:
-        xp  = self.env.xp
-        pop = len(children1)
-
-        if self.return_mode == 'first':
+    def _return_offspring(self, children1: Union[Agent, List[Agent]], children2: Union[Agent, List[Agent]]) -> Union[List[Agent], Tuple[List[Agent], List[Agent]]]:
+        if self.n_offspring == 1:
             return children1
-        if self.return_mode == 'second':
-            return children2
-        if self.return_mode == 'both':
+        else:
             return children1, children2
-
-    
-        mask = xp.random.random((pop,)) < 0.5 # (pop,) bool
-        mask_cpu = mask.tolist() 
-        return [c1 if m else c2
-                for c1, c2, m in zip(children1, children2, mask_cpu)]
 
         
     @property
@@ -54,28 +32,23 @@ class BaseCrossover(ABC):
     @rate.setter
     def rate(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('crossover rate should be a float')
-        
+            raise e.TypeError('Crossover rate should be a float')
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('crossover rate should be in interval [0.0, 1.0]')
-        
+            raise e.ValueError('Crossover rate should be in interval [0.0, 1.0]')
         self._rate = value
-    @property
-    def return_mode(self) -> str:
-        """Which offspring will be returned by the crossover operation.
-        """
-        return self._return_mode
 
-    @return_mode.setter
-    def return_mode(self, value: Literal['first', 'second', 'both', 'random']) -> None:
-        # Define allowed options for validation and error reporting
-        allowed = ['first', 'second', 'both', 'random']
-    
-        if value not in allowed:
-            # Raising ValueError with a clear explanation of what was expected vs received
-            raise ValueError(f"`return_mode` should be one of {allowed}, but got '{value}'.")
-    
-        self._return_mode = value
+    @property
+    def n_offspring(self) -> int:
+        return self._n_offspring
+
+    @n_offspring.setter
+    def n_offspring(self, n: int) -> None:
+        if not isinstance(n, int):
+            raise e.TypeError('`n_offspring` should be an integer.')
+        if n not in (1, 2):
+            raise e.ValueError('Error: `n_offspring` possible values are: {1, 2}')
+        
+        self._n_offspring = n
           
     @abstractmethod
     def __call__(self, parent1, parent2, *args, **kwargs):
@@ -83,11 +56,11 @@ class BaseCrossover(ABC):
 
 
 class ContinuousCrossover(BaseCrossover):
-    def __init__(self, rate, gene_rate: float = 0.5, return_mode = 'both'):
-        super().__init__(rate, return_mode)
+    """Abstract base class for continuous space CPU crossovers."""
+    def __init__(self, rate: float, gene_rate: float = 0.5, n_offspring: int = 2):
+        super().__init__(rate, n_offspring)
         self.gene_rate = gene_rate
 
-        
     @property
     def gene_rate(self) -> float:
         return self._gene_rate
@@ -95,21 +68,17 @@ class ContinuousCrossover(BaseCrossover):
     @gene_rate.setter
     def gene_rate(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('gene rate should be a float')
-        
+            raise e.TypeError('Gene rate should be a float')
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('gene rate should be in interval [0.0, 1.0]')
-        
+            raise e.ValueError('Gene rate should be in interval [0.0, 1.0]')
         self._gene_rate = value
 
+
 class BaseMutation(ABC):
-    """Abstract base class for mutation operators."""
+    """Abstract base class for CPU mutation operators handling Agent objects."""
 
-    def __init__(self, rate: float = 0.025, ):
+    def __init__(self, rate: float = 0.025):
         self.rate = rate
-
-        self.env = Environment().set_backend('cpu').set_dtype('float64')
-
 
     @property
     def rate(self) -> float:
@@ -118,36 +87,35 @@ class BaseMutation(ABC):
     @rate.setter
     def rate(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('mutation rate should be a float')
-        
+            raise e.TypeError('Mutation rate should be a float')
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('mutation rate should be in interval [0.0, 1.0]')
-        
+            raise e.ValueError('Mutation rate should be in interval [0.0, 1.0]')
         self._rate = value
         
-
     @abstractmethod
-    def __call__(self, vector, *args, **kwargs):
+    def __call__(self, agent, *args, **kwargs):
         pass
 
-class ArithmeticCrossover(ContinuousCrossover):
-    """Arithmetic crossover for real-valued vectors."""
 
-    def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, return_mode = 'both'):
-        super().__init__(rate, gene_rate, return_mode)
+
+# CPU OPERATORS 
+
+class ArithmeticCrossover(ContinuousCrossover):
+    """Arithmetic crossover for real-valued vectors operating on Agents (CPU)."""
+
+    def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, n_offspring: int = 2):
+        super().__init__(rate, gene_rate, n_offspring)
       
     def _arithmetic_positions(self, P1, P2):
-        xp = self.env.xp
-        active = xp.random.random(P1.shape) < self.gene_rate
-        alpha = xp.random.random(P1.shape)
-        C1 = xp.where(active, alpha * P1 + (1.0 - alpha) * P2, P1)
-        C2 = xp.where(active, alpha * P2 + (1.0 - alpha) * P1, P2)
-
+        active = np.random.random(P1.shape) < self.gene_rate
+        alpha = np.random.random(P1.shape)
+        C1 = np.where(active, alpha * P1 + (1.0 - alpha) * P2, P1)
+        C2 = np.where(active, alpha * P2 + (1.0 - alpha) * P1, P2)
         return C1, C2
     
     def __call__(self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        xp = self.env.xp
         is_batch = isinstance(parent1, list)
+
         p1_list = parent1 if is_batch else [parent1]
         p2_list = parent2 if is_batch else [parent2]
         pop = len(p1_list)
@@ -155,126 +123,94 @@ class ArithmeticCrossover(ContinuousCrossover):
         children1 = [copy.copy(p) for p in p1_list]
         children2 = [copy.copy(p) for p in p2_list]
  
-        P1 = xp.stack([p.position.ravel() for p in p1_list])
-        P2 = xp.stack([p.position.ravel() for p in p2_list])
-        LB = xp.stack([p.lb.ravel() for p in p1_list])
-        UB = xp.stack([p.ub.ravel() for p in p1_list])
+        P1 = np.stack([p.position.ravel() for p in p1_list])
+        P2 = np.stack([p.position.ravel() for p in p2_list])
+        LB = np.stack([p.lb.ravel() for p in p1_list])
+        UB = np.stack([p.ub.ravel() for p in p1_list])
  
-        gate = (xp.random.random((pop,)) < self.rate)[:, None]
- 
+        gate = (np.random.random((pop,)) < self.rate)[:, None]
         C1, C2 = self._arithmetic_positions(P1, P2)
  
-        C1 = xp.clip(xp.where(gate, C1, P1), LB, UB)
-        C2 = xp.clip(xp.where(gate, C2, P2), LB, UB)
+        C1 = np.clip(np.where(gate, C1, P1), LB, UB)
+        C2 = np.clip(np.where(gate, C2, P2), LB, UB)
  
         if is_batch:
-            C_combined = xp.concatenate([C1, C2], axis=0)
-            return BatchList(children1 + children2, tensor=C_combined)
+            return children1 + children2
  
         children1[0].position = C1[0].reshape(parent1.position.shape)
         children2[0].position = C2[0].reshape(parent2.position.shape)
         return self._return_offspring(children1, children2)
 
 
-
 class GaussianMutation(BaseMutation):
-    """Gaussian mutation for real-valued vectors."""
+    """Gaussian mutation for real-valued vectors operating on Agents (CPU)."""
 
-    def __init__(self, rate=0.025, std=0.1):
+    def __init__(self, rate: float = 0.025, std: float = 0.1):
         super().__init__(rate=rate)
         self.std = std
 
     def _gaussian_positions(self, X, LB, UB):
-        xp = self.env.xp
-        active = (
-            (xp.random.random(X.shape) < self.rate) &
-            (LB != UB)
-        )
-        noise  = xp.random.normal(0.0, self.std, X.shape)
-        X_new  = xp.clip(X + noise, LB, UB)
-        return xp.where(active, X_new, X)
-
+        active = (np.random.random(X.shape) < self.rate) & (LB != UB)
+        noise = np.random.normal(0.0, self.std, X.shape)
+        X_new = np.clip(X + noise, LB, UB)
+        return np.where(active, X_new, X)
 
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        xp = self.env.xp
         is_batch = isinstance(agent, list)
-        agents   = agent if is_batch else [agent]
+
+
+        agents = agent if is_batch else [agent]
  
-        if isinstance(agent, BatchList) and hasattr(agent, 'tensor'):
-            X = agent.tensor
-        else:
-            X = xp.stack([a.position.ravel() for a in agents])
- 
-        LB = xp.stack([a.lb.ravel() for a in agents])
-        UB = xp.stack([a.ub.ravel() for a in agents])
+        X = np.stack([a.position.ravel() for a in agents])
+        LB = np.stack([a.lb.ravel() for a in agents])
+        UB = np.stack([a.ub.ravel() for a in agents])
  
         X_new = self._gaussian_positions(X, LB, UB)
  
         if is_batch:
-            return BatchList(agents, tensor=X_new)
+            for idx, a in enumerate(agents):
+                a.position = X_new[idx].reshape(a.position.shape)
+            return agents
  
         mutant = copy.copy(agents[0])
         mutant.position = X_new[0].reshape(agents[0].position.shape)
         return mutant
 
 
-
 class SBXCrossover(ContinuousCrossover):
-    """Simulated Binary Crossover (SBX) for real-valued vectors."""
+    """Simulated Binary Crossover (SBX) operating on Agents (CPU)."""
 
-    def __init__(self, eta = 20, rate: float = 1.0, gene_rate: float = 1.0, return_mode: str = 'random'):
-        super().__init__(rate, gene_rate, return_mode)
+    def __init__(self, eta: int = 20, rate: float = 1.0, gene_rate: float = 1.0, n_offspring: int = 2):
+        super().__init__(rate, gene_rate, n_offspring)
         self.eta = eta
 
-
     def _sbx_positions(self, p1, p2, lb, ub):
-        """"""
-        xp = self.env.xp
-
-        active = (
-            (xp.random.random(p1.shape) < self.gene_rate) &
-            (xp.abs(p1 - p2) > 1e-14) &
-            (lb != ub)
-        )
-
-        y1 = xp.minimum(p1, p2)
-        y2 = xp.maximum(p1, p2)
-        delta = xp.maximum(y2 - y1, 1e-14)
-        rand = xp.random.random(p1.shape)
+        active = (np.random.random(p1.shape) < self.gene_rate) & (np.abs(p1 - p2) > 1e-14) & (lb != ub)
+        y1 = np.minimum(p1, p2)
+        y2 = np.maximum(p1, p2)
+        delta = np.maximum(y2 - y1, 1e-14)
+        rand = np.random.random(p1.shape)
         exp = 1.0 / (self.eta + 1.0)
 
         beta1 = 1.0 + 2.0 * (y1 - lb) / delta
-        alpha1 = 2.0 - xp.power(beta1, -(self.eta + 1.0))
-        betaq1 = xp.where(
-            rand <= 1.0 / alpha1,
-            xp.power(xp.maximum(rand * alpha1, 1e-14), exp),
-            xp.power(xp.maximum(1.0 / (2.0 - rand * alpha1), 1e-14), exp),
-        )
-        c1 = xp.clip(0.5 * ((y1 + y2) - betaq1 * delta), lb, ub)
+        alpha1 = 2.0 - np.power(beta1, -(self.eta + 1.0))
+        betaq1 = np.where(rand <= 1.0 / alpha1, np.power(np.maximum(rand * alpha1, 1e-14), exp), np.power(np.maximum(1.0 / (2.0 - rand * alpha1), 1e-14), exp))
+        c1 = np.clip(0.5 * ((y1 + y2) - betaq1 * delta), lb, ub)
 
         beta2 = 1.0 + 2.0 * (ub - y2) / delta
-        alpha2 = 2.0 - xp.power(beta2, -(self.eta + 1.0))
-        betaq2 = xp.where(
-            rand <= 1.0 / alpha2,
-            xp.power(xp.maximum(rand * alpha2, 1e-14), exp),
-            xp.power(xp.maximum(1.0 / (2.0 - rand * alpha2), 1e-14), exp),
-        )
-        c2 = xp.clip(0.5 * ((y1 + y2) + betaq2 * delta), lb, ub)
+        alpha2 = 2.0 - np.power(beta2, -(self.eta + 1.0))
+        betaq2 = np.where(rand <= 1.0 / alpha2, np.power(np.maximum(rand * alpha2, 1e-14), exp), np.power(np.maximum(1.0 / (2.0 - rand * alpha2), 1e-14), exp))
+        c2 = np.clip(0.5 * ((y1 + y2) + betaq2 * delta), lb, ub)
 
-        swap   = xp.random.random(p1.shape) <= 0.5
-        final1 = xp.where(swap, c2, c1)
-        final2 = xp.where(swap, c1, c2)
+        swap = np.random.random(p1.shape) <= 0.5
+        final1 = np.where(swap, c2, c1)
+        final2 = np.where(swap, c1, c2)
 
-        return xp.where(active, final1, p1), xp.where(active, final2, p2)
+        return np.where(active, final1, p1), np.where(active, final2, p2)
 
     def __call__(self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        """
-        Vectorized SBX implementation.
-        """
-     
-        # Normalizes for batch
-        xp = self.env.xp
-        is_batch = isinstance(parent1, list)
+        is_batch = isinstance(parent1, list) 
+
         p1_list = parent1 if is_batch else [parent1]
         p2_list = parent2 if is_batch else [parent2]
         pop = len(p1_list)
@@ -282,60 +218,48 @@ class SBXCrossover(ContinuousCrossover):
         children1 = [copy.copy(p) for p in p1_list]
         children2 = [copy.copy(p) for p in p2_list]
 
-        # tensors build
+        P1 = np.stack([p.position.ravel() for p in p1_list])   
+        P2 = np.stack([p.position.ravel() for p in p2_list])
+        LB = np.stack([p.lb.ravel() for p in p1_list])   
+        UB = np.stack([p.ub.ravel() for p in p1_list])   
 
-        P1 = xp.stack([p.position.ravel() for p in p1_list])   
-        P2 = xp.stack([p.position.ravel() for p in p2_list])
-        LB = xp.stack([p.lb.ravel() for p in p1_list])   
-        UB = xp.stack([p.ub.ravel() for p in p1_list])   
-
-        # pair-wise
-        gate = (xp.random.random((pop,)) < self.rate)[:, None]
-
+        gate = (np.random.random((pop,)) < self.rate)[:, None]
         C1, C2 = self._sbx_positions(P1, P2, LB, UB)
 
-        C1 = xp.where(gate, C1, P1)
-        C2 = xp.where(gate, C2, P2)
+        C1 = np.where(gate, C1, P1)
+        C2 = np.where(gate, C2, P2)
 
         if is_batch:
-            C_combined = xp.concatenate([C1, C2], axis=0)
-            return BatchList(children1 + children2, tensor=C_combined)
+            for idx in range(pop):
+                children1[idx].position = C1[idx].reshape(p1_list[idx].position.shape)
+                children2[idx].position = C2[idx].reshape(p2_list[idx].position.shape)
+            return children1 + children2
         else:
             children1[0].position = C1[0].reshape(parent1.position.shape)
             children2[0].position = C2[0].reshape(parent2.position.shape)
             return self._return_offspring(children1, children2)
 
+
 class OnePointCrossover(BaseCrossover):
-    """One-point crossover for binary or real-valued vectors."""
+    """One-point crossover operating on Agents (CPU)."""
     
-    def __init__(self, rate = 1.0, return_mode = 'random'):
-        super().__init__(rate, return_mode)
+    def __init__(self, rate: float = 1.0, n_offspring: int = 2):
+        super().__init__(rate, n_offspring)
     
     def _one_point_positions(self, P1, P2, LB, UB):
-        """
-        Vectorized one-point crossover over a batch (pop, n_vars).
-        Each pair draws an independent cut point; the split is 1-D along n_vars.
-        """
-        xp  = self.env.xp
         pop, n_vars = P1.shape
- 
-        # random cut points in [1, n_vars-1] — one per pair
-        # shape (pop, 1) for broadcasting
-        points = xp.random.randint(1, n_vars, size=(pop, 1))         
-        idx    = xp.arange(n_vars)[None, :]                           
- 
+        points = np.random.randint(1, n_vars, size=(pop, 1))         
+        idx = np.arange(n_vars)[None, :]                           
         mask = idx < points                                           
  
-        C1 = xp.where(mask, P1, P2)
-        C2 = xp.where(mask, P2, P1)
- 
-        C1 = xp.clip(C1, LB, UB)
-        C2 = xp.clip(C2, LB, UB)
+        C1 = np.clip(np.where(mask, P1, P2), LB, UB)
+        C2 = np.clip(np.where(mask, P2, P1), LB, UB)
         return C1, C2
 
     def __call__(self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        xp = self.env.xp
         is_batch = isinstance(parent1, list)
+
+
         p1_list = parent1 if is_batch else [parent1]
         p2_list = parent2 if is_batch else [parent2]
         pop = len(p1_list)
@@ -343,69 +267,64 @@ class OnePointCrossover(BaseCrossover):
         children1 = [copy.copy(p) for p in p1_list]
         children2 = [copy.copy(p) for p in p2_list]
  
-        P1 = xp.stack([p.position.ravel() for p in p1_list])
-        P2 = xp.stack([p.position.ravel() for p in p2_list])
-        LB = xp.stack([p.lb.ravel() for p in p1_list])
-        UB = xp.stack([p.ub.ravel() for p in p1_list])
+        P1 = np.stack([p.position.ravel() for p in p1_list])
+        P2 = np.stack([p.position.ravel() for p in p2_list])
+        LB = np.stack([p.lb.ravel() for p in p1_list])
+        UB = np.stack([p.ub.ravel() for p in p1_list])
  
         n_vars = P1.shape[1]
- 
-        gate = (xp.random.random((pop,)) < self.rate)[:, None]
+        gate = (np.random.random((pop,)) < self.rate)[:, None]
  
         if n_vars > 1:
             C1, C2 = self._one_point_positions(P1, P2, LB, UB)
         else:
             C1, C2 = P1, P2
  
-        C1 = xp.where(gate, C1, P1)
-        C2 = xp.where(gate, C2, P2)
+        C1 = np.where(gate, C1, P1)
+        C2 = np.where(gate, C2, P2)
  
         if is_batch:
-            C_combined = xp.concatenate([C1, C2], axis=0)
-            return BatchList(children1 + children2, tensor=C_combined)
+            for idx in range(pop):
+                children1[idx].position = C1[idx].reshape(p1_list[idx].position.shape)
+                children2[idx].position = C2[idx].reshape(p2_list[idx].position.shape)
+            return children1 + children2
  
         children1[0].position = C1[0].reshape(parent1.position.shape)
         children2[0].position = C2[0].reshape(parent2.position.shape)
         return self._return_offspring(children1, children2)
 
 
-
 class BitFlipMutation(BaseMutation):
-    """Bit flip mutation for binary vectors."""
-    def __init__(self, rate = 0.025):
+    """Bit flip mutation for binary vectors operating on Agents (CPU)."""
+    def __init__(self, rate: float = 0.025):
         super().__init__(rate)
 
     def _bitflip_positions(self, X):
-        xp = self.env.xp
-        active = xp.random.random(X.shape) < self.rate
-        return xp.where(active, 1 - X, X)
-
+        active = np.random.random(X.shape) < self.rate
+        return np.where(active, 1 - X, X)
 
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        xp = self.env.xp
         is_batch = isinstance(agent, list)
-        agents   = agent if is_batch else [agent]
+
+        agents = agent if is_batch else [agent]
  
-        if isinstance(agent, BatchList) and hasattr(agent, 'tensor'):
-            X = agent.tensor
-        else:
-            X = xp.stack([a.position.ravel() for a in agents])
- 
+        X = np.stack([a.position.ravel() for a in agents])
         X_new = self._bitflip_positions(X)
  
         if is_batch:
-            return BatchList(agents, tensor=X_new)
+            for idx, a in enumerate(agents):
+                a.position = X_new[idx].reshape(a.position.shape)
+            return agents
  
         mutant = copy.copy(agents[0])
         mutant.position = X_new[0].reshape(agents[0].position.shape)
         return mutant
 
 
-
 class PolynomialMutation(BaseMutation):
-    """Polynomial mutation for real-valued vectors."""
+    """Polynomial mutation for real-valued vectors operating on Agents (CPU)."""
 
-    def __init__(self, eta : int = 20, rate = 1/30):
+    def __init__(self, eta: int = 20, rate: float = 1/30):
         super().__init__(rate)
         self.eta = eta
         
@@ -419,54 +338,268 @@ class PolynomialMutation(BaseMutation):
             raise e.TypeError('`eta` should be an integer')
         if eta <= 0:
             raise e.ValueError('`eta` should be higher than 0')
-        
         self._eta = eta
 
-
     def _pm_positions(self, x, lb, ub):
-        """"""
-        xp = self.env.xp
-        active = (
-            (xp.random.random(x.shape) < self.rate) &
-            (lb != ub)
-        )
-
-        delta1 = (x - lb)  / xp.maximum(ub - lb, 1e-14)
-        delta2 = (ub - x) / xp.maximum(ub - lb, 1e-14)
-        rand = xp.random.random(x.shape)
+        active = (np.random.random(x.shape) < self.rate) & (lb != ub)
+        delta1 = (x - lb) / np.maximum(ub - lb, 1e-14)
+        delta2 = (ub - x) / np.maximum(ub - lb, 1e-14)
+        rand = np.random.random(x.shape)
         exp = 1.0 / (self.eta + 1.0)
 
-        val_lo = 2.0 * rand + (1.0 - 2.0 * rand) * xp.power(xp.maximum(1.0 - delta1, 0.0), self.eta + 1.0)
-        dq_lo  = xp.power(xp.maximum(val_lo, 1e-14), exp) - 1.0
+        val_lo = 2.0 * rand + (1.0 - 2.0 * rand) * np.power(np.maximum(1.0 - delta1, 0.0), self.eta + 1.0)
+        dq_lo = np.power(np.maximum(val_lo, 1e-14), exp) - 1.0
 
-        val_hi = 2.0 * (1.0 - rand) + 2.0 * (rand - 0.5) * xp.power(xp.maximum(1.0 - delta2, 0.0), self.eta + 1.0)
-        dq_hi  = 1.0 - xp.power(xp.maximum(val_hi, 1e-14), exp)
+        val_hi = 2.0 * (1.0 - rand) + 2.0 * (rand - 0.5) * np.power(np.maximum(1.0 - delta2, 0.0), self.eta + 1.0)
+        dq_hi = 1.0 - np.power(np.maximum(val_hi, 1e-14), exp)
 
-        deltaq = xp.where(rand <= 0.5, dq_lo, dq_hi)
-        x_new  = xp.clip(x + deltaq * (ub - lb), lb, ub)
-
-        return xp.where(active, x_new, x)
+        deltaq = np.where(rand <= 0.5, dq_lo, dq_hi)
+        x_new = np.clip(x + deltaq * (ub - lb), lb, ub)
+        return np.where(active, x_new, x)
         
-    def __call__(self, agent:Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
-        
-        xp = self.env.xp
+    def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
         is_batch = isinstance(agent, list)
-
+        
         agents = agent if is_batch else [agent]
         
-        # tensor build (pop, n_vars)
-        if isinstance(agent, BatchList) and hasattr(agent, 'tensor'):
-            X = agent.tensor
-        else:
-            X = xp.stack([a.position.ravel() for a in agents])
-
-        LB = xp.stack([a.lb.ravel() for a in agents])
-        UB = xp.stack([a.ub.ravel() for a in agents])
+        X = np.stack([a.position.ravel() for a in agents])
+        LB = np.stack([a.lb.ravel() for a in agents])
+        UB = np.stack([a.ub.ravel() for a in agents])
 
         X_new = self._pm_positions(X, LB, UB)
 
         if is_batch:
-            return BatchList(agents, tensor=X_new)
+            for idx, a in enumerate(agents):
+                a.position = X_new[idx].reshape(a.position.shape)
+            return agents
         
         agents[0].position = X_new[0].reshape(agent.position.shape)
         return agents[0]
+
+
+
+# TENSORIZED GPU OPERATORS
+
+
+class ArithmeticCrossoverTensor:
+    """
+    Highly parallelized Arithmetic Crossover executing on GPU.
+    """
+    def __init__(self, env: Environment, rate: float = 1.0, gene_rate: float = 1.0):
+        self.env = env
+        self.rate = rate
+        self.gene_rate = gene_rate
+
+    def __call__(self, X1: Any, X2: Any, lb: Any, ub: Any) -> Tuple[Any, Any]:
+        """
+        Args:
+            X1, X2: Coordinate tensors of shape (N, D).
+            lb, ub: Boundary constraint tensors of shape (D,) or (N, D).
+        Returns:
+            Tuple of generated offspring tensors (C1, C2) of shape (N, D).
+        """
+        xp = self.env.xp
+        pop = X1.shape[0]
+        
+        # Binary gate vector determining which parent pairs cross over
+        gate = (xp.random.random((pop, 1)) < self.rate)
+        # Element-wise array determining which variables get mixed
+        active = xp.random.random(X1.shape) < self.gene_rate
+        alpha = xp.random.random(X1.shape)
+        
+        C1_pos = xp.where(active, alpha * X1 + (1.0 - alpha) * X2, X1)
+        C2_pos = xp.where(active, alpha * X2 + (1.0 - alpha) * X1, X2)
+        
+        # Keep old positions if cross-over rule is skipped, then clip to bounds
+        C1 = xp.clip(xp.where(gate, C1_pos, X1), lb, ub)
+        C2 = xp.clip(xp.where(gate, C2_pos, X2), lb, ub)
+        return C1, C2
+
+
+class GaussianMutationTensor:
+    """
+    Fully vectorized Gaussian Mutation running directly on the GPU.
+    """
+    def __init__(self, env: Environment, rate: float = 0.025, std: float = 0.1):
+        self.env = env
+        self.rate = rate
+        self.std = std
+
+    def __call__(self, X: Any, lb: Any, ub: Any) -> Any:
+        """
+        Args:
+            X: Matrix coordinate tensor of shape (N, D).
+            lb, ub: Boundary constraint tensors of shape (D,) or (N, D).
+        Returns:
+            Mutated coordinate tensor of shape (N, D).
+        """
+        xp = self.env.xp
+        # Construct an active logical mask for indices matching mutation parameters
+        active = (xp.random.random(X.shape) < self.rate) & (lb != ub)
+        noise = xp.random.normal(0.0, self.std, X.shape)
+        X_new = xp.clip(X + noise, lb, ub)
+        
+        return xp.where(active, X_new, X)
+
+
+class SBXCrossoverTensor:
+    """
+    Simulated Binary Crossover (SBX) re-architected for CUDA Tensor operations.
+    """
+    def __init__(self, env: Environment, eta: int = 20, rate: float = 1.0, gene_rate: float = 1.0):
+        self.env = env
+        self.eta = eta
+        self.rate = rate
+        self.gene_rate = gene_rate
+
+    def __call__(self, X1: Any, X2: Any, lb: Any, ub: Any) -> Tuple[Any, Any]:
+        """
+        Args:
+            X1, X2: Coordinate tensors of shape (N, D).
+            lb, ub: Boundary constraint tensors of shape (D,) or (N, D).
+        Returns:
+            Tuple of generated offspring tensors (C1, C2) of shape (N, D).
+        """
+        xp = self.env.xp
+       
+        pop = X1.shape[0]
+        gate = (xp.random.random((pop, 1)) < self.rate)
+        
+        active = (
+            (xp.random.random(X1.shape) < self.gene_rate) &
+            (xp.abs(X1 - X2) > 1e-14) &
+            (lb != ub)
+        )
+        
+        y1 = xp.minimum(X1, X2)
+        y2 = xp.maximum(X1, X2)
+        delta = xp.maximum(y2 - y1, 1e-14)
+        rand = xp.random.random(X1.shape)
+        exp = 1.0 / (self.eta + 1.0)
+        
+        # Parallel computation of distribution boundaries (Beta Q)
+        beta1 = 1.0 + 2.0 * (y1 - lb) / delta
+        alpha1 = 2.0 - xp.power(beta1, -(self.eta + 1.0))
+        betaq1 = xp.where(
+            rand <= 1.0 / alpha1,
+            xp.power(xp.maximum(rand * alpha1, 1e-14), exp),
+            xp.power(xp.maximum(1.0 / (2.0 - rand * alpha1), 1e-14), exp),
+        )
+        c1 = xp.clip(0.5 * ((y1 + y2) - betaq1 * delta), lb, ub)
+        
+        beta2 = 1.0 + 2.0 * (ub - y2) / delta
+        alpha2 = 2.0 - xp.power(beta2, -(self.eta + 1.0))
+        betaq2 = xp.where(
+            rand <= 1.0 / alpha2,
+            xp.power(xp.maximum(rand * alpha2, 1e-14), exp),
+            xp.power(xp.maximum(1.0 / (2.0 - rand * alpha2), 1e-14), exp),
+        )
+        c2 = xp.clip(0.5 * ((y1 + y2) + betaq2 * delta), lb, ub)
+        
+        # Matrix masking to perform element-wise swapping
+        swap = xp.random.random(X1.shape) <= 0.5
+        final1 = xp.where(swap, c2, c1)
+        final2 = xp.where(swap, c1, c2)
+        
+        C1_pos = xp.where(active, final1, X1)
+        C2_pos = xp.where(active, final2, X2)
+        
+        C1 = xp.where(gate, C1_pos, X1)
+        C2 = xp.where(gate, C2_pos, X2)
+        return C1, C2
+
+
+class OnePointCrossoverTensor:
+    """
+    Vectorized One-Point Crossover for batches of multidimensional coordinate tensors.
+    """
+    def __init__(self, env: Environment, rate: float = 1.0):
+        self.env = env
+        self.rate = rate
+
+    def __call__(self, X1: Any, X2: Any, lb: Any, ub: Any) -> Tuple[Any, Any]:
+        """
+        Args:
+            X1, X2: Coordinate tensors of shape (N, D).
+            lb, ub: Boundary constraint tensors of shape (D,) or (N, D).
+        Returns:
+            Tuple of generated offspring tensors (C1, C2) of shape (N, D).
+        """
+        xp = self.env.xp
+    
+        pop, n_vars = X1.shape
+        gate = (xp.random.random((pop, 1)) < self.rate)
+        
+        if n_vars > 1:
+            # Independent cut points created using broadcasting index grids
+            points = xp.random.randint(1, n_vars, size=(pop, 1))
+            idx = xp.arange(n_vars)[None, :]
+            mask = idx < points
+            C1_pos = xp.where(mask, X1, X2)
+            C2_pos = xp.where(mask, X2, X1)
+        else:
+            C1_pos, C2_pos = X1, X2
+            
+        C1 = xp.clip(xp.where(gate, C1_pos, X1), lb, ub)
+        C2 = xp.clip(xp.where(gate, C2_pos, X2), lb, ub)
+        return C1, C2
+
+
+class BitFlipMutationTensor:
+    """
+    High-speed binary tensor flip operations on GPU memory.
+    """
+    def __init__(self, env: Environment, rate: float = 0.025):
+        self.env = env
+        self.rate = rate
+
+    def __call__(self, X: Any, lb: Any = None, ub: Any = None) -> Any:
+        """
+        Args:
+            X: Matrix coordinate tensor of shape (N, D) composed of binary spaces.
+            lb, ub: Unused optional bounds for layout consistency.
+        Returns:
+            Mutated binary tensor of shape (N, D).
+        """
+        xp = self.env.xp
+        active = xp.random.random(X.shape) < self.rate
+        return xp.where(active, 1 - X, X)
+
+
+class PolynomialMutationTensor:
+    """
+    Polynomial Mutation designed for tensor execution inside VRAM.
+    """
+    def __init__(self, env: Environment, eta: int = 20, rate: float = 1/30):
+        self.env = env
+        self.eta = eta
+        self.rate = rate
+
+    def __call__(self, X: Any, lb: Any, ub: Any) -> Any:
+        """
+        Args:
+            X: Coordinate tensor of shape (N, D).
+            lb, ub: Boundary constraint tensors of shape (D,) or (N, D).
+        Returns:
+            Mutated coordinate tensor of shape (N, D).
+        """
+      
+        xp = self.env.xp
+        
+        active = (xp.random.random(X.shape) < self.rate) &(lb != ub)
+        
+        delta1 = (X - lb) / xp.maximum(ub - lb, 1e-14)
+        delta2 = (ub - X) / xp.maximum(ub - lb, 1e-14)
+        rand = xp.random.random(X.shape)
+        exp = 1.0 / (self.eta + 1.0)
+        
+        val_lo = 2.0 * rand + (1.0 - 2.0 * rand) * xp.power(xp.maximum(1.0 - delta1, 0.0), self.eta + 1.0)
+        dq_lo = xp.power(xp.maximum(val_lo, 1e-14), exp) - 1.0
+        
+        val_hi = 2.0 * (1.0 - rand) + 2.0 * (rand - 0.5) * xp.power(xp.maximum(1.0 - delta2, 0.0), self.eta + 1.0)
+        dq_hi = 1.0 - xp.power(xp.maximum(val_hi, 1e-14), exp)
+        
+        deltaq = xp.where(rand <= 0.5, dq_lo, dq_hi)
+        X_new = xp.clip(X + deltaq * (ub - lb), lb, ub)
+        
+        return xp.where(active, X_new, X)

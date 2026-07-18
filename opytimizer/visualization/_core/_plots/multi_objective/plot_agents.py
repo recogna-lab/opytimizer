@@ -19,7 +19,7 @@ def extract_data(
     **kwargs,
 ) -> Dict:
     """
-    Extract Pareto-front data from a list of Agent objects.
+    Extract agents data from a list of Agent objects.
 
     Parameters
     ----------
@@ -46,7 +46,7 @@ def extract_data(
 
         if n_obj not in (2, 3):
             raise e.ValueError(
-                f"Pareto front supports 2D or 3D fitness, got {n_obj}D."
+                f"This plot supports 2D or 3D fitness, got {n_obj}D."
             )
 
         if F.wants(fmap, "fitness"):
@@ -59,7 +59,7 @@ def extract_data(
             )
 
     if F.wants(fmap, "title"):
-        result["title"] = kwargs.get("title", "Pareto Front")
+        result["title"] = kwargs.get("title", "Solutions")
     if F.wants(fmap, "color"):
         result["color"] = kwargs.get("color", "#2ca02c")
 
@@ -68,7 +68,7 @@ def extract_data(
 
 
 def draw_mpl(ax, data: Dict) -> None:
-    """Matplotlib: scatter plot of a 2-D or 3-D Pareto front."""
+    """Matplotlib: scatter plot of a 2-D or 3-D Agents."""
     fit = data["fitness"]
 
     if data["n_obj"] == 2:
@@ -101,7 +101,7 @@ def draw_ply(fig, data: Dict) -> None:
             x=fit[:, 0], y=fit[:, 1],
             mode="markers",
             marker=marker,
-            name="Pareto",
+            name="Feasible solution",
         ))
         fig.update_layout(
             xaxis_title=data["labels"][0],
@@ -112,7 +112,7 @@ def draw_ply(fig, data: Dict) -> None:
             x=fit[:, 0], y=fit[:, 1], z=fit[:, 2],
             mode="markers",
             marker=dict(color=data["color"], size=5, line=dict(width=1, color="black")),
-            name="Pareto",
+            name="Feasible solution",
         ))
         fig.update_layout(scene=dict(
             xaxis_title=data["labels"][0],

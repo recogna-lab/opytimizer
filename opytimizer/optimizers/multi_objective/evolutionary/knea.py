@@ -35,7 +35,7 @@ class KnEA(MultiObjectiveOptimizer):
         self.K = None
         self.T = T
 
-        self.crossover_operator = crossover_operator or SBXCrossover(return_mode="both")
+        self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2)
         self.mutation_operator = mutation_operator or PolynomialMutation(rate=1 / 30)
 
         self._obj_matrix = None  # (2N, M) fitness matrix

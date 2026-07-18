@@ -21,5 +21,5 @@ from opytimizer.optimizers.single_objective.evolutionary.hs import (
 from opytimizer.optimizers.single_objective.evolutionary.iwo import IWO
 from opytimizer.optimizers.single_objective.evolutionary.rra import RRA
 from opytimizer.optimizers.single_objective.evolutionary.ce import CE, OBCE
-from opytimizer.optimizers.single_objective.evolutionary.lshade import LSHADE
-from opytimizer.optimizers.single_objective.evolutionary.cmaes import CMAES
+from opytimizer.optimizers.single_objective.evolutionary.lshade import LSHADE, LSHADECuda
+from opytimizer.optimizers.single_objective.evolutionary.cmaes import CMAES, CMAESTensor

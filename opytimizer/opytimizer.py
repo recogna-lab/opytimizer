@@ -190,6 +190,7 @@ class _BaseRunner:
                 callbacks.on_iteration_end(self.total_iterations, self)
  
             stopping_vessel.update_pbars(self)
+            
  
         except BudgetExhausted:
             logger.info(
@@ -201,7 +202,8 @@ class _BaseRunner:
  
         finally:
             stopping_vessel.close_pbars()
- 
+
+        self.optimizer.sync(self.space)        
         callbacks.on_task_end(self)
  
         opt_time = time.time() - start
@@ -270,7 +272,7 @@ class _MultiObjectiveRunner(_BaseRunner):
             stopping_vessel.set_postfix(**metric_values)
  
     def _finalize_after_budget_exhaustion(self) -> None:
-        self.space.update_pareto_front(self.space.agents)
+        self.space.update_pareto_front()
         self.history.dump(
             agents=self.space.agents,
             pareto_front=self.space.pareto_front,

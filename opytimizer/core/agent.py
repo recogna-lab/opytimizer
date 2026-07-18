@@ -26,7 +26,7 @@ class Agent:
         lower_bound: List[Union[int, float]],
         upper_bound: List[Union[int, float]],
         mapping: Optional[List[str]] = None,
-        env: Environment = Environment().set_backend('cpu')
+        env: Environment = None
     ) -> None:
         """Initialization method.
 
@@ -40,7 +40,8 @@ class Agent:
             env: Environment class object.
 
         """
-        
+        if env is None: env = Environment('cpu','float32')
+
         self.env = env
         self.xp = env.xp
 

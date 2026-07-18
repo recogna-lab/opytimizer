@@ -51,7 +51,7 @@ class NSGA3(MultiObjectiveOptimizer):
 
         super().__init__()
 
-        self.crossover_operator = crossover_operator or SBXCrossover(return_mode="both", eta=30, gene_rate=1.0)
+        self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2, eta=30, gene_rate=1.0)
         self.mutation_operator = mutation_operator or PolynomialMutation()
 
        

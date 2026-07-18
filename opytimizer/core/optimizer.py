@@ -135,6 +135,10 @@ class Optimizer:
         pass
 
 
+    def sync(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace]):
+        pass
+
+
 class MultiObjectiveOptimizer(Optimizer):
     """A MultiObjectiveOptimizer class that holds multi-objective meta-heuristics-related
     properties and methods.

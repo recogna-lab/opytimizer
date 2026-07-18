@@ -1,4 +1,4 @@
-from typing import Any, List, FrozenSet, Optional, Set, Union
+from typing import List, FrozenSet, Optional, Set, Union
 import importlib
 
 from opytimizer.core import Agent
@@ -8,9 +8,9 @@ from opytimizer.visualization._core.result import PlotResult
 _router = PlotRouter(default_backend="matplotlib")
 
 _MAPPING: dict[str, str] = {
-    "pareto_front": (
+    "agents": (
         "opytimizer.visualization._core._plots"
-        ".multi_objective.plot_pareto_front"
+        ".multi_objective.plot_agents"
     ),
     "pareto_front_evolution": (
         "opytimizer.visualization._core._plots"
@@ -45,25 +45,25 @@ def _call_plot(name, result, backend=None, *args, **kwargs) -> PlotResult:
 
 # Public API Functions
 
-def plot_pareto_front(
+def plot_agents(
     result, 
     backend: str | None = None, 
-    title: str = "Pareto Front",
+    title: str = "Agents",
     color: str = "#2ca02c",
     labels: List[str] | None = None,
     **kwargs
 ) -> PlotResult:
-    """Plots a 2D or 3D Pareto Front from a list of agents.
+    """Plots a 2D or 3D Agents from a list of agents.
 
     Args:
-        result: List of agents representing the Pareto Front.
+        result: List of agents.
         backend: Visualization backend ('matplotlib' or 'plotly').
         title: Plot title.
         color: Hex color string for the scatter points.
         labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front", result, backend, title=title, color=color, labels=labels, **kwargs)
+    return _call_plot("agents", result, backend, title=title, color=color, labels=labels, **kwargs)
 
 
 def plot_pareto_front_evolution(

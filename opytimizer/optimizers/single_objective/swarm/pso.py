@@ -3,7 +3,7 @@
 
 import copy
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -260,6 +260,18 @@ void velocity_update_f32(
 
 @dataclass
 class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
+    """
+        GPU-friendly, fully tensorized implementation of PSO (single-objective).
+
+        All particle state -- current position, velocity, personal best
+        (local) position/fitness, and the running global best -- lives on the
+        GPU as `xp` tensors for the entire run. There is NO host <-> device
+        synchronization inside `evaluate`/`update`; `space.agents` is read
+        exactly once, at `compile` time, to seed the initial positions. The
+        only place data is pulled back to the host is `sync_with_cpu`, meant
+        to be called a single time, after the optimization loop has finished.
+    """
+
     def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         logger.info("Overriding class: Optimizer -> PSO.")
         super().__init__()
@@ -267,6 +279,15 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
         self.w = 0.7
         self.c1 = 1.7
         self.c2 = 1.7
+
+        # Persistent GPU-resident state, populated in `compile`.
+        self.position = None            # current particle positions   (n_a, n_v, n_d)
+        self.velocity = None             # particle velocities           (n_a, n_v, n_d)
+        self.local_position = None       # personal-best (pbest) position (n_a, n_v, n_d)
+        self.fit = None                  # fitness of `self.position`    (n_a,)
+        self.local_fit = None            # personal-best fitness         (n_a,)
+        self.global_best_position = None # gbest position                (n_v, n_d)
+        self.global_best_fit = None      # gbest fitness                 scalar tensor
 
         self.build(params)
         self._vel_kernel = None
@@ -332,56 +353,54 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
         n_v = space.n_variables
         n_d = space.n_dimensions
 
-        self.local_position = xp.zeros((n_a, n_v, n_d), dtype=dtype)
+        
+        self.position = xp.stack([xp.asarray(ag.position, dtype=dtype) for ag in space.agents])
+        self.local_position = self.position.copy()
         self.velocity = xp.zeros((n_a, n_v, n_d), dtype=dtype)
-        self._all_positions_buffer = xp.zeros((n_a, n_v, n_d), dtype=dtype)
-        self._fits_buffer = xp.full(n_a, xp.inf, dtype=dtype)
+
+        self.fit = xp.full(n_a, xp.inf, dtype=dtype)
+        self.local_fit = xp.full(n_a, xp.inf, dtype=dtype)
+
+        self.global_best_position = xp.zeros((n_v, n_d), dtype=dtype)
+        self.global_best_fit = xp.asarray(xp.inf, dtype=dtype)
+
+        self._lb = xp.asarray(space.lb, dtype=dtype).reshape(1, n_v, 1)
+        self._ub = xp.asarray(space.ub, dtype=dtype).reshape(1, n_v, 1)
 
         use_f64 = (dtype == xp.float64 or dtype == 'float64')
         if use_f64:
             self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_SRC, 'velocity_update')
         else:
             self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_F32_SRC, 'velocity_update_f32')
-        
+
         self._vars_dims = n_v * n_d
         self._kernel_N = n_a * self._vars_dims
         self._block_size = 256
         self._kernel_grid = (self._kernel_N + self._block_size - 1) // self._block_size
         self._dtype = dtype
 
-        initial_pos = xp.stack([xp.asarray(ag.position, dtype=dtype) for ag in space.agents])
-        xp.copyto(self.local_position, initial_pos)
-
-
     def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         xp = space.env.xp
 
-        self._all_positions_buffer = xp.stack([
-            xp.asarray(ag.position, dtype=self._dtype) for ag in space.agents
-        ])
+        self.fit = function(self.position.squeeze(), xp)
+        
 
-        all_fits = function(self._all_positions_buffer, xp)
-        improved_mask = all_fits < self._fits_buffer  
+        improved_mask = self.fit < self.local_fit
+        xp.copyto(self.local_position, self.position, where=improved_mask[:, None, None])
+        xp.minimum(self.local_fit, self.fit, out=self.local_fit)
 
-        xp.copyto(
-            self.local_position,
-            self._all_positions_buffer,
-            where=improved_mask[:, None, None]
+        best_idx = xp.argmin(self.local_fit)
+        best_fit_val = self.local_fit[best_idx]
+
+        improved_global = best_fit_val < self.global_best_fit
+        self.global_best_position = xp.where(
+            improved_global, self.local_position[best_idx], self.global_best_position
         )
+        self.global_best_fit = xp.where(improved_global, best_fit_val, self.global_best_fit)
 
-        xp.minimum(self._fits_buffer, all_fits, out=self._fits_buffer)
-
-        best_idx = int(xp.argmin(self._fits_buffer))
-        best_fit_val = float(self._fits_buffer[best_idx])
-
-        if best_fit_val < space.best_agent.fit:
-            space.best_agent.position = self.local_position[best_idx].copy()
-            space.best_agent.fit = best_fit_val
-            space.best_agent.ts = int(time.time())
-
-        fits_list = xp.asnumpy(self._fits_buffer).tolist()
-        for i, agent in enumerate(space.agents):
-            agent.fit = fits_list[i]
+        space.best_agent.position = self.global_best_position.reshape(space.best_agent.position.shape)
+        space.best_agent.fit = self.global_best_fit
+        space.best_agent.ts = int(time.time())
 
 
     def update(self, space: _SingleObjectiveSpace) -> None:
@@ -391,32 +410,48 @@ class _PSOCuda(Optimizer, PSO, backend=Backend.CUDA):
 
         r1_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
         r2_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
-        gbest_flat = xp.asarray(space.best_agent.position, dtype=dtype).ravel()
+        gbest_flat = self.global_best_position.ravel()
 
         scalar_type = np.dtype(dtype).type
 
         self._vel_kernel(
             (self._kernel_grid,), (self._block_size,),
-            (self.velocity,                 
+            (self.velocity,
              self.local_position,
-             self._all_positions_buffer,
+             self.position,
              gbest_flat,
-             r1_buf, 
+             r1_buf,
              r2_buf,
-             scalar_type(self.w),            
-             scalar_type(self.c1),           
-             scalar_type(self.c2),           
-             np.int32(self._vars_dims), 
+             scalar_type(self.w),
+             scalar_type(self.c1),
+             scalar_type(self.c2),
+             np.int32(self._vars_dims),
              np.int32(self._kernel_N))
         )
 
-        self._all_positions_buffer += self.velocity
+        self.position += self.velocity
 
         
-        for i, agent in enumerate(space.agents):
-            agent.position[:] = self._all_positions_buffer[i]
+        xp.clip(self.position, self._lb, self._ub, out=self.position)
 
-        space.clip_by_bound()
+    def sync(self, space: _SingleObjectiveSpace) -> None:
+        """
+        """
+      
+        for i, agent in enumerate(space.agents):
+           
+            agent.position[:] = self.position[i].reshape(agent.position.shape)
+            
+            agent.fit = float(self.fit[i]) 
+
+        
+        best_fit = float(self.global_best_fit) 
+
+        if best_fit < space.best_agent.fit:
+            space.best_agent.position[:] = self.global_best_position.reshape(space.best_agent.position.shape)
+            space.best_agent.fit = best_fit
+            space.best_agent.ts = int(time.time())
+
 
 
 class AIWPSO(PSO):

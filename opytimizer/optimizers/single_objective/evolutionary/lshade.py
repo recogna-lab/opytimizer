@@ -7,37 +7,17 @@ import numpy as np
 
 import copy
 import time 
-from typing import List, Tuple, Optional, Any, Union, Dict
+from typing import List, Any, Dict
 import opytimizer.utils.exception as e
-from opytimizer.core import Optimizer, Environment, Function
-from opytimizer.core.agent import Agent
+from opytimizer.core import Optimizer, Function
 from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
-from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 from opytimizer.core.environment import Backend
-from opytimizer.math.random import generate_integer_random_number 
 from scipy.stats import cauchy
 logger = logging.get_logger(__name__)
 
-class LSHADE:
-    _registry = {}
 
-    def __new__(cls, env: Optional[Environment] = None, **kwargs):
-        if env is None: env = Environment().set_backend('cpu')
-        if cls is LSHADE:
-            target = cls._registry.get(env.backend)
-            return super().__new__(target)
-        return super().__new__(cls)
-
-    def __init_subclass__(cls, backend: Backend = None, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if backend:
-            key = backend.value if hasattr(backend, 'value') else backend
-            LSHADE._registry[key] = cls
-         
-
-@dataclass
-class _LSHADEDefault(Optimizer, LSHADE, backend=Backend.CPU):
+class LSHADE(Optimizer):
     def __init__(self,
                  params: Dict = None,
                  MAX_NFE: int = 100,
@@ -46,7 +26,7 @@ class _LSHADEDefault(Optimizer, LSHADE, backend=Backend.CPU):
                  f_arc: float = 2.6,
                  **kwds):
         
-        logger.info("Overriding class: Optimizer -> L-SHADE (CPU).")
+        logger.info("Overriding class: Optimizer -> L-SHADE (Default).")
 
         super().__init__()
 
@@ -251,8 +231,7 @@ class _LSHADEDefault(Optimizer, LSHADE, backend=Backend.CPU):
                     space.best_agent.fit = copy.deepcopy(agent.fit)
                     space.best_agent.ts = int(time.time())
 
-@dataclass
-class _LSHADECuda(Optimizer, LSHADE, backend=Backend.CUDA):
+class LSHADECuda(Optimizer):
     def __init__(self,
                  params: Dict = None,
                  MAX_NFE: int = 100,
@@ -269,8 +248,7 @@ class _LSHADECuda(Optimizer, LSHADE, backend=Backend.CUDA):
         self.H = H
         self.p = p
         self.f_arc = f_arc
-        
-        self.DTYPE = np.float32 
+         
 
         self.build(params)
         
@@ -285,6 +263,7 @@ class _LSHADECuda(Optimizer, LSHADE, backend=Backend.CUDA):
         logger.info("Class overrided.")
 
     def compile(self, space: _SingleObjectiveSpace, **kwargs):
+        self.DTYPE = space.env.xp.float32
         self.N_G = space.n_agents
         self.N_init = space.n_agents
         self.M_CR = np.full(self.H, 0.5)

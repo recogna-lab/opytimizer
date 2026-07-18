@@ -4,57 +4,31 @@ CMA-ES — Covariance Matrix Adaptation Evolution Strategy
 
 from __future__ import annotations
 
-import copy
+import math
 import time
-from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict
 
 import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core import Environment, Function, Optimizer
-from opytimizer.core.environment import Backend
+from opytimizer.core import Function, Optimizer
 from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Registry / dispatch
-# ---------------------------------------------------------------------------
-
-class CMAES:
-    """
-        Reference
-        ---------
-        Hansen, N. (2023). The CMA Evolution Strategy: A Tutorial.
-        arXiv:1604.00772v2 [cs.LG]. https://arxiv.org/abs/1604.00772
-    """
-
-    _registry: Dict[str, type] = {}
-
-    def __new__(cls, env: Optional[Environment] = None, **kwargs):
-        if env is None:
-            env = Environment().set_backend("cpu")
-        if cls is CMAES:
-            target = cls._registry.get(env.backend)
-            return super().__new__(target)
-        return super().__new__(cls)
-
-    def __init_subclass__(cls, backend: Backend = None, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if backend:
-            key = backend.value if hasattr(backend, "value") else backend
-            CMAES._registry[key] = cls
-
+"""
+    Reference
+    ---------
+    Hansen, N. (2023). The CMA Evolution Strategy: A Tutorial.
+    arXiv:1604.00772v2 [cs.LG]. https://arxiv.org/abs/1604.00772
+"""
 
 class _CMAESMixin:
     """
     Pure-math helpers shared by the CPU and CUDA backends.
     """
-
-
 
     def _init_state_arrays(self, n: int, xp):
         """Allocate evolution-path vectors and covariance-matrix factors."""
@@ -65,36 +39,33 @@ class _CMAESMixin:
         self.D = xp.eye(n)
 
     def _compute_hyperparams(self, n: int, xp):
-        """
-        """
-
         # Population / parent sizes  (Table 1 / Appendix B)
-        self.lam = 4 + int(np.floor(3 * np.log(n)))
+        self.lam = 4 + int(math.floor(3 * math.log(n)))
         self.mu = self.lam // 2
 
-        # Raw log weights  (Eq. 49 / 53)
-        w_raw   = np.log(self.lam / 2.0 + 0.5) - np.log(np.arange(1, self.lam + 1))
+        # (Eq. 49 / 53)
+        w_raw   = xp.log(self.lam / 2.0 + 0.5) - xp.log(xp.arange(1, self.lam + 1))
         w_pos   = w_raw[: self.mu]
         w_pos_n = w_pos / w_pos.sum() # positive weights sum to 1
 
-        # Effective variance selection mass  (Eq. 8)
-        self.mueff = float(1.0 / np.sum(w_pos_n ** 2))
+        # (Eq. 8)
+        self.mueff = float(1.0 / xp.sum(w_pos_n ** 2))
 
         w_neg_raw = w_raw[self.mu:]
         mueff_neg = (
-            w_neg_raw.sum() ** 2 / np.sum(w_neg_raw ** 2)
+            float(w_neg_raw.sum() ** 2 / xp.sum(w_neg_raw ** 2))
             if len(w_neg_raw) else 1.0
         )
 
-        # Step-size control constants  (Eq. 55)
+        # (Eq. 55)
         self.cs = (self.mueff + 2.0) / (n + self.mueff + 5.0)
         self.ds = (
             1.0
-            + 2.0 * max(0.0, np.sqrt((self.mueff - 1.0) / (n + 1.0)) - 1.0)
+            + 2.0 * max(0.0, math.sqrt((self.mueff - 1.0) / (n + 1.0)) - 1.0)
             + self.cs
         )
 
-        # Covariance-matrix learning rates  (Eq. 56-58)
+        # (Eq. 56-58)
         self.cc = (4.0 + self.mueff / n) / (n + 4.0 + 2.0 * self.mueff / n)
         self.c1 = 2.0 / ((n + 1.3) ** 2 + self.mueff)
         alpha_cov = 2.0
@@ -105,7 +76,7 @@ class _CMAESMixin:
             / ((n + 2.0) ** 2 + alpha_cov * self.mueff / 2.0),
         )
 
-        # Negative-weight scaling  (Eq. 50-52)
+        # (Eq. 50-52)
         alpha_mu = 1.0 + self.c1 / self.cmu  if self.cmu > 0 else 1.0
         alpha_mueff = 1.0 + 2.0 * mueff_neg / (self.mueff + 2.0)
         alpha_posdef = (
@@ -114,19 +85,21 @@ class _CMAESMixin:
         alpha_neg = min(alpha_mu, alpha_mueff, alpha_posdef)
 
         # Final weight vector  (Eq. 53)
-        w_neg_sum = np.abs(w_neg_raw).sum() if len(w_neg_raw) else 1.0
+        w_neg_sum = xp.abs(w_neg_raw).sum() if len(w_neg_raw) else 1.0
         w_neg_sc = alpha_neg / w_neg_sum * w_neg_raw
-        self.weights = np.concatenate([w_pos_n, w_neg_sc])  
+        self.weights = xp.concatenate([w_pos_n, w_neg_sc])
+
+        # Cache quantities that never change after compile()
+        self.sum_weights = float(xp.sum(self.weights))
+        self.w_mu = self.weights[: self.mu]
 
         # E||N(0,I)||  (Appendix A)
-        self.chiN = n ** 0.5 * (1.0 - 1.0 / (4.0 * n) + 1.0 / (21.0 * n ** 2))
+        self.chiN = math.sqrt(n) * (1.0 - 1.0 / (4.0 * n) + 1.0 / (21.0 * n ** 2))
 
-    # Sampling  (Eq. 38-40)
+    # (Eq. 38-40)
     def _sample_population(self, xp) -> tuple:
-        """
-        """
         Z = xp.random.randn(self.lam, self.n)  # Eq. 38
-        BD = self.B @ self.D  # Eq. 39 (factor)
+        BD = self.B @ self.D  # Eq. 39
         Y = Z @ BD.T #  Eq. 39
         X = self.m + self.sigma * Y  #  Eq. 40
         return X, Y, Z
@@ -135,110 +108,70 @@ class _CMAESMixin:
     def _clip_to_bounds(self, X, lb, ub, xp):
         return xp.clip(X, lb, ub)
 
-   
-    # Mean update  (Eq. 42)
+    #  (Eq. 42)
     def _update_mean(self, Y_sorted, xp):
-        """
-        Shift the distribution mean toward the weighted-recombination step.
-
-        Parameters
-        ----------
-        Y_sorted : (lam, n)  steps sorted best-first
-
-        Returns
-        -------
-        yw : (n,)  weighted mean step  <y>_w  (used in path updates)
-        """
-        w  = xp.asarray(self.weights[: self.mu]) # (mu,)
-        yw = w @ Y_sorted[: self.mu] # (n,)  Eq. 42
-
+        yw = self.w_mu @ Y_sorted[: self.mu] # Eq. 42
         self.m = self.m + self.sigma * yw
         return yw
 
-    
-    # Step-size control  (Eq. 43-44)
-    def _update_step_size(self, yw, Z_sorted, xp):
-        """
-        Update the cumulative step-size path ps and adapt σ.
-
-        Parameters
-        ----------
-        yw       : (n,)   weighted mean step in *y*-space
-        Z_sorted : (lam, n)  standard-normal noise sorted best-first
-        """
-        # Weighted mean in isotropic z-space  (Appendix B.1)
-        w  = xp.asarray(self.weights[: self.mu])
-        zw = w @ Z_sorted[: self.mu] # (n,)
-
-        # (Appendix B.1)
+    # (Eq. 43-44)
+    def _update_step_size(self, yw, Z_sorted, xp) -> float:
+        zw = self.w_mu @ Z_sorted[: self.mu] # (n,)
         invsqrtC_yw = self.B @ zw
 
-        # Cumulative step-size path  (Eq. 43)
+        # (Eq. 43)
         self.ps = (
             (1.0 - self.cs) * self.ps
-            + float(np.sqrt(self.cs * (2.0 - self.cs) * self.mueff))
+            + float(math.sqrt(self.cs * (2.0 - self.cs) * self.mueff))
             * invsqrtC_yw
         )
 
-        # Step-size update  (Eq. 44)
+        # (Eq. 44)
         ps_norm = float(xp.linalg.norm(self.ps))
-        self.sigma *= float(np.exp((self.cs / self.ds) * (ps_norm / self.chiN - 1.0)))
-
+        self.sigma *= float(math.exp((self.cs / self.ds) * (ps_norm / self.chiN - 1.0)))
+        return ps_norm
     
     # Stall indicator  (Appendix A / Fig. 6)
-    def _hsig(self, xp) -> int:
-        """Return 1 when ps indicates the path has not stalled."""
-        ps_norm = float(xp.linalg.norm(self.ps))
-        correction = float(np.sqrt(1.0 - (1.0 - self.cs) ** (2.0 * (self.g + 1))))
+    def _hsig(self, ps_norm: float, xp) -> int:
+        correction = float(math.sqrt(1.0 - (1.0 - self.cs) ** (2.0 * self.g)))
         threshold = (1.4 + 2.0 / (self.n + 1.0)) * self.chiN
         return int((ps_norm / correction) < threshold)
 
-    # Covariance matrix update  (Eq. 45-47)
+    # (Eq. 45-47)
     def _update_covariance(self, yw, Y_sorted, hsig: int, xp):
-        """
-        Rank-1 + rank-μ update of the covariance matrix.
-
-        Parameters
-        ----------
-        yw       : (n,)    weighted mean step
-        Y_sorted : (lam, n) steps sorted best-first
-        hsig     : int     stall indicator (0 or 1)
-        """
-
-        # Cumulative evolution path  (Eq. 45)
+        # (Eq. 45)
         self.pc = (
             (1.0 - self.cc) * self.pc
             + hsig
-            * float(np.sqrt(self.cc * (2.0 - self.cc) * self.mueff))
+            * float(math.sqrt(self.cc * (2.0 - self.cc) * self.mueff))
             * yw
         )
 
-        # Mahalanobis distance for negative-weight scaling  (Eq. 46)
-        BtY = Y_sorted @ self.B  # (lam, n)
-        d_diag = xp.diag(self.D) # (n,)
-        DinvBtY = BtY / d_diag # (lam, n)
-        mahal_sq = xp.sum(DinvBtY ** 2, axis=1)  # (lam,)
+        # (Eq. 46)
+        BtY = Y_sorted @ self.B  
+        d_diag = xp.diag(self.D) 
+        DinvBtY = BtY / d_diag 
+        mahal_sq = xp.sum(DinvBtY ** 2, axis=1)  
 
-        w_all   = xp.asarray(self.weights) # (lam,)
         w_circle= xp.where(
-            w_all >= 0,
-            w_all,
-            w_all * self.n / (mahal_sq + 1e-20), # Eq. 46
+            self.weights >= 0,
+            self.weights,
+            self.weights * self.n / (mahal_sq + 1e-20), # Eq. 46
         )
 
-        # Decay factor  (Eq. 47)
+        # (Eq. 47)
         delta_hsig = (1.0 - hsig) * self.cc * (2.0 - self.cc)
         decay = (
             1.0
             + self.c1 * delta_hsig
             - self.c1
-            - self.cmu * float(xp.sum(xp.asarray(self.weights)))
+            - self.cmu * self.sum_weights  
         )
 
-        # Rank-1 component  (Eq. 45)
+        # (Eq. 45)
         rank1 = xp.outer(self.pc, self.pc)
 
-        # Rank-μ component  (Eq. 47)
+        # (Eq. 47)
         rankmu = (Y_sorted * w_circle[:, None]).T @ Y_sorted
 
         self.C = decay * self.C + self.c1 * rank1 + self.cmu * rankmu
@@ -246,14 +179,10 @@ class _CMAESMixin:
         # Enforce symmetry
         self.C = xp.triu(self.C) + xp.triu(self.C, 1).T
 
-   
     # Eigendecomposition (lazy)  (Appendix B.2)
     def _update_eigensystem(self, total_evals: int, xp):
-        """
-        Recompute B, D from C at most once every 1/(10 n (c1+cμ)) evaluations.
-        """
         c_sum = self.c1 + self.cmu
-        interval = max(1, int(np.floor(1.0 / (10.0 * self.n * c_sum))))
+        interval = max(1, int(math.floor(1.0 / (10.0 * self.n * c_sum))))
 
         if self.g - self.eigeneval >= interval:
             self.eigeneval = self.g
@@ -263,10 +192,8 @@ class _CMAESMixin:
             self.D = xp.diag(xp.sqrt(eigenvalues))
 
 
-# CPU backend
-@dataclass
-class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
-    """CMA-ES — CPU / numpy backend."""
+class CMAES(Optimizer, _CMAESMixin):
+    """CMA-ES — Liner Execution."""
 
     def __init__(
         self,
@@ -274,7 +201,7 @@ class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
         sigma0: float = 0.3,
         **kwds,
     ):
-        logger.info("Overriding class: Optimizer -> CMA-ES (CPU).")
+        logger.info("Overriding class: Optimizer -> CMA-ES (Default).")
         super().__init__()
 
         self.sigma0 = sigma0
@@ -307,6 +234,9 @@ class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
         self.chiN: float = None
         self.g: int = None
         self.eigeneval: int = None
+        
+        self._lb = None
+        self._ub = None
 
         logger.info("Class overrided.")
 
@@ -319,15 +249,17 @@ class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
 
         self._compute_hyperparams(n, xp)
 
-        # Initialize mean from current population  (Fig. 6)
-        self.m = np.mean(
-            [ag.position.flatten() for ag in space.agents], axis=0
-        )
-        self.sigma = self.sigma0
+      
+        self.m = np.mean([ag.position.squeeze() for ag in space.agents], axis=0)
+        self.sigma = float(self.sigma0)
         self.g = 0
         self.eigeneval = 0
 
         self._init_state_arrays(n, xp)
+        
+       
+        self._lb = space.lb
+        self._ub = space.ub
 
         logger.debug(
             "CMA-ES (CPU) compiled: n=%d  lambda=%d  µ=%d  µ_eff=%.2f  "
@@ -338,18 +270,29 @@ class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
 
     # ------------------------------------------------------------------
 
+    def evaluate(self, space: _SingleObjectiveSpace, function: Function):
+        for agent in space.agents:
+            agent.fit = function(agent.position)
+
+            if agent.fit < space.best_agent.fit:
+                space.best_agent.position = agent.position.copy()
+                space.best_agent.fit = agent.fit
+                space.best_agent.ts = int(time.time())
+
+        
+        self.evaluate = lambda: None
+
+    # ------------------------------------------------------------------
+
     def update(self, space: _SingleObjectiveSpace, function: Function):
         xp = np
         self.g += 1
 
-        lb = np.array(space.lb).flatten()
-        ub = np.array(space.ub).flatten()
-
-        # Sample population  (Eq. 38-40)
+        # (Eq. 38-40)
         X, Y, Z = self._sample_population(xp)
-        X = self._clip_to_bounds(X, lb, ub, xp)
+        X = self._clip_to_bounds(X, self._lb, self._ub, xp)
 
-        # Evaluate — one call per candidate (CPU path)
+        # Evaluate — one call per candidate 
         f_vals = np.empty(self.lam)
         for k in range(self.lam):
             f_vals[k] = float(function(X[k].reshape(-1, 1)))
@@ -363,40 +306,26 @@ class _CMAESDefault(Optimizer, _CMAESMixin, CMAES, backend=Backend.CPU):
 
         # Distribution updates
         yw = self._update_mean(Y_sorted, xp) # Eq. 42
-        self._update_step_size(yw, Z_sorted, xp) # Eq. 43-44
-        hsig = self._hsig(xp)
+        ps_norm = self._update_step_size(yw, Z_sorted, xp) # Eq. 43-44
+        hsig = self._hsig(ps_norm, xp)
         self._update_covariance(yw, Y_sorted, hsig, xp) # Eq. 45-47
         self._update_eigensystem(function.n_calls, xp) # Appendix B.2
 
         # Write results back to space
         for i, ag in enumerate(space.agents):
             k = i % self.lam
-            ag.position = X_sorted[k].reshape(ag.position.shape)
+            ag.position[:] = X_sorted[k].reshape(ag.position.shape)
             ag.fit = float(f_sorted[k])
 
             if ag.fit < space.best_agent.fit:
-                space.best_agent.position = copy.deepcopy(ag.position)
-                space.best_agent.fit = copy.deepcopy(ag.fit)
+                space.best_agent.position = ag.position.copy()
+                space.best_agent.fit = ag.fit
                 space.best_agent.ts = int(time.time())
 
-    # ------------------------------------------------------------------
 
-    def evaluate(self, space: _SingleObjectiveSpace, function: Function):
-        if function.n_calls == 0:
-            for agent in space.agents:
-                agent.fit = function(agent.position)
-
-                if agent.fit < space.best_agent.fit:
-                    space.best_agent.position = copy.deepcopy(agent.position)
-                    space.best_agent.fit = copy.deepcopy(agent.fit)
-                    space.best_agent.ts = int(time.time())
-
-
-# CUDA backend
-@dataclass
-class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
+class CMAESTensor(Optimizer, _CMAESMixin):
     """
-    CMA-ES — CUDA / CuPy backend.
+    CMA-ES —  Tensorized.
     """
 
     def __init__(
@@ -405,13 +334,12 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         sigma0: float = 0.3,
         **kwds,
     ):
-        logger.info("Overriding class: Optimizer -> CMA-ES (CUDA).")
+        logger.info("Overriding class: Optimizer -> CMA-ES (Tensorized).")
         super().__init__()
 
         self.sigma0 = sigma0
         self.build(params)
 
-        # Dimension
         self.n: int = None
         self.lam: int = None
         self.mu: int = None
@@ -427,7 +355,6 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         self.c1: float = None
         self.cmu: float = None
 
-        # Distribution state  (GPU tensors, allocated in compile)
         self.m = None
         self.sigma: float = None
         self.C = None
@@ -443,10 +370,13 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         self._lb = None
         self._ub = None
 
-        # dtype mirror from environment
-        self.DTYPE = None
+        self.best_position = None
+        self.best_fit = None
 
-        self._isFirstIteration = True
+        self.position = None
+        self.fit = None
+        
+        self.DTYPE = None
 
         logger.info("Class overrided.")
 
@@ -459,14 +389,10 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         self.n = n
 
         # Scalar hyper-parameters
-        self._compute_hyperparams(n, np)
+        self._compute_hyperparams(n, xp)
 
-        # Initialize mean from current population  (Fig. 6)
-        positions = xp.stack(
-            [xp.asarray(ag.position.flatten(), dtype=self.DTYPE)
-             for ag in space.agents]
-        )
-        self.m = xp.mean(positions, axis=0) # (n,)  on GPU
+        positions = xp.stack([ag.position.squeeze() for ag in space.agents])
+        self.m = xp.mean(positions, axis=0) 
         self.sigma = float(self.sigma0)
         self.g = 0
         self.eigeneval = 0
@@ -475,16 +401,23 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         self._init_state_arrays(n, xp)
 
         # Cast state arrays to env dtype
-        self.C = self.C.astype(xp.float64)
-        self.B = self.B.astype(xp.float64)
-        self.D = self.D.astype(xp.float64)
-        self.ps = self.ps.astype(xp.float64)
-        self.pc = self.pc.astype(xp.float64)
+        self.C = self.C.astype(xp.float32)
+        self.B = self.B.astype(xp.float32)
+        self.D = self.D.astype(xp.float32)
+        self.ps = self.ps.astype(xp.float32)
+        self.pc = self.pc.astype(xp.float32)
 
-        # Cache bounds as GPU vectors 
-        self._lb = xp.asarray(space.lb, dtype=self.DTYPE).flatten()
-        self._ub = xp.asarray(space.ub, dtype=self.DTYPE).flatten()
+    
+        self._lb = space.lb
+        self._ub = space.ub
 
+        self.best_position = xp.zeros(n, dtype=self.DTYPE)
+        self.best_fit = xp.asarray(xp.inf, dtype=xp.float32)
+
+        self.position = xp.zeros((self.lam, self.n), dtype=self.DTYPE)
+        self.fit = xp.full(self.lam, xp.inf, dtype=xp.float32)
+
+        # Dummy operations for Kernel / CuPy JIT Warmup
         _w = xp.eye(2, dtype=self.DTYPE)
         xp.linalg.eigh(_w)                                      
         xp.random.randn(2, 2).astype(self.DTYPE)               
@@ -494,67 +427,12 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         xp.argsort(xp.array([1.0, 0.0], dtype=self.DTYPE))
         del _w
 
-
         logger.debug(
             "CMA-ES (CUDA) compiled: n=%d  lambda=%d  µ=%d  µ_eff=%.2f  "
             "c1=%.4f  cµ=%.4f  cc=%.4f  cs=%.4f  ds=%.4f",
             n, self.lam, self.mu, self.mueff,
             self.c1, self.cmu, self.cc, self.cs, self.ds,
         )
-
-        
-
-    # ------------------------------------------------------------------
-
-    
-    def update(self, space: _SingleObjectiveSpace, function: Function):
-        """
-        One CMA-ES generation — fully on GPU.
-        """
-        xp = space.env.xp
-        self.g += 1
-
-        # (Eq. 38-40)
-        X, Y, Z = self._sample_population(xp) 
-        X = self._clip_to_bounds(X, self._lb, self._ub, xp)
-
-       
-        
-        f_vals = function(X, xp=xp)
-       
-        order = xp.argsort(f_vals)
-        X_sorted = X[order]
-        Y_sorted = Y[order]
-        Z_sorted = Z[order]
-        f_sorted = f_vals[order]
-
-        
-        yw = self._update_mean(Y_sorted, xp) # Eq. 42
-        self._update_step_size(yw, Z_sorted, xp) # Eq. 43-44
-        hsig = self._hsig(xp)
-        self._update_covariance(yw, Y_sorted, hsig, xp) # Eq. 45-47
-        self._update_eigensystem(function.n_calls, xp) # Appendix B.2
-
-        #  We pull only the scalars/positions we actually need.
-        agent_shape = space.agents[0].position.shape
-
-        
-       
-        f_cpu = xp.asnumpy(f_sorted).ravel().tolist()
-        xp.cuda.Stream.null.synchronize()
-
-        for i, ag in enumerate(space.agents):
-            k = i % self.lam
-            gpu_pos = xp.copy(X_sorted[k]).reshape(agent_shape).astype(self.DTYPE)
-            ag.position[:] = gpu_pos
-            ag.fit = f_cpu[k]
-
-            if ag.fit < space.best_agent.fit:
-                space.best_agent.position = copy.deepcopy(ag.position)
-                space.best_agent.fit = float(ag.fit)
-                space.best_agent.ts = int(time.time())
-
-        
 
     # ------------------------------------------------------------------
 
@@ -563,25 +441,80 @@ class _CMAESCuda(Optimizer, _CMAESMixin, CMAES, backend=Backend.CUDA):
         Initial evaluation — called once before the first update.
         """
         xp = space.env.xp
-        
-        if self._isFirstIteration:
-            self._isFirstIteration = False
-            # Build (n_agents, n) 
-            P = xp.stack(
-                [xp.asarray(ag.position.flatten(), dtype=self.DTYPE)
-                 for ag in space.agents]
-            )                                           
 
-            f_vals = function(P, xp=xp)
+        P = xp.stack([ag.position.squeeze() for ag in space.agents])
+        f_vals = function(P, xp=xp)
+
+
+        best_idx = xp.argmin(f_vals)
+        best_val = f_vals[best_idx]
+        improved = best_val < self.best_fit
+        self.best_position = xp.where(improved, P[best_idx], self.best_position)
+        self.best_fit = xp.where(improved, best_val, self.best_fit)
+
+        space.best_agent.fit = float(self.best_fit)
+        space.best_agent.ts = int(time.time())
+
+        
+        self.evaluate = lambda: None
+
+    # ------------------------------------------------------------------
+
+    def update(self, space: _SingleObjectiveSpace, function: Function):
+        """
+        One CMA-ES generation — fully on GPU.
+        """
+        xp = space.env.xp
+        self.g += 1
+
+        # (Eq. 38-40)
+        X, Y, Z = self._sample_population(xp)
+        
+        # Uses cached GPU bounds to avoid implicit lists casting
+        X = self._clip_to_bounds(X, self._lb, self._ub, xp)
+
+        f_vals = function(X, xp=xp)
+
+        order = xp.argsort(f_vals)
+        X_sorted = X[order]
+        Y_sorted = Y[order]
+        Z_sorted = Z[order]
+        f_sorted = f_vals[order]
+
+        yw = self._update_mean(Y_sorted, xp) # Eq. 42
+        ps_norm = self._update_step_size(yw, Z_sorted, xp) # Eq. 43-44
+        hsig = self._hsig(ps_norm, xp)
+        self._update_covariance(yw, Y_sorted, hsig, xp) # Eq. 45-47
+        self._update_eigensystem(function.n_calls, xp) # Appendix B.2
+
+        improved = f_sorted[0] < self.best_fit
+        self.best_position = xp.where(improved, X_sorted[0], self.best_position)
+        self.best_fit = xp.where(improved, f_sorted[0], self.best_fit)
+        
+        self.position = X_sorted
+        self.fit = f_sorted
+       
+        space.best_agent.fit = float(self.best_fit)
+        space.best_agent.ts = int(time.time())
+
+    # ------------------------------------------------------------------
+
+    def sync(self, space: _SingleObjectiveSpace) -> None:
+        """
+        Updates the agents in the space with the current generation's positions and fitnesses.
+        """
+        for i, agent in enumerate(space.agents):
             
-            f_cpu  = xp.asnumpy(f_vals)
-            for i, ag in enumerate(space.agents):
-                ag.fit = float(f_cpu[i])
+            k = i % self.lam
+           
+            agent.position[:] = self.position[k].reshape(agent.position.shape)
+            agent.fit = float(self.fit[k]) 
 
-                if ag.fit < space.best_agent.fit:
-                    space.best_agent.position = copy.deepcopy(ag.position)
-                    space.best_agent.fit = copy.deepcopy(ag.fit)
-                    space.best_agent.ts = int(time.time())
+        best_fit = float(self.best_fit) 
 
-        xp.cuda.Stream.null.synchronize()
-        
+        if best_fit < space.best_agent.fit:
+           
+            space.best_agent.position[:] = self.best_position.reshape(space.best_agent.position.shape)
+            space.best_agent.fit = best_fit
+            space.best_agent.ts = int(time.time())
+

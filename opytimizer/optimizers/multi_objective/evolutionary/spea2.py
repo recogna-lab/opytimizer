@@ -34,7 +34,7 @@ class SPEA2(MultiObjectiveOptimizer):
         super().__init__()
 
         self.archive_size = 100
-        self.crossover_operator = crossover_operator or SBXCrossover(return_mode='both')
+        self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2)
         self.mutation_operator = mutation_operator or PolynomialMutation()
 
         self.build(params)
