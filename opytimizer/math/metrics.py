@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Any
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
@@ -7,20 +7,52 @@ import multiprocessing
 class BaseMetric(ABC):
     
     @property
-    def pareto_front(self) -> np.ndarray:
+    def pareto_front(self) -> Any:
         return self._pareto_front
     
     @pareto_front.setter
     def pareto_front(self, value) -> None:
+        if value is None:
+            return
+
+        # wrapper object
         if hasattr(value, 'pareto_front'):
-            points = np.array([agent.fit for agent in value.pareto_front])
-        # agents list
-        elif isinstance(value, list) and len(value) > 0 and hasattr(value[0], 'fit'):
-            points = np.array([agent.fit for agent in value])
+            value = value.pareto_front
+
+        # Tuple (positions, fits)
+        
+        if isinstance(value, tuple) and len(value) == 2 and isinstance(value[1], np.ndarray) and value[1].ndim == 2:
+            points = value[1]
+
+        # numpy array
+        elif isinstance(value, np.ndarray) and value.dtype.kind in 'fiu':
+            points = value
+
+        # 1 element tuple, where fit is a scalar or 1d numpy array
+        elif isinstance(value, tuple) and len(value) == 2 and not isinstance(value[1], (tuple, list)):
+            points = np.atleast_2d(value[1])
+
+        # Elements collections
+        elif isinstance(value, (list, tuple, np.ndarray)) and len(value) > 0:
+            first = value[0]
+            # Has .fit atributes
+            if hasattr(first, 'fit'):
+                points = np.array([agent.fit for agent in value])
+
+            #  Tuple list [(pos, fit), (pos, fit), ...]
+            elif isinstance(first, (tuple, list, np.ndarray)) and len(first) == 2:
+                points = np.array([item[1] for item in value])
+
+            # Fitness array (e.g, [[f1, f2], [f1, f2]])
+            else:
+                points = np.array(value)
+
+        # Fallback 
         else:
-             points = np.atleast_2d(value) 
-             
-        self._pareto_front = points
+            points = np.atleast_2d(value)
+
+        # Ensure (N_points, N_objs) shape
+        self._pareto_front = np.atleast_2d(points).astype(float)
         
     @abstractmethod
     def __call__(self, pareto_front):
@@ -30,7 +62,7 @@ class BaseMetric(ABC):
     def name(self):
         return type(self).__name__
 
-class IGDMetric(BaseMetric):
+class IGD(BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -54,7 +86,7 @@ class IGDMetric(BaseMetric):
             distances.append(np.min(d))
         return np.mean(distances)
 
-class GDMetric(BaseMetric):
+class GD(BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -79,7 +111,7 @@ class GDMetric(BaseMetric):
         return np.mean(distances)
 
 
-class SpreadMetric(BaseMetric):
+class Spread(BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -107,7 +139,7 @@ class SpreadMetric(BaseMetric):
         )
         return delta
 
-class ErrorRatioMetric(BaseMetric):
+class ErrorRatio(BaseMetric):
     def __init__(self, pareto_optimal, tol=1e-6):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         self.tol = tol
@@ -133,7 +165,7 @@ class ErrorRatioMetric(BaseMetric):
                 errors += 1
         return errors / len(pf)
 
-class R2Metric(BaseMetric):
+class R2(BaseMetric):
     def __init__(self, weight_vectors, ideal_point=None, nadir_point=None):
         self.weight_vectors = np.atleast_2d(weight_vectors)
         norms = np.linalg.norm(self.weight_vectors, axis=1, keepdims=True)
@@ -158,7 +190,7 @@ class R2Metric(BaseMetric):
             r2_values.append(np.min(tchebycheff))
         return np.mean(r2_values)
 
-class MaximumSpreadMetric(BaseMetric):
+class MaximumSpread(BaseMetric):
     def __call__(self, pareto_front):
         self.pareto_front = pareto_front
         if self.pareto_front.shape[0] < 2:
@@ -169,14 +201,22 @@ class MaximumSpreadMetric(BaseMetric):
         return np.max(dists)
 
 
-class HypervolumeMetric(BaseMetric):
+class HV(BaseMetric):
     def __init__(self, reference_point=[1.01, 1.01]):
         self.reference_point = np.asarray(reference_point)
 
     def __call__(self, pareto_front):
+
         
         self.pareto_front = pareto_front
+        
        
+        if self.pareto_front.ndim > 2:
+            self.pareto_front = self.pareto_front.squeeze()
+            
+      
+        self.pareto_front = np.atleast_2d(self.pareto_front)
+
         # Validation and filtering
         if self.pareto_front.size == 0:
             return 0.0
@@ -317,7 +357,7 @@ def _check_dominance_worker(samples_chunk, pareto_front):
         
     return np.sum(is_dominated)
     
-class MonteCarloHypervolumeMetric(BaseMetric):
+class MonteCarloHV(BaseMetric):
     def __init__(self, n_samples: int = 10**6, 
                  lower_bound: Union[float, List[float]] = 0.0, 
                  upper_bound: Union[float, List[float]] = 1.0, 

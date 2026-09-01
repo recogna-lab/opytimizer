@@ -1,6 +1,6 @@
 """Grid-based search space.
 """
-
+import numpy as np
 import copy
 from typing import List, Optional, Tuple, Union, Any
 
@@ -44,7 +44,8 @@ class _GridOps:
 
     @grid.setter
     def grid(self, grid) -> None:
-
+        if not (isinstance(grid, (float, int, np.int32, np.float32, np.float64)) or grid.__class__.__name__ == 'ndarray'):
+            raise e.TypeError('`grid` should be a valid value.')
         self._grid = grid
 
     def _create_grid(self) -> None:
@@ -203,7 +204,7 @@ class GridSpace:
             env: Environment class object.
 
         """
-        if env is None: env = Environment('cpu', 'float32')
+        if env is None: env = Environment('numpy', 'float32')
 
         if n_objectives <= 0: raise e.ValueError('`n_objectives` should be a positive value.')
         elif n_objectives == 1: return _SingleObjectiveGridSpace(n_variables, n_objectives, step, lower_bound, upper_bound, mapping, env)

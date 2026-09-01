@@ -1,7 +1,6 @@
 import numpy as np
 
 from opytimizer.functions import constrained
-from opytimizer.utils import constant
 
 
 def pointer(x):

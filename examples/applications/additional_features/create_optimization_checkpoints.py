@@ -3,6 +3,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.callback import CheckpointCallback
@@ -29,4 +30,4 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
 # CheckpointCallback will snapshot the optimization every `frequency` iterations
-opt.start(n_iterations=10, callbacks=[CheckpointCallback(frequency=1)])
+opt.start(stopping_criteria=MaxIterations(10), callbacks=[CheckpointCallback(frequency=1)])

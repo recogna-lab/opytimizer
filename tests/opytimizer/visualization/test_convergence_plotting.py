@@ -1,5 +1,6 @@
 import numpy as np
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.single_objective.evolutionary import DE
 from opytimizer.optimizers.single_objective.swarm import PSO
@@ -17,8 +18,8 @@ def test_convergence_plot():
 
     def run_opt(opt_algo):
         space = SearchSpace(N_AGENTS, n_variables, n_objectives, lb, ub)
-        opt = Opytimizer(space, opt_algo, func, save_agents=False)
-        opt.start(N_GENERATIONS)
+        opt = Opytimizer(space, opt_algo, func, save_agents=False, save_history=True)
+        opt.start(MaxIterations(5))
         return opt.history.best_agent
 
     h_de = run_opt(DE())

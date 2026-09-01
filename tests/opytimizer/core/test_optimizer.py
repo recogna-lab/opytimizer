@@ -72,7 +72,7 @@ def test_optimizer_compile():
 def test_optimizer_update():
     new_optimizer = optimizer.Optimizer()
 
-    new_optimizer.update()
+    new_optimizer.update(None, None)
 
 
 def test_optimizer_evaluate():

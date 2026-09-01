@@ -1,6 +1,6 @@
 import numpy as np
 
-
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
@@ -33,11 +33,11 @@ UPPER_BOUND = [1.] * N_VARIABLES
 space = SearchSpace(n_agents=N_AGENTS, n_variables=N_VARIABLES, n_objectives=N_OBJECTIVES, lower_bound=LOWER_BOUND, upper_bound=UPPER_BOUND)
 func = Function(zdt1)
 
-optimizer = NSGA2( mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, return_mode='both'))
+optimizer = NSGA2( mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, n_offspring=2))
 
-opt = Opytimizer(space=space, optimizer=optimizer, function=func, save_agents=False)
+opt = Opytimizer(space=space, optimizer=optimizer, function=func, save_agents=False, save_history=True)
 
-opt.start(N_GENERATIONS)
+opt.start(MaxIterations(N_GENERATIONS))
 
 plot_pareto_front_evolution(opt.history.pareto_front, backend="matplotlib", title="NSGA2 - Pareto Front Evolution", labels=['F1', 'F2'], iterations=[1, 25, 50, 75, 100]).show()
 

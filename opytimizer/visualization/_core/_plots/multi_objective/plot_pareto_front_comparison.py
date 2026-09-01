@@ -1,9 +1,6 @@
-"""
-"""
-
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,30 +8,15 @@ from opytimizer.core import Agent
 import opytimizer.utils.exception as e
 
 from opytimizer.visualization._core import fields as F
-from opytimizer.visualization._core.transfer import batch_agents_to_matrices
-
+from opytimizer.visualization._core.transfer import batch_agents_to_matrices, to_numpy
 
 
 def extract_data(
     result=None,
-    *args: List[List[Agent]],
+    *args: Union[List[Agent], Tuple[Any, Any], Any],
     fields: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> Dict:
-    """
-    Extract final Pareto fronts for multi-objective algorithm comparison.
-
-    Parameters
-    ----------
-    *args  : each positional arg is a list of Agents (one algorithm's front).
-    fields : iterable of field names, or ``None`` for all.
-             Available: ``"fronts"``, ``"n_obj"``, ``"title"``,
-             ``"alg_labels"``, ``"obj_labels"``, ``"colors"``.
-    **kwargs
-        title      : str
-        labels     : list[str] – algorithm names
-        obj_labels : list[str] – objective axis labels
-    """
     if not args:
         raise e.ValueError("No Pareto fronts provided for comparison.")
 
@@ -43,7 +25,32 @@ def extract_data(
 
     need_matrix = F.wants_any(fmap, "fronts", "n_obj", "obj_labels")
     if need_matrix:
-        matrices = batch_agents_to_matrices(list(args))
+        is_agent_lists = (
+            isinstance(args[0], list)
+            and len(args[0]) > 0
+            and isinstance(args[0][0], Agent)
+        )
+
+        matrices = []
+        for arg in args:
+            # Case 1: Agent list
+            if isinstance(arg, list) and len(arg) > 0 and isinstance(arg[0], Agent):
+                matrices.append(batch_agents_to_matrices([arg])[0])
+
+            # Case 2: Tuple
+            elif isinstance(arg, tuple) and len(arg) == 2:
+                matrices.append(to_numpy(arg[1]))
+
+            # Case 3: n-dimensional array
+            else:
+                matrices.append(to_numpy(arg))
+                
+        for idx, matrix in enumerate(matrices):
+            if matrix.ndim != 2:
+                raise e.ValueError(
+                    f"Front at index {idx} must be 2D with shape (N, M), got shape {matrix.shape}."
+                )
+
         n_obj = matrices[0].shape[1]
 
         if n_obj not in (2, 3):
@@ -72,9 +79,7 @@ def extract_data(
     return out
 
 
-
 def draw_mpl(ax, data: Dict) -> None:
-    """Matplotlib: overlaid Pareto fronts from multiple algorithms."""
     n_obj = data["n_obj"]
 
     if n_obj == 3 and ax.name != "3d":
@@ -101,9 +106,7 @@ def draw_mpl(ax, data: Dict) -> None:
     ax.legend()
 
 
-
 def draw_ply(fig, data: Dict) -> None:
-    """Plotly: interactive multi-algorithm Pareto comparison."""
     import matplotlib.colors as mcolors
     import plotly.graph_objects as go
 

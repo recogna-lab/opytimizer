@@ -1,41 +1,20 @@
 """Reference Vector Guided Evolutionary Algorithm"""
 
-from dataclasses import dataclass
 import numpy as np
 from typing import Optional, Dict, Any, Union
 import opytimizer.utils.exception as e
-from opytimizer.core import MultiObjectiveOptimizer
-from opytimizer.core.agent import Agent
-from opytimizer.core.space import _MultiObjectiveSpace
+from opytimizer.core import MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer
+from opytimizer.core.space import _MultiObjectiveSpace, _MultiObjectiveTensorSpace
 from opytimizer.core.function import Function
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation, SBXCrossoverTensor, PolynomialMutationTensor
 from opytimizer.core import Environment
-from opytimizer.core.environment import Backend
+
 
 logger = logging.get_logger(__name__)
 
-class RVEA:
-    _registry = {}
 
-
-    def __new__(cls, env: Optional[Environment] = None, **kwargs):
-        if env is None: env = Environment().set_backend('cpu')
-        if cls is RVEA:
-            target = cls._registry.get(env.backend)
-            return super().__new__(target)
-        return super().__new__(cls)
-
-    def __init_subclass__(cls, backend: Backend = None, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if backend:
-            key = backend.value if hasattr(backend, 'value') else backend
-            RVEA._registry[key] = cls
-
-
-
-@dataclass
-class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
+class RVEA(MultiObjectiveOptimizer):
     """
     RVEA class, inherited from MultiObjectiveOptimizer.
 
@@ -109,16 +88,12 @@ class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
         
         self._alpha = value
         
-    
-           
-    # ------------------------------------------------------------------
+
     def compile(self, space: _MultiObjectiveSpace):
         if len(self.reference_vectors) != space.n_agents:
             raise e.ValueError('Error: The number of `reference_vectors` should be equal to the number of agents.')
         
        
-
-    # ------------------------------------------------------------------
     def evaluate(self, space: _MultiObjectiveSpace, function: Function):
        
         all_fits = []
@@ -128,10 +103,9 @@ class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
         all_fits = np.array(all_fits)
         self.z = np.min(all_fits, axis=0)
 
-        self.evaluate = lambda: None 
+        self.evaluate = lambda : None 
 
 
-    # ------------------------------------------------------------------
     def _adapt_reference_vectors(self, space: _MultiObjectiveSpace):
         """Reference vector adaptation strategy — Algorithm 3, eq. (11).
 
@@ -155,7 +129,7 @@ class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
         norms = np.linalg.norm(adapted, axis=1, keepdims=True) 
         self.current_reference_vectors = adapted / norms
 
-    # ------------------------------------------------------------------
+   
     def update(self, space: _MultiObjectiveSpace, function: Function):
         num_pairs = len(space.agents) // 2
         parent_indices = np.random.randint(0, len(space.agents), size=(num_pairs, 2))
@@ -169,7 +143,7 @@ class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
             )
             
             if isinstance(offsprings, (list, tuple)) and len(offsprings) > 0 and isinstance(offsprings[0], (list, tuple)):
-                plain_offsprings = [item for sublista in offsprings for item in sublista]
+                plain_offsprings = [item for sublist in offsprings for item in sublist]
             else:
                 plain_offsprings = list(offsprings) if isinstance(offsprings, (list, tuple)) else [offsprings]
 
@@ -223,9 +197,7 @@ class _RVEADefault(MultiObjectiveOptimizer, RVEA, backend=Backend.CPU):
         self.currentGeneration += 1
 
 
-
-@dataclass
-class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
+class RVEACuda(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
     """
         GPU-friendly, fully tensorized implementation of RVEA, based on:
         Z. Liang, T. Jiang, K. Sun and R. Cheng, "GPU-accelerated Evolutionary
@@ -249,9 +221,9 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
         logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (CUDA).")
 
         self.crossover_operator = crossover_operator or SBXCrossoverTensor(
-            env=Environment('cuda', 'float32'), rate=1.0, gene_rate=1.0
+            env=Environment('cupy', 'float32'), rate=1.0, gene_rate=1.0
         )
-        self.mutation_operator = mutation_operator or PolynomialMutationTensor(rate=1.0 / 30.0, env=Environment('cuda', 'float32'))
+        self.mutation_operator = mutation_operator or PolynomialMutationTensor(rate=1.0 / 30.0, env=Environment('cupy', 'float32'))
 
         self.reference_vectors = reference_vectors
         self.current_reference_vectors = reference_vectors.copy()
@@ -265,11 +237,6 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
         self._gammas = None
         self._grouped_argmin_kernel = None
         self.dtype = None
-
-       
-        self.X = None
-        self.F = None
-        
 
         self.build(params)
 
@@ -399,16 +366,6 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
         xp.fill_diagonal(ang, xp.asarray(xp.inf, dtype=self.dtype))
         self._gammas = ang.min(axis=1)
 
-    def evaluate(self, space: _MultiObjectiveSpace, function: Function) -> None:
-        xp = space.env.xp
-
-        
-        self.X = xp.stack([a.position.ravel() for a in space.agents])
-        self.F = function(self.X, xp=xp)
-
-        self.z = self.F.min(axis=0)
-
-        self.evaluate = lambda: None
 
     def _grouped_argmin(self, apd_values: Any, assignments: Any, N_ref: int, xp) -> Any:
         N_pop = int(apd_values.shape[0])
@@ -444,7 +401,7 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
 
         return best
 
-    def _apd_selection(self, X_combined: Any, F_combined: Any, xp):
+    def _apd_selection(self, X_combined: Any, F_combined: Any, xp, X_, F_):
         """
         Computes the Angle-Penalized Distance selection (Algorithm 1 of the
         paper) and returns a population of FIXED size `N_ref` (== n_agents).
@@ -491,8 +448,8 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
         X_sel = X_combined[safe_idx]
         F_sel = F_combined[safe_idx]
 
-        X_new = xp.where(valid[:, None], X_sel, self.X)
-        F_new = xp.where(valid[:, None], F_sel, self.F)
+        X_new = xp.where(valid[:, None], X_sel, X_)
+        F_new = xp.where(valid[:, None], F_sel, F_)
 
         return X_new, F_new
 
@@ -516,17 +473,27 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
         )
         self._update_gammas(xp)
 
-    def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
+    def evaluate(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
         xp = space.env.xp
-        n = self.X.shape[0]
+        
+        space.F = function(space.X, xp=xp)
+
+        self.z = space.F.min(axis=0)
+
+        self.evaluate = lambda : None
+
+    
+    def update(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
+        xp = space.env.xp
+        n = space.X.shape[0]
         half = n // 2
 
         perm = xp.random.permutation(n)
         idx1 = perm[:half]
         idx2 = perm[half:2 * half]
 
-        parents1 = self.X[idx1]
-        parents2 = self.X[idx2]
+        parents1 = space.X[idx1]
+        parents2 = space.X[idx2]
 
         X_off = self.crossover_operator(parents1, parents2, space.lb, space.ub)
         X_off = xp.concatenate(X_off, axis=0)
@@ -539,26 +506,13 @@ class _RVEACuda(MultiObjectiveOptimizer, RVEA, backend=Backend.CUDA):
 
         self.z = xp.minimum(self.z, F_off.min(axis=0))
 
-        X_pool = xp.concatenate([self.X, X_off], axis=0)
-        F_pool = xp.concatenate([self.F, F_off], axis=0)
+        X_pool = xp.concatenate([space.X, X_off], axis=0)
+        F_pool = xp.concatenate([space.F, F_off], axis=0)
 
-        X_new, F_new = self._apd_selection(X_pool, F_pool, xp)
+        X_new, F_new = self._apd_selection(X_pool, F_pool, xp, space.X, space.F)
 
-        self.X = X_new
-        self.F = F_new
+        space.X = X_new
+        space.F = F_new
 
-        self._adapt_reference_vectors(self.F, xp)
+        self._adapt_reference_vectors(space.F, xp)
         self.currentGeneration += 1
-
-    def sync(self, space: _MultiObjectiveSpace) -> None:
-        """
-        """
-        xp = space.env.xp
-        X_cpu = self.X
-        F_cpu = self.F
-
-        for i, agent in enumerate(space.agents):
-            agent.position[:] = xp.array(X_cpu[i]).reshape(agent.position.shape)
-            agent.fit[:] = F_cpu[i]
-            
-        space.update_pareto_front()

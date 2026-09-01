@@ -28,7 +28,6 @@ class KnEA(MultiObjectiveOptimizer):
         T: float = 0.5,
     ):
         super().__init__()
-        self.is_first_generation = True
         self.r = None
         self.t = None
         self.knn_num = k
@@ -67,7 +66,7 @@ class KnEA(MultiObjectiveOptimizer):
             raise e.ValueError('`T` should be within (0, 1] interval.')
         self._T = float(value)
 
-    def compile(self, space):
+    def compile(self, **kwargs):
         # Paper: t_0 = 0, r_0 = 1  (Section III-C)
         self.r = {}  # front_index -> float  (ratio of neighbourhood size)
         self.t = {}  # front_index -> float  (ratio of knee points)
@@ -144,22 +143,30 @@ class KnEA(MultiObjectiveOptimizer):
         self._weighted_dists = (w * knn_d).sum(axis=1)
 
     def _genetic_operators(
-        self, mating: List[Agent], N: int, function: Function
-    ) -> List[Agent]:
+    self, mating: List[Agent], N: int, function: Function
+) -> List[Agent]:
         n_pairs = (N + 1) // 2
         parents_indices = np.random.randint(0, N, size=(n_pairs, 2))
         offsprings_list: List[Agent] = []
 
         for p1_idx, p2_idx in parents_indices:
-            offsprings = self.crossover_operator(
-                parent1=mating[p1_idx], parent2=mating[p2_idx]
+            offsprings = list(
+                self.crossover_operator(
+                    parent1=mating[p1_idx], parent2=mating[p2_idx]
+                )
             )
             for i in range(len(offsprings)):
-                offsprings[i] = self.mutation_operator(offsprings[i])
-                offsprings[i].fit = function(offsprings[i].position)
+                mutated = self.mutation_operator(offsprings[i])
+
+                if isinstance(mutated, (list, tuple)):
+                    mutated = mutated[0]
+
+                mutated.fit = function(mutated.position)
+                offsprings[i] = mutated
+
             offsprings_list.extend(offsprings)
 
-        return offsprings_list[:N]  # trim to exactly N
+        return offsprings_list
 
     def _fast_non_dominated_sort(self, agents: List[Agent]) -> List[List[int]]:
         fits = np.array([a.fit for a in agents], dtype=float)  # (N, M)
@@ -229,7 +236,7 @@ class KnEA(MultiObjectiveOptimizer):
             extreme_points  = front_values[unique_extreme_local_idxs]
 
            
-            # Paper initialises t=0, r=1 for a front that has never been seen.
+            # Paper initializes t=0, r=1 for a front that has never been seen.
             t_prev = self.t.get(fi_idx, 0.0)  # t_{g-1}; 0 on first visit
             r_prev = self.r.get(fi_idx, 1.0)  # r_{g-1}; 1 on first visit
 
@@ -356,12 +363,6 @@ class KnEA(MultiObjectiveOptimizer):
 
         return Q
 
-    def evaluate(self, space: _MultiObjectiveSpace, function):
-        if self.is_first_generation:
-            super().evaluate(space, function)
-            self.is_first_generation = False
-        else:
-            space.update_pareto_front(space.agents)
 
     def update(self, space: _MultiObjectiveSpace, function):
         current_population = space.agents.copy()

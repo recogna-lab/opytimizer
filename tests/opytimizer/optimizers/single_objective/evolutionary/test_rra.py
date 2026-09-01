@@ -100,12 +100,6 @@ def test_rra_params_setter():
 
     assert new_rra.n_stall == 0
 
-    try:
-        new_rra.last_best_fit = "e"
-    except:
-        new_rra.last_best_fit = 0
-
-    assert new_rra.last_best_fit == 0
 
 
 def test_rra_stalling_search():

@@ -113,7 +113,7 @@ class CEM(Optimizer):
         self.std = np.zeros(space.n_variables)
 
         for j, (lb, ub) in enumerate(zip(space.lb, space.ub)):
-            self.mean[j] = r.generate_uniform_random_number(lb, ub)
+            self.mean[j] = r.generate_uniform_random_number(lb, ub).item()
             self.std[j] = ub - lb
 
     def _create_new_samples(self, agents: List[Agent], function: Function) -> None:

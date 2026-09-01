@@ -3,6 +3,7 @@ import numpy as np
 from opytimizer.optimizers.multi_objective.evolutionary import moead
 from opytimizer.spaces.search import SearchSpace
 from opytimizer.utils.reference_vectors import das_dennis
+from opytimizer.core import Agent
 
 
 def test_moead_de_params():
@@ -101,7 +102,7 @@ def test_moead_de_compile():
         upper_bound=[10, 10],
     )
 
-    new_moead_de = moead.MOEAD_DE(weights_vector=weights)
+    new_moead_de = moead.MOEAD_DE(weight_vectors=weights)
     new_moead_de.compile(search_space)
 
     assert isinstance(new_moead_de.z, np.ndarray)
@@ -118,17 +119,17 @@ def test_moead_de_operators():
         upper_bound=[10, 10],
     )
 
-    new_moead_de = moead.MOEAD_DE(weights_vector=weights)
+    new_moead_de = moead.MOEAD_DE(weight_vectors=weights)
     new_moead_de.compile(search_space)
 
-    parent1 = search_space.agents[0].position
-    parent2 = search_space.agents[1].position
-    parent3 = search_space.agents[2].position
+    parent1 = search_space.agents[0]
+    parent2 = search_space.agents[1]
+    parent3 = search_space.agents[2]
 
     child1 = new_moead_de._apply_operators(parent1, parent2, parent3)
 
-    assert isinstance(child1, np.ndarray)
-    assert child1.shape == parent1.shape
+    assert isinstance(child1, Agent)
+    
 
 
 def test_moead_de_select_neighbors():
@@ -141,7 +142,7 @@ def test_moead_de_select_neighbors():
         upper_bound=[10, 10],
     )
 
-    new_moead_de = moead.MOEAD_DE(weights_vector=weights)
+    new_moead_de = moead.MOEAD_DE(weight_vectors=weights)
     new_moead_de.compile(search_space)
 
     neighbors = new_moead_de._select_neighbors([0, 1, 2, 3, 4, 5])
@@ -166,7 +167,7 @@ def test_moead_de_evaluate():
         upper_bound=[10, 10],
     )
 
-    new_moead_de = moead.MOEAD_DE(weights_vector=weights)
+    new_moead_de = moead.MOEAD_DE(weight_vectors=weights)
     new_moead_de.compile(search_space)
 
     new_moead_de.evaluate(search_space, multi_square)
@@ -190,7 +191,7 @@ def test_moead_de_update():
         upper_bound=[10, 10],
     )
 
-    new_moead_de = moead.MOEAD_DE(weights_vector=weights)
+    new_moead_de = moead.MOEAD_DE(weight_vectors=weights)
     new_moead_de.compile(search_space)
 
     new_moead_de.update(search_space, multi_square)

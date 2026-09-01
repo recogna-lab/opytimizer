@@ -1,5 +1,6 @@
 import numpy as np
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA, MOEAD
 from opytimizer.visualization import plot_pareto_front_comparison
@@ -18,11 +19,11 @@ def test_pareto_comparison_plot():
     
     s1 = SearchSpace(N, 2, 2, [0.]*2, [1.]*2)
     o1 = Opytimizer(s1, RVEA(reference_vectors=W), func, save_agents=True)
-    o1.start(5)
+    o1.start(MaxIterations(5))
 
     s2 = SearchSpace(N, 2, 2, [0.]*2, [1.]*2)
-    o2 = Opytimizer(s2, MOEAD(weights_vector=W), func, save_agents=True)
-    o2.start(5)
+    o2 = Opytimizer(s2, MOEAD(weight_vectors=W), func, save_agents=True)
+    o2.start(MaxIterations(5))
 
     try:
         plot_pareto_front_comparison(o1.space.pareto_front, o2.space.pareto_front, labels=['RVEA', 'MOEAD'], backend="matplotlib")

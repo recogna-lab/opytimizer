@@ -1,6 +1,7 @@
 import numpy as np
 from opytimark.markers.n_dimensional import Rastrigin, Sphere
 
+from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
@@ -27,4 +28,4 @@ function = Function([Rastrigin(), Sphere()])
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start(n_iterations=1000)
+opt.start(MaxIterations(1000))

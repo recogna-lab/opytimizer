@@ -1,171 +1,71 @@
 import numpy as np
+import pytest
+from unittest.mock import MagicMock
 
-from opytimizer.core.agent import Agent
-from opytimizer.optimizers.multi_objective.evolutionary import nsga2
-from opytimizer.spaces.search import SearchSpace
-
-
-
-
-def test_nsga2_compile():
-    search_space = SearchSpace(
-        n_agents=2,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[0, 0],
-        upper_bound=[10, 10],
-    )
-
-    new_nsga2 = nsga2.NSGA2()
-    new_nsga2.compile(search_space)
-
-    try:
-        new_nsga2.rank = 1
-    except:
-        new_nsga2.rank = np.array([1])
-
-    assert new_nsga2.rank == np.array([1])
-
-    try:
-        new_nsga2.crowding_distance = 1
-    except:
-        new_nsga2.crowding_distance = np.array([1])
-
-    assert new_nsga2.crowding_distance == np.array([1])
+import opytimizer.utils.exception as e
+from opytimizer.optimizers.multi_objective.evolutionary.nsga2 import NSGA2
 
 
-def test_nsga2_crossover():
-    search_space = SearchSpace(
-        n_agents=10,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[1, 1],
-        upper_bound=[10, 10],
-    )
-
-    new_nsga2 = nsga2.NSGA2()
-
-    children = new_nsga2._crossover(search_space.agents[0], search_space.agents[1])
-
-    alpha = children[0]
-    assert type(alpha).__name__ == "Agent"
-    if len(children) == 2:
-        beta = children[1]
-        assert type(beta).__name__ == "Agent"
+class DummyAgent:
+    def __init__(self, fit=None):
+        self.fit = np.array([0.0, 0.0]) if fit is None else np.array(fit)
+        self.position = np.array([0.0])
 
 
-def test_nsga2_mutation():
-    search_space = SearchSpace(
-        n_agents=10,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[1, 1],
-        upper_bound=[10, 10],
-    )
-
-    new_nsga2 = nsga2.NSGA2()
-
-    alpha = new_nsga2._mutation(search_space.agents[0])
-    beta = new_nsga2._mutation(search_space.agents[1])
-
-    assert type(alpha).__name__ == "Agent"
-    assert type(beta).__name__ == "Agent"
+@pytest.fixture
+def opt():
+    return NSGA2(crossover_operator=MagicMock(), mutation_operator=MagicMock())
 
 
-def make_agent(fit):
-    a = Agent(3, 1, 2, [0, 0, 0], [1, 1, 1])
-    a.fit = np.array(fit)
-    return a
+def test_rank_property(opt):
+    opt.rank = np.array([1, 2])
+    assert np.array_equal(opt.rank, np.array([1, 2]))
+    
+    with pytest.raises(e.TypeError):
+        opt.rank = [1, 2]
 
 
-def test_nsga2_fast_non_dominated_sort():
+def test_crowding_distance_property(opt):
+    opt.crowding_distance = np.array([1.5, 2.5])
+    assert np.array_equal(opt.crowding_distance, np.array([1.5, 2.5]))
+    
+    with pytest.raises(e.TypeError):
+        opt.crowding_distance = [1.5, 2.5]
+
+
+def test_compile(opt):
+    space = MagicMock()
+    space.n_agents = 5
+    
+    opt.compile(space)
+    
+    assert len(opt.crowding_distance) == 5
+    assert np.all(opt.crowding_distance == 0.0)
+
+
+def test_fast_non_dominated_sort(opt):
     agents = [
-        make_agent([1, 2]),
-        make_agent([2, 1]),
-        make_agent([1.5, 1.5]),
-        make_agent([3, 3]),
-        make_agent([0.5, 2.5]),
+        DummyAgent([1.0, 1.0]),
+        DummyAgent([2.0, 2.0]),
+        DummyAgent([0.5, 3.0])
     ]
-    new_nsga2 = nsga2.NSGA2()
-    fronts = new_nsga2._fast_non_dominated_sort(agents)
-    assert isinstance(fronts, list)
+    
+    fronts, local_rank = opt._fast_non_dominated_sort(agents)
+    
     assert len(fronts) > 0
-    assert 0 in fronts[0] or 1 in fronts[0]
+    assert len(local_rank) == 3
+    assert local_rank[0] == 0
 
 
-def test_nsga2_crowding_distance():
-    agents = [make_agent([1, 2]), make_agent([2, 1]), make_agent([1.5, 1.5])]
-    new_nsga2 = nsga2.NSGA2()
-    front = [0, 1, 2]
-    distances = new_nsga2._calculate_crowding_distance(front, agents)
-    assert isinstance(distances, np.ndarray)
-    assert len(distances) == 3
-
-
-def test_nsga2_tournament_selection():
-    new_nsga2 = nsga2.NSGA2()
+def test_calculate_crowding_distance(opt):
     agents = [
-        make_agent([1, 2]),
-        make_agent([2, 1]),
-        make_agent([1.5, 1.5]),
-        make_agent([3, 3]),
-        make_agent([0.5, 2.5]),
+        DummyAgent([1.0, 10.0]),
+        DummyAgent([5.0, 5.0]),
+        DummyAgent([10.0, 1.0])
     ]
-
-    new_nsga2._fast_non_dominated_sort(agents)
-
-    front = [0, 1, 2, 3, 4]
-
-    new_nsga2.crowding_distance = new_nsga2._calculate_crowding_distance(front, agents)
-
-    selected = new_nsga2._tournament_selection(agents)
-
-    assert (
-        isinstance(selected, list)
-        or isinstance(selected, Agent)
-        or isinstance(selected, int)
-    )
-    assert len(selected) == 5
-
-
-def test_nsga2_evaluate():
-    def multi_square(x):
-        f1 = np.sum(x**2)
-        f2 = np.sum(x)
-        return np.array([f1, f2])
-
-    search_space = SearchSpace(
-        n_agents=2,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[0, 0],
-        upper_bound=[10, 10],
-    )
-
-    new_nsga2 = nsga2.NSGA2()
-    new_nsga2.compile(search_space)
-
-    new_nsga2.evaluate(search_space, multi_square)
-
-    assert isinstance(search_space.pareto_front, list)
-    assert len(search_space.pareto_front) > 0
-
-
-def test_nsga2_update():
-    def multi_square(x):
-        f1 = np.sum(x**2)
-        f2 = np.sum(x)
-        return np.array([f1, f2])
-
-    search_space = SearchSpace(
-        n_agents=2,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[0, 0],
-        upper_bound=[10, 10],
-    )
-
-    new_nsga2 = nsga2.NSGA2()
-    new_nsga2.compile(search_space)
-
-    new_nsga2.update(search_space, multi_square)
+    
+    distances = opt._calculate_crowding_distance([0, 1, 2], agents)
+    
+    assert distances[0] == np.inf
+    assert distances[2] == np.inf
+    assert distances[1] > 0

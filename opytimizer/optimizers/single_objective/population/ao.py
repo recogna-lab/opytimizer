@@ -146,10 +146,10 @@ class AO(Optimizer):
         for agent in space.agents:
             a = copy.deepcopy(agent)
 
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
 
             if iteration <= ((2 / 3) * n_iterations):
-                r2 = r.generate_uniform_random_number()
+                r2 = r.generate_uniform_random_number().item()
 
                 if r1 <= 0.5:
                     # Updates temporary agent's position (eq. 3)
@@ -182,7 +182,7 @@ class AO(Optimizer):
                         + (y - x) * r2
                     )
             else:
-                r2 = r.generate_uniform_random_number()
+                r2 = r.generate_uniform_random_number().item()
                 if r2 <= 0.5:
                     lb = np.expand_dims(agent.lb, -1)
                     ub = np.expand_dims(agent.ub, -1)

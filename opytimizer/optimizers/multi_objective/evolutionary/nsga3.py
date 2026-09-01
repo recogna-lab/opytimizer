@@ -1,10 +1,8 @@
-"""NSGA-III"""
-
 import numpy as np
 from typing import List, Tuple
 
 import opytimizer.utils.exception as e
-from opytimizer.core import MultiObjectiveOptimizer
+from opytimizer.core import MultiObjectiveOptimizer, Function
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
@@ -12,8 +10,6 @@ from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
 from opytimizer.utils.reference_vectors import das_dennis
 
 logger = logging.get_logger(__name__)
-
-
 
 class NSGA3(MultiObjectiveOptimizer):
     """NSGA3 class, inherited from MultiObjectiveOptimizer.
@@ -43,7 +39,7 @@ class NSGA3(MultiObjectiveOptimizer):
             mutation_operator: Mutation operator to be used.
             reference_points: Pre-computed reference points of shape (H, M).
                 If None, they are generated via Das and Dennis's approach using
-                n_divisions (default to 12). 
+                n_divisions (default set to 12). 
             
         """
 
@@ -54,23 +50,15 @@ class NSGA3(MultiObjectiveOptimizer):
         self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2, eta=30, gene_rate=1.0)
         self.mutation_operator = mutation_operator or PolynomialMutation()
 
-       
         self._user_reference_points = reference_points
-       
 
-        # Internal state populated by compile() and updated each generation.
-        self.reference_points: np.ndarray = None  # shape (H, M)
+        self.reference_points: np.ndarray = None 
         self.rank: np.ndarray = None
-        self._ideal_point: np.ndarray = None  # tracks global minimum per obj
         
         self.is_first_generation = True
         self.build(params)
 
         logger.info("Class overrided.")
-
-    # ------------------------------------------------------------------
-    # Properties
-    # ------------------------------------------------------------------
 
     @property
     def rank(self) -> np.ndarray:
@@ -94,10 +82,6 @@ class NSGA3(MultiObjectiveOptimizer):
             raise e.TypeError("`reference_points` should be a numpy array")
         self._reference_points = ref
 
-    # ------------------------------------------------------------------
-    # Compile
-    # ------------------------------------------------------------------
-
     def compile(self, space: _MultiObjectiveSpace) -> None:
         """Compiles additional information used by this optimizer.
 
@@ -108,7 +92,6 @@ class NSGA3(MultiObjectiveOptimizer):
 
         n_agents = space.n_agents
 
-        # Infer number of objectives from the first agent's fitness vector.
         sample_fit = space.agents[0].fit
         if hasattr(sample_fit, "__len__"):
             n_objectives = len(sample_fit)
@@ -117,11 +100,9 @@ class NSGA3(MultiObjectiveOptimizer):
                 "NSGA-III requires multi-objective agents (agent.fit must be a vector)."
             )
 
-        # Resolve reference points.
         if self._user_reference_points is not None:
-            self.reference_points = np.array(self._user_reference_points, dtype=float)
+            self.reference_points = np.asarray(self._user_reference_points, dtype=float)
         else:
-           
             self.reference_points,_ = das_dennis(n_objectives, 12)
             logger.debug(
                 f"Generated {len(self.reference_points)} Das-Dennis reference points "
@@ -129,15 +110,9 @@ class NSGA3(MultiObjectiveOptimizer):
             )
             
             if len(self.reference_points) != space.n_agents:
-                # Conflict: n_agents provided by user != Das-Dennis(N_OBJ, 12)
                 raise e.ValueError('Error: conflict between the number of reference points and `n_agents` provided.')
 
         self.rank = np.zeros(n_agents, dtype=int)
-        self._ideal_point = np.full(n_objectives, np.inf)
-
-    # ------------------------------------------------------------------
-    # Non-dominated sorting 
-    # ------------------------------------------------------------------
 
     def _fast_non_dominated_sort(self, agents: list) -> List:
         """Performs the fast non-dominated sort.
@@ -149,24 +124,19 @@ class NSGA3(MultiObjectiveOptimizer):
             (list): List of fronts, each front being a list of agent indices.
 
         """
-
         n = len(agents)
-        domination_count = np.zeros(n, dtype=int)
-        dominated_solutions = [[] for _ in range(n)]
-        fronts = [[]]
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                if agents[i].dominates(agents[j]):
-                    dominated_solutions[i].append(j)
-                    domination_count[j] += 1
-                elif agents[j].dominates(agents[i]):
-                    dominated_solutions[j].append(i)
-                    domination_count[i] += 1
-
-            if domination_count[i] == 0:
-                fronts[0].append(i)
-
+        fits = np.array([a.fit for a in agents])
+        
+        fits_i = fits[:, np.newaxis, :]
+        fits_j = fits[np.newaxis, :, :]
+        
+        dominates = np.logical_and(np.all(fits_i <= fits_j, axis=2), np.any(fits_i < fits_j, axis=2))
+        
+        domination_count = np.sum(dominates, axis=0)
+        dominated_solutions = [np.where(dominates[i])[0].tolist() for i in range(n)]
+        
+        fronts = [np.where(domination_count == 0)[0].tolist()]
+        
         i = 0
         while i < len(fronts) and fronts[i]:
             next_front = []
@@ -179,17 +149,12 @@ class NSGA3(MultiObjectiveOptimizer):
                 fronts.append(next_front)
             i += 1
 
-        # Assign ranks
         self.rank = np.zeros(n, dtype=int)
         for rank_val, front in enumerate(fronts):
             for idx in front:
                 self.rank[idx] = rank_val
 
         return fronts
-
-    # ------------------------------------------------------------------
-    # Algorithm 2 — Adaptive normalisation
-    # ------------------------------------------------------------------
 
     def _normalize(self, agents: list, st_indices: list) -> np.ndarray:
         """Adaptively normalises objective values of St members (Algorithm 2).
@@ -207,48 +172,34 @@ class NSGA3(MultiObjectiveOptimizer):
 
         """
 
-        fitnesses = np.array([agents[i].fit for i in st_indices], dtype=float)  # (|St|, M)
+        fitnesses = np.array([agents[i].fit for i in st_indices], dtype=float)
         M = fitnesses.shape[1]
 
-        # Update ideal point with the global minimum seen so far.
-        self._ideal_point = np.minimum(self._ideal_point, fitnesses.min(axis=0))
+        ideal_point = fitnesses.min(axis=0)
 
-        # Translate so that ideal point becomes the origin.
-        f_prime = fitnesses - self._ideal_point  # (|St|, M)
+        f_prime = fitnesses - ideal_point 
 
-        #  Extreme points via ASF
-        # For objective i, weight vector w_i has w_i[i]=1 and w_i[j]=1e-6 for j≠i.
         extreme_indices = []
         for i in range(M):
             w = np.full(M, 1e-6)
             w[i] = 1.0
-            # ASF(x, w) = max_j( f'_j(x) / w_j )
             asf_vals = np.max(f_prime / w, axis=1)
             extreme_indices.append(int(np.argmin(asf_vals)))
 
-        extreme_points = f_prime[extreme_indices]  # (M, M)
-
-        # Compute intercepts via the M-dimensional hyper-plane 
+        extreme_points = f_prime[extreme_indices] 
 
         try:
             b = np.linalg.solve(extreme_points, np.ones(M))
             intercepts = 1.0 / b
-            # Guard against degenerate / non-positive intercepts.
             if np.any(intercepts <= 0) or np.any(np.isnan(intercepts)):
-                raise np.linalg.LinAlgError("Non-positive intercepts")
+                raise np.linalg.LinAlgError()
         except np.linalg.LinAlgError:
-            # Fallback: use the maximum value of each translated objective.
-            intercepts = f_prime.max(axis=0)
-            intercepts[intercepts == 0] = 1.0  # avoid division by zero
+            intercepts = np.max(f_prime, axis=0)
+            intercepts[intercepts == 0] = 1e-6
 
-        # ---- Normalise ----
-        f_n = f_prime / intercepts  # (|St|, M)
+        f_n = f_prime / intercepts 
 
         return f_n
-
-    # ------------------------------------------------------------------
-    # Algorithm 3 — Association
-    # ------------------------------------------------------------------
 
     def _associate(
         self, f_n: np.ndarray, ref_points: np.ndarray
@@ -273,28 +224,19 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         n_members = f_n.shape[0]
-       
 
-        # Unit reference lines: w_j = ref_points[j] / ||ref_points[j]||
         norms = np.linalg.norm(ref_points, axis=1, keepdims=True)
         norms[norms == 0] = 1.0
-        w = ref_points / norms  # (H, M)
+        w = ref_points / norms 
 
-        # Vectorised perpendicular distance
-        dot = f_n @ w.T  # (n_members, H)  ← s_i · w_j
-        # Projection of each s_i onto each w_j
-        proj = dot[:, :, np.newaxis] * w[np.newaxis, :, :]  # (n_members, H, M)
-        diff = f_n[:, np.newaxis, :] - proj  # (n_members, H, M)
-        dists = np.linalg.norm(diff, axis=2)  # (n_members, H)
+        dot = f_n @ w.T
+        s_norm_sq = np.sum(f_n**2, axis=1)[:, np.newaxis]
+        dists = np.sqrt(np.maximum(0, s_norm_sq - dot**2))
 
-        pi = np.argmin(dists, axis=1)   # (n_members,)
-        d = dists[np.arange(n_members), pi]  # (n_members,)
+        pi = np.argmin(dists, axis=1) 
+        d = dists[np.arange(n_members), pi] 
 
         return pi, d
-
-    # ------------------------------------------------------------------
-    # Algorithm 4 — Niching (niche-preservation operation)
-    # ------------------------------------------------------------------
 
     def _niching(
         self,
@@ -321,45 +263,40 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         selected = []
-        fl_remaining = list(fl_local)  # mutable copy
-        rho = rho.copy()  # do not mutate the caller's array
+        rho = rho.copy() 
+        
+        candidates_map = {j: [] for j in range(len(rho))}
+        for idx in fl_local:
+            candidates_map[pi[idx]].append(idx)
+            
+        active_refs = {j for j, cands in candidates_map.items() if cands}
 
         for _ in range(K):
-            if not fl_remaining:
+            if not active_refs:
                 break
 
-            # Identify reference points with minimum niche count among those
-            # that still have at least one candidate in fl_remaining.
-            active_refs = set(pi[fl_remaining])
             min_rho = min(rho[j] for j in active_refs)
             j_min_set = [j for j in active_refs if rho[j] == min_rho]
 
-            # Break ties randomly.
             j_bar = int(np.random.choice(j_min_set))
 
-            # Candidates in fl_remaining associated with j_bar.
-            candidates = [idx for idx in fl_remaining if pi[idx] == j_bar]
-
-            if not candidates:
-                # No member in Fl for this reference point → exclude it.
-                continue
+            candidates = candidates_map[j_bar]
 
             if rho[j_bar] == 0:
-                # Choose the candidate with the smallest perpendicular distance.
-                chosen = candidates[int(np.argmin(d[candidates]))]
+                chosen_idx = int(np.argmin(d[candidates]))
+                chosen = candidates[chosen_idx]
             else:
-                # Choose a random candidate.
-                chosen = int(np.random.choice(candidates))
+                chosen_idx = int(np.random.choice(len(candidates)))
+                chosen = candidates[chosen_idx]
 
             selected.append(chosen)
-            fl_remaining.remove(chosen)
+            candidates.pop(chosen_idx)
             rho[j_bar] += 1
+            
+            if not candidates:
+                active_refs.remove(j_bar)
 
         return selected
-
-    # ------------------------------------------------------------------
-    # Offspring generation
-    # ------------------------------------------------------------------
 
     def _crossover(self, parent1: Agent, parent2: Agent) -> Tuple:
         return self.crossover_operator(parent1, parent2)
@@ -369,8 +306,6 @@ class NSGA3(MultiObjectiveOptimizer):
 
     def _create_offspring(self, space: _MultiObjectiveSpace) -> List:
         """Creates offspring via tournament selection."""
-
-        # Tournament selection based on rank only 
         parents = self._tournament_selection(space.agents)
         offspring = []
         for i in range(0, len(parents), 2):
@@ -378,22 +313,17 @@ class NSGA3(MultiObjectiveOptimizer):
             p2 = parents[i + 1] if i + 1 < len(parents) else parents[0]
             children = self._crossover(p1, p2)
             for child in children:
-                offspring.append(self._mutation(child))
-
+                offspring.extend(self._mutation(child))
+        
         return offspring[: len(space.agents)]
 
     def _tournament_selection(self, agents: list) -> List:
         """Rank-based binary tournament selection."""
         selected = []
-        for _ in range(len(agents)):
-            i, j = np.random.choice(len(agents), 2, replace=False)
-            winner = i if self.rank[i] <= self.rank[j] else j
-            selected.append(agents[winner])
+        n_agents = len(agents)
+        for _ in range(n_agents):
+            selected.append(agents[np.random.choice(n_agents)])
         return selected
-
-    # ------------------------------------------------------------------
-    # Survivor selection 
-    # ------------------------------------------------------------------
 
     def _select_survivors(self, combined: list, n_agents: int) -> List:
         """Selects the next generation using non-dominated sorting + niching.
@@ -411,8 +341,7 @@ class NSGA3(MultiObjectiveOptimizer):
  
         fronts = self._fast_non_dominated_sort(combined)
  
-        # Fill St front by front until |St| >= N 
-        st_indices = []  # indices into `combined`
+        st_indices = []
         last_front_idx = 0
         for fi, front in enumerate(fronts):
             if len(st_indices) + len(front) >= n_agents:
@@ -421,7 +350,6 @@ class NSGA3(MultiObjectiveOptimizer):
             st_indices.extend(front)
             last_front_idx = fi
         else:
-            # All members fit exactly.
             return [combined[i] for i in st_indices]
  
         fl = fronts[last_front_idx]
@@ -444,11 +372,8 @@ class NSGA3(MultiObjectiveOptimizer):
  
         final_indices = st_indices + [full_st[loc] for loc in chosen_local]
         return [combined[i] for i in final_indices[:n_agents]]
-    # ------------------------------------------------------------------
-    # Main update step
-    # ------------------------------------------------------------------
 
-    def update(self, space: _MultiObjectiveSpace, function) -> None:
+    def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Wraps NSGA-III over all agents and variables.
 
         Args:
@@ -458,6 +383,7 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         offspring = self._create_offspring(space)
+        
         for i in range(len(offspring)):
             offspring[i].fit = function(offspring[i].position)
 
@@ -467,29 +393,9 @@ class NSGA3(MultiObjectiveOptimizer):
         for i in range(len(space.agents)):
             space.agents[i] = new_pop[i]
 
-    # ------------------------------------------------------------------
-    # Evaluate
-    # ------------------------------------------------------------------
-
-    def evaluate(self, space: _MultiObjectiveSpace, function) -> None:
-        """Evaluates the fitness of all agents and updates the Pareto front.
-
-        Args:
-            space: Space containing agents and evaluation-related information.
-            function: Objective function.
-
-        """
-        if self.is_first_generation == True:
-            for agent in space.agents:
-                agent.fit = function(agent.position)
-            self.is_first_generation = False
-
-        # Non-dominated sorting to assign initial ranks.
         _ = self._fast_non_dominated_sort(space.agents)
 
-        # Initialise the running ideal point.
-        fitnesses = np.array([a.fit for a in space.agents], dtype=float)
-        self._ideal_point = np.minimum(self._ideal_point, fitnesses.min(axis=0))
-
-        # Update the Pareto front (first non-dominated front).
-        space.update_pareto_front(space.agents)
+    def evaluate(self, space: _MultiObjectiveSpace, function: Function):
+        super().evaluate(space, function)
+        self.evaluate = lambda : None
+    

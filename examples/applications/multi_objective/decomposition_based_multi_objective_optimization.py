@@ -1,10 +1,12 @@
 import numpy as np
 from opytimizer import Opytimizer
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.reference_vectors import das_dennis
-from opytimizer.utils.decomposition import weighted_sum, pbi
+from opytimizer.math.aggregation import PBI
+
 def zdt3(x: np.ndarray) -> np.ndarray:
     """
         ZDT3 benchmark problem
@@ -34,13 +36,15 @@ weights, n_agents = das_dennis(2, 99)
 lower_bound = [0] * n_variables
 upper_bound = [1] * n_variables
 
+pbi = PBI()
+
 # Creates the space, optimizer and function
 space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
-optimizer = MOEAD(weights_vector=weights,decomposition_method=pbi)
+optimizer = MOEAD(weight_vectors=weights,decomposition_method=pbi)
 function = Function(zdt3)
 
 # Bundles every piece into Opytimizer class
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start(n_iterations=250)
+opt.start(MaxIterations(250))

@@ -12,11 +12,12 @@ import opytimizer.utils.exception as e
 from opytimizer.utils.exception import BudgetExhausted
 from opytimizer.core.stopping import _StoppingVessel, MaxIterations, _StoppingCriterion
 from opytimizer.core.function import Function
-from opytimizer.core.optimizer import Optimizer
-from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
+from opytimizer.core.optimizer import Optimizer, MultiObjectiveOptimizer, TensorizedOptimizer, TensorizedMultiObjectiveOptimizer
+from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace, _SingleObjectiveTensorSpace, _MultiObjectiveTensorSpace
 from opytimizer.utils import logging
 from opytimizer.utils.callback import Callback, CallbackVessel
 from opytimizer.utils.history import History
+from opytimizer.math.metrics import BaseMetric
 
 logger = logging.get_logger(__name__)
 
@@ -28,14 +29,20 @@ class _BaseRunner:
         space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace],
         optimizer: Optimizer,
         function: Function,
-        save_agents: bool = False
+        save_agents: bool = False,
+        save_history: bool = False
     ) -> None:
         
         logger.info("Creating class: %s.", self.__class__.__name__)
+        self._ensure_space(space, optimizer)
+
         self.space = space
         self.optimizer = optimizer
-        self.optimizer.compile(space)
+        sync_method = getattr(optimizer, 'sync', None)
+        self.sync_optimizer = sync_method if callable(sync_method) else (lambda *args, **kwargs: None)
+        self.optimizer.compile(space=space)
         self.function = function
+        self.save_history = save_history
         self.history = History(save_agents=save_agents)
         self.iteration = 0
         self.total_iterations = 0
@@ -48,7 +55,7 @@ class _BaseRunner:
 
         
     @property
-    def space(self) -> Union[_SingleObjectiveSpace, _MultiObjectiveSpace]:
+    def space(self) -> Union[_SingleObjectiveSpace, _MultiObjectiveSpace, _SingleObjectiveTensorSpace, _MultiObjectiveTensorSpace]:
         return self._space
  
     @space.setter
@@ -126,6 +133,42 @@ class _BaseRunner:
         args = signature(self.optimizer.update).parameters
         return [getattr(self, v) for v in args]
 
+
+    @property
+    def metrics(self) -> Optional[Union[List[BaseMetric], BaseMetric]]:
+        return self._metrics
+
+    @metrics.setter
+    def metrics(self, m:Optional[Union[List[BaseMetric], BaseMetric]]) -> None:
+        if isinstance(m, BaseMetric):
+            self._metrics = [m]
+        elif isinstance(m, List):
+            if all(isinstance(m_i, BaseMetric) for m_i in m):
+                self._metrics = m
+        elif m is None:
+            self._metrics = None
+        else:
+            raise e.TypeError('`metrics` should be an instance or a list of `BaseMetric` instances.')
+
+
+    def _ensure_space(self, space: Union[_SingleObjectiveSpace, _SingleObjectiveTensorSpace,
+                                        _MultiObjectiveSpace, _MultiObjectiveTensorSpace],
+                                        optimizer: Union[Optimizer, MultiObjectiveOptimizer,
+                                                         TensorizedOptimizer, TensorizedMultiObjectiveOptimizer]):
+        """Ensure that the chosen space configuration is valid."""
+        is_tensorized_optimizer = isinstance(optimizer, (TensorizedOptimizer, TensorizedMultiObjectiveOptimizer))
+        is_tensorized_space = isinstance(space, (_SingleObjectiveTensorSpace, _MultiObjectiveTensorSpace))
+        
+        if is_tensorized_optimizer and not is_tensorized_space:
+            msg = "The optimizer requires a tensorized space. Please set tensorized=True in the space configuration."
+            logger.error(msg)
+            raise TypeError(msg)
+
+        if not is_tensorized_optimizer and is_tensorized_space:
+            msg = "Standard optimizers cannot process a tensorized space. Use a TensorizedOptimizer or set tensorized=False."
+            logger.error(msg)
+            raise TypeError(msg)
+         
     def evaluate(self, callbacks: CallbackVessel) -> None:
         callbacks.on_evaluate_before(*self.evaluate_args)
         self.optimizer.evaluate(*self.evaluate_args)
@@ -137,13 +180,16 @@ class _BaseRunner:
         callbacks.on_update_after(*self.update_args)
         self.space.clip_by_bound()
 
+    def _compute_metrics(self) -> Dict:
+        pass
+
 
     @abstractmethod
-    def _dump_history(self, metrics: Optional[List]) -> None:
+    def _dump_history(self, **kwargs) -> None:
         """Persist the iteration state to ``self.history``."""
  
     @abstractmethod
-    def _set_postfix(self, stopping_vessel: _StoppingVessel, metrics: Optional[List]) -> None:
+    def _set_postfix(self, stopping_vessel: _StoppingVessel, **kwargs) -> None:
         """Update the progress-bar postfix for this iteration."""
  
     @abstractmethod
@@ -155,7 +201,7 @@ class _BaseRunner:
         self,
         stopping_criteria=None,
         callbacks: Optional[List[Callback]] = None,
-        metrics: Optional[List] = None,
+        metrics: Optional[Union[List[BaseMetric], BaseMetric]] = None,
     ) -> None:
         """Start the optimization task."""
  
@@ -169,12 +215,12 @@ class _BaseRunner:
  
         stopping_vessel = _StoppingVessel(stopping_criteria)
         callbacks = CallbackVessel(callbacks)
- 
+        self.metrics = metrics
         start = time.time()
         callbacks.on_task_begin(self)
         self.evaluate(callbacks)
         stopping_vessel.init_pbars()
- 
+        self.function.n_calls = 0
         try:
             while not stopping_vessel.should_stop(self):
                 self.total_iterations += 1
@@ -184,8 +230,10 @@ class _BaseRunner:
                 self.evaluate(callbacks)
  
                 stopping_vessel.update_pbars(self)
-                self._set_postfix(stopping_vessel, metrics)
-                self._dump_history(metrics)
+                metric_values = self._compute_metrics()
+               
+                self._set_postfix(stopping_vessel, metric_values=metric_values)
+                self._dump_history(metric_values=metric_values)
  
                 callbacks.on_iteration_end(self.total_iterations, self)
  
@@ -203,10 +251,10 @@ class _BaseRunner:
         finally:
             stopping_vessel.close_pbars()
 
-        self.optimizer.sync(self.space)        
+        opt_time = time.time() - start
+        self.sync_optimizer(self.space)        
         callbacks.on_task_end(self)
  
-        opt_time = time.time() - start
         self.history.dump(time=opt_time)
  
         logger.info("Optimization task ended.")
@@ -227,15 +275,17 @@ class _BaseRunner:
 class _SingleObjectiveRunner(_BaseRunner):
     """Pipeline for problems with a single objective function."""
  
-    def _dump_history(self, metrics: Optional[List]) -> None:
-        self.history.dump(
-            agents=self.space.agents,
-            best_agent=self.space.best_agent,
-        )
-        logger.to_file(f"Fitness: {self.space.best_agent.fit}")
-        logger.to_file(f"Position: {self.space.best_agent.position}")
+    def _dump_history(self, **kwargs) -> None:
+        if self.save_history:
+            
+            self.history.dump(
+                agents=self.space.agents,
+                best_agent=self.space.best_agent,
+            )
+            #logger.to_file(f"Fitness: {self.space.best_agent.fit}")
+            #logger.to_file(f"Position: {self.space.best_agent.position}")
  
-    def _set_postfix(self, stopping_vessel: _StoppingVessel, metrics: Optional[List]) -> None:
+    def _set_postfix(self, stopping_vessel: _StoppingVessel, **kwargs) -> None:
         stopping_vessel.set_postfix(fitness=self.space.best_agent.fit)
  
     def _finalize_after_budget_exhaustion(self) -> None:
@@ -246,33 +296,33 @@ class _SingleObjectiveRunner(_BaseRunner):
 class _MultiObjectiveRunner(_BaseRunner):
     """Pipeline for problems with multiple objective functions."""
  
-    def _compute_metrics(self, metrics: Optional[List], filterPF: bool = True) -> Dict:
-        if filterPF:
-            self.space.update_pareto_front()
-        if not metrics:
+    def _compute_metrics(self) -> Dict:
+        self.space.update_pareto_front(_xp=self.space.env.xp)
+        if not self.metrics:
             return {}
  
-        return {metric.name.lower(): metric(self.space.pareto_front) for metric in metrics}
- 
-    def _dump_history(self, metrics: Optional[List]) -> None:
-        metric_values = self._compute_metrics(metrics)
+        return {metric.name.lower(): metric(self.space.pareto_front) for metric in self.metrics}
 
-        self.history.dump(
-            agents=self.space.agents,
-            pareto_front=self.space.pareto_front,
-            metric_values=metric_values,
-        )
+    
+    def _dump_history(self, metric_values: Dict, **kwargs) -> None:
+    
+        if self.save_history:
+            self.history.dump(
+                agents=self.space.agents,
+                pareto_front=self.space.pareto_front,
+                **metric_values,
+            )
         logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
+            
         for name, value in metric_values.items():
             logger.to_file(f"{name}: {value}")
  
-    def _set_postfix(self, stopping_vessel: _StoppingVessel, metrics: Optional[List]) -> None:
-        if metrics:
-            metric_values = self._compute_metrics(metrics, filterPF=False)
+    def _set_postfix(self, stopping_vessel: _StoppingVessel, metric_values: Dict, **kwargs) -> None:
+        if metric_values is not None:
             stopping_vessel.set_postfix(**metric_values)
  
     def _finalize_after_budget_exhaustion(self) -> None:
-        self.space.update_pareto_front()
+        self.space.update_pareto_front(_xp=self.space.env.xp)
         self.history.dump(
             agents=self.space.agents,
             pareto_front=self.space.pareto_front,
@@ -280,18 +330,24 @@ class _MultiObjectiveRunner(_BaseRunner):
 
 
 
-def Opytimizer(
-    space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace],
-    optimizer: Optimizer,
-    function: Function,
-    save_agents: bool = False,
-) -> _BaseRunner:
-    
-    
-    runner_cls = (
-        _SingleObjectiveRunner
-        if space.n_objectives == 1
-        else _MultiObjectiveRunner
-    )
-    
-    return runner_cls(space, optimizer, function, save_agents)
+class Opytimizer:
+
+    def __new__(
+        cls,
+        space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace],
+        optimizer: Optimizer,
+        function: Function,
+        save_agents: bool = False,
+        save_history: bool = False,
+    ) -> _BaseRunner:
+        runner_cls = (
+            _SingleObjectiveRunner
+            if space.n_objectives == 1
+            else _MultiObjectiveRunner
+        )
+        return runner_cls(space, optimizer, function, save_agents, save_history)
+
+    @classmethod
+    def load(cls, file_path: str) -> _BaseRunner:
+        with open(file_path, "rb") as f:
+            return dill.load(f)

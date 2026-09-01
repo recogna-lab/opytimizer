@@ -96,7 +96,7 @@ class DOA(Optimizer):
         """
 
         r1 = rnd.generate_uniform_random_number(lb, ub)
-
+       
         # Calculates the chaotic map (eq. 3)
         c_map = self.r * r1 * (1 - r1) + ((4 - self.r) * np.sin(np.pi * r1)) / 4
 
@@ -112,7 +112,7 @@ class DOA(Optimizer):
 
         for i, agent in enumerate(space.agents):
             for j, (lb, ub) in enumerate(zip(agent.lb, agent.ub)):
-                c_map = self._calculate_chaotic_map(lb, ub)
+                c_map = self._calculate_chaotic_map(lb, ub).item()
 
                 # Updates the agent's position (eq. 6)
                 agent.position[j] += (

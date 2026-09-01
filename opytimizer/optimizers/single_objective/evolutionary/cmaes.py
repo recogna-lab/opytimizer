@@ -12,7 +12,7 @@ import numpy as np
 
 import opytimizer.utils.exception as e
 from opytimizer.core import Function, Optimizer
-from opytimizer.core.space import _SingleObjectiveSpace
+from opytimizer.core.space import _SingleObjectiveSpace, _SingleObjectiveTensorSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -40,7 +40,7 @@ class _CMAESMixin:
 
     def _compute_hyperparams(self, n: int, xp):
         # Population / parent sizes  (Table 1 / Appendix B)
-        self.lam = 4 + int(math.floor(3 * math.log(n)))
+        #self.lam = 4 + int(math.floor(3 * math.log(n)))
         self.mu = self.lam // 2
 
         # (Eq. 49 / 53)
@@ -243,10 +243,10 @@ class CMAES(Optimizer, _CMAESMixin):
     # ------------------------------------------------------------------
 
     def compile(self, space: _SingleObjectiveSpace, **kwargs):
-        xp = np  # CPU backend always uses numpy
+        xp = np  
         n = len(space.lb)
         self.n = n
-
+        self.lam = space.n_agents
         self._compute_hyperparams(n, xp)
 
       
@@ -382,37 +382,41 @@ class CMAESTensor(Optimizer, _CMAESMixin):
 
     # ------------------------------------------------------------------
 
-    def compile(self, space: _SingleObjectiveSpace, **kwargs):
+    def compile(self, space: _SingleObjectiveTensorSpace, **kwargs):
         xp = space.env.xp
         self.DTYPE = space.env.dtype
         n = len(space.lb)
         self.n = n
+        self.lam = space.n_agents
+        
 
         # Scalar hyper-parameters
         self._compute_hyperparams(n, xp)
 
-        positions = xp.stack([ag.position.squeeze() for ag in space.agents])
-        self.m = xp.mean(positions, axis=0) 
+        
+        self.m = xp.mean(space.X, axis=0) 
         self.sigma = float(self.sigma0)
         self.g = 0
         self.eigeneval = 0
+
 
         # Evolution paths + covariance matrix
         self._init_state_arrays(n, xp)
 
         # Cast state arrays to env dtype
-        self.C = self.C.astype(xp.float32)
-        self.B = self.B.astype(xp.float32)
-        self.D = self.D.astype(xp.float32)
-        self.ps = self.ps.astype(xp.float32)
-        self.pc = self.pc.astype(xp.float32)
+        self.C = self.C.astype(self.DTYPE)
+        self.B = self.B.astype(self.DTYPE)
+        self.D = self.D.astype(self.DTYPE)
+        self.ps = self.ps.astype(self.DTYPE)
+        self.pc = self.pc.astype(self.DTYPE)
 
     
         self._lb = space.lb
         self._ub = space.ub
 
         self.best_position = xp.zeros(n, dtype=self.DTYPE)
-        self.best_fit = xp.asarray(xp.inf, dtype=xp.float32)
+        self.best_fit = xp.asarray(xp.inf, dtype=self.DTYPE)
+
 
         self.position = xp.zeros((self.lam, self.n), dtype=self.DTYPE)
         self.fit = xp.full(self.lam, xp.inf, dtype=xp.float32)
@@ -428,7 +432,7 @@ class CMAESTensor(Optimizer, _CMAESMixin):
         del _w
 
         logger.debug(
-            "CMA-ES (CUDA) compiled: n=%d  lambda=%d  µ=%d  µ_eff=%.2f  "
+            "CMA-ES (Tensorized) compiled: n=%d  lambda=%d  µ=%d  µ_eff=%.2f  "
             "c1=%.4f  cµ=%.4f  cc=%.4f  cs=%.4f  ds=%.4f",
             n, self.lam, self.mu, self.mueff,
             self.c1, self.cmu, self.cc, self.cs, self.ds,
@@ -436,20 +440,19 @@ class CMAESTensor(Optimizer, _CMAESMixin):
 
     # ------------------------------------------------------------------
 
-    def evaluate(self, space: _SingleObjectiveSpace, function: Function):
+    def evaluate(self, space: _SingleObjectiveTensorSpace, function: Function):
         """
         Initial evaluation — called once before the first update.
         """
         xp = space.env.xp
 
-        P = xp.stack([ag.position.squeeze() for ag in space.agents])
-        f_vals = function(P, xp=xp)
+        space.F[:] = function(space.X, xp=xp)
 
 
-        best_idx = xp.argmin(f_vals)
-        best_val = f_vals[best_idx]
+        best_idx = xp.argmin(space.F)
+        best_val = space.F[best_idx]
         improved = best_val < self.best_fit
-        self.best_position = xp.where(improved, P[best_idx], self.best_position)
+        self.best_position = xp.where(improved, space.X[best_idx], self.best_position)
         self.best_fit = xp.where(improved, best_val, self.best_fit)
 
         space.best_agent.fit = float(self.best_fit)
@@ -460,7 +463,7 @@ class CMAESTensor(Optimizer, _CMAESMixin):
 
     # ------------------------------------------------------------------
 
-    def update(self, space: _SingleObjectiveSpace, function: Function):
+    def update(self, space: _SingleObjectiveTensorSpace, function: Function):
         """
         One CMA-ES generation — fully on GPU.
         """
@@ -469,6 +472,8 @@ class CMAESTensor(Optimizer, _CMAESMixin):
 
         # (Eq. 38-40)
         X, Y, Z = self._sample_population(xp)
+
+        
         
         # Uses cached GPU bounds to avoid implicit lists casting
         X = self._clip_to_bounds(X, self._lb, self._ub, xp)
@@ -491,30 +496,32 @@ class CMAESTensor(Optimizer, _CMAESMixin):
         self.best_position = xp.where(improved, X_sorted[0], self.best_position)
         self.best_fit = xp.where(improved, f_sorted[0], self.best_fit)
         
-        self.position = X_sorted
-        self.fit = f_sorted
+        space.X[:] = X_sorted
+        space.F[:] = f_sorted
        
         space.best_agent.fit = float(self.best_fit)
         space.best_agent.ts = int(time.time())
 
     # ------------------------------------------------------------------
 
-    def sync(self, space: _SingleObjectiveSpace) -> None:
+    def sync(self, space: _SingleObjectiveTensorSpace) -> None:
         """
         Updates the agents in the space with the current generation's positions and fitnesses.
         """
-        for i, agent in enumerate(space.agents):
-            
-            k = i % self.lam
-           
-            agent.position[:] = self.position[k].reshape(agent.position.shape)
-            agent.fit = float(self.fit[k]) 
 
-        best_fit = float(self.best_fit) 
+        xp = space.env.xp
+        if xp.__name__ == 'cupy':
+            for i, agent in enumerate(space.agents):
+                agent.position[:] = xp.array(space.X[i]).reshape(-1,1).get()
+                agent.fit = space.F[i].get()
 
-        if best_fit < space.best_agent.fit:
-           
-            space.best_agent.position[:] = self.best_position.reshape(space.best_agent.position.shape)
-            space.best_agent.fit = best_fit
-            space.best_agent.ts = int(time.time())
+            space.best_agent.position[:] = self.best_position.reshape(-1, 1).get()
+            space.best_agent.fit = self.best_fit.get()
+        else:
+            for i, agent in enumerate(space.agents):
+                agent.position[:] = xp.array(space.X[i]).reshape(-1, 1)
+                agent.fit = space.F[i]
+
+            space.best_agent.position[:] = self.best_position.reshape(-1, 1)
+            space.best_agent.fit = self.best_fit
 

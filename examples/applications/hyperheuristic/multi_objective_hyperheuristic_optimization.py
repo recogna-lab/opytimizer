@@ -1,5 +1,5 @@
 import numpy as np
-
+from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
@@ -7,7 +7,7 @@ from opytimizer.hyperheuristics.selection_strategy import (
     ChoiceFunction,
     MultiArmedBandit,
 )
-from opytimizer.math.metrics import HypervolumeMetric
+from opytimizer.math.metrics import HV
 from opytimizer.optimizers.multi_objective.evolutionary import MOEAD, NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
@@ -17,6 +17,7 @@ from opytimizer.utils.reference_vectors import das_dennis
 # Define a multi-objective function (ZDT1)
 def zdt1_function(x):
     """ZDT1 multi-objective function."""
+    x = x.ravel()
     f1 = x[0]
     g = 1 + 9 * np.sum(x[1:]) / (len(x) - 1)
     h = 1 - np.sqrt(f1 / g)
@@ -30,7 +31,7 @@ REFERENCE_POINT = np.array(
 )  # For ZDT1, all solutions should be dominated by this point
 
 
-hv = HypervolumeMetric(REFERENCE_POINT)
+hv = HV(REFERENCE_POINT)
 
 
 # Generate weight vectors for MOEAD
@@ -39,16 +40,16 @@ weights, n_subproblems = das_dennis(n_objectives=2, n_partitions=12)
 # One should declare a list of optimizer instances to be used by the hyperheuristic
 optimizers = [
     NSGA2(
-        crossover_operator=SBXCrossover(eta=20, return_mode='both'),
+        crossover_operator=SBXCrossover(eta=20, n_offspring=2),
         mutation_operator=PolynomialMutation(eta=20),
     ),
     MOEAD(
-        crossover_operator=SBXCrossover(eta=20),
+        crossover_operator=SBXCrossover(eta=20, n_offspring=1),
         mutation_operator=PolynomialMutation(eta=20),
     ),
 ]
 # Set weights_vector for MOEAD if needed
-optimizers[1].weights_vector = weights
+optimizers[1].weight_vectors = weights
 
 # One should declare different selection strategies to compare
 selection_strategies = {
@@ -85,7 +86,7 @@ for strategy_name, strategy in selection_strategies.items():
     opt = Opytimizer(space, h, function)
 
     # Runs the hyperheuristic optimization
-    opt.start(n_iterations=100)
+    opt.start(MaxIterations(100))
 
     # Prints out multi-objective optimization results
     print(f"Number of Pareto solutions: {len(opt.space.pareto_front)}")

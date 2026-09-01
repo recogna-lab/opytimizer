@@ -294,30 +294,37 @@ import cupy as cp
 from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.core import Environment
-from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.optimizers.single_objective.swarm import PSOCuda
 from opytimizer.spaces import SearchSpace
 from opytimizer.core.stopping import MaxIterations
+from opytimizer.visualization import plot_convergence
+
+cp.random.seed(42)
+
 
 def sphere(x):
-    return cp.sum(x ** 2, axis=(1,2))
+    return cp.sum(x ** 2, axis=1)
+
 
 n_agents = 60
-n_variables = 10000
+n_variables = 10
 n_objectives = 1
 lower_bound = [-10] * n_variables
 upper_bound = [10] * n_variables
 
-gpu_environment = Environment().set_backend('cuda').set_dtype('float32')
+gpu_environment = Environment().set_backend('cupy').set_dtype('float32')
 
-space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound, env=gpu_environment)
-optimizer = PSO()
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound, env=gpu_environment, tensorized=True)
+optimizer = PSOCuda()
 function = Function(sphere)
 
-opt = Opytimizer(space, optimizer, function)
+opt = Opytimizer(space, optimizer, function, save_history=True)
 
 stopping = MaxIterations(1000)
 
 opt.start(stopping_criteria=stopping)
+
+plot_convergence(opt.history.best_agent, title='PSO (CuPy) convergence', labels=['PSO (CuPy - Raw Kernels)']).show()
 ```
 
 

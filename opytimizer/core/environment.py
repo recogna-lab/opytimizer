@@ -4,26 +4,30 @@ CPU/GPU core logic
 
 from __future__ import annotations
 
-import os
 from enum import Enum
 from typing_extensions import Literal
+from opytimizer.core._backend import ArrayBackendProxy
+from opytimizer.utils import logging
 
+logger = logging.get_logger(__name__)
 class Backend(str, Enum):
-    CPU = "cpu"
-    CUDA = "cuda"
+    NUMPY = "numpy"
+    CUPY = "cupy"
 
 class Environment:
-    """Singleton thread-safe"""
+    """Wrapper API class for backend control logic"""
 
-    def __init__(self, device: Literal['cpu', 'cuda'] = 'cpu', dtype: str = 'float32'):
-        self._backend: Backend = (Backend.CUDA if device == "cuda" else Backend.CPU)
+    def __init__(self, device: Literal['numpy', 'cupy'] = 'numpy', dtype: str = 'float32'):
+
+        
+        self.set_backend(device) 
         self._dtype: str = dtype
 
     def _init_defaults(self) -> None:
         """Standard values initialization"""
         
-        self._backend: Backend = Backend.CPU
-        self._dtype: str = 'float64'
+        self._backend: Backend = Backend.NUMPY
+        self._dtype: str = 'float32'
 
 
     # Public API
@@ -44,14 +48,18 @@ class Environment:
     
     @property
     def use_cuda(self) -> bool:
-        return self._backend is Backend.CUDA
+        return self._backend is Backend.CUPY
     
 
-    def set_backend(self, backend: Literal["cpu", "cuda"] | Backend) -> Environment:
+    def set_backend(self, backend: Literal["numpy", "cupy"] | Backend) -> Environment:
         """Defines computational backend"""
-
-
         self._backend = Backend(str(backend).lower())
+        
+        try:
+            _ = ArrayBackendProxy(self)._get_module()
+        except ImportError:
+            logger.info("The current device does not have CuPy installed. Backend switched to numpy.")
+            self._backend = Backend('numpy')
         return self
     
     def set_dtype(self, dtype: str) -> Environment:

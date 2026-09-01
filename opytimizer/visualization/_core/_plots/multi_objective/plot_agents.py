@@ -1,47 +1,38 @@
-"""
-"""
-
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from opytimizer.core import Agent
 import opytimizer.utils.exception as e
 
 from opytimizer.visualization._core import fields as F
-from opytimizer.visualization._core.transfer import agents_to_matrix
+from opytimizer.visualization._core.transfer import agents_to_matrix, to_numpy
+
 
 def extract_data(
-    agents: List[Agent],
+    agents: Union[List[Agent], Tuple[Any, Any], Any],
     *args,
     fields: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> Dict:
-    """
-    Extract agents data from a list of Agent objects.
-
-    Parameters
-    ----------
-    agents : list of Agent with ``.fit`` attribute (CuPy or NumPy [n_obj])
-    fields : iterable of field names to include, or ``None`` for all.
-             Available fields: ``"fitness"``, ``"n_obj"``, ``"title"``,
-             ``"color"``, ``"labels"``.
-
-             The GPU → CPU transfer only happens when ``"fitness"`` (or a
-             field that depends on it) is requested.
-
-    **kwargs
-        title  : str   – plot title            (default: "Pareto Front")
-        color  : str   – marker colour         (default: "#2ca02c")
-        labels : list  – axis labels           (default: ["Obj 1", ...])
-    """
     fmap = F.resolve(fields)
     result: Dict = {}
 
     need_matrix = F.wants_any(fmap, "fitness", "n_obj", "labels")
     if need_matrix:
-        fitness_matrix = agents_to_matrix(agents)   # single GPU → CPU hop
+        if isinstance(agents, tuple) and len(agents) == 2:
+            fitness_matrix = to_numpy(agents[1])
+        elif isinstance(agents, list) and len(agents) > 0 and isinstance(agents[0], Agent):
+            fitness_matrix = agents_to_matrix(agents)
+        else:
+            fitness_matrix = to_numpy(agents)
+
+        if fitness_matrix.ndim != 2:
+            raise e.ValueError(
+                f"Input matrix must be 2D with shape (N, M), got shape {fitness_matrix.shape}."
+            )
+
         n_obj = fitness_matrix.shape[1]
 
         if n_obj not in (2, 3):
@@ -66,9 +57,7 @@ def extract_data(
     return result
 
 
-
 def draw_mpl(ax, data: Dict) -> None:
-    """Matplotlib: scatter plot of a 2-D or 3-D Agents."""
     fit = data["fitness"]
 
     if data["n_obj"] == 2:
@@ -88,9 +77,7 @@ def draw_mpl(ax, data: Dict) -> None:
     ax.grid(True, linestyle="--", alpha=0.6)
 
 
-
 def draw_ply(fig, data: Dict) -> None:
-    """Plotly: interactive 2-D or 3-D Pareto front scatter."""
     import plotly.graph_objects as go
 
     fit = data["fitness"]
@@ -119,5 +106,3 @@ def draw_ply(fig, data: Dict) -> None:
             yaxis_title=data["labels"][1],
             zaxis_title=data["labels"][2],
         ))
-
-    fig.update_layout(title=data["title"])

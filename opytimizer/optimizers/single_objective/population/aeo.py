@@ -62,7 +62,7 @@ class AEO(Optimizer):
         a = copy.deepcopy(agent)
 
         # Calculates the alpha factor (eq. 2)
-        alpha = (1 - iteration / n_iterations) * r.generate_uniform_random_number()
+        alpha = (1 - iteration / n_iterations) * r.generate_uniform_random_number().item()
 
         for j, (lb, ub) in enumerate(zip(a.lb, a.ub)):
             a.position[j] = (1 - alpha) * best_agent.position[
@@ -107,7 +107,7 @@ class AEO(Optimizer):
 
         a = copy.deepcopy(agent)
 
-        r2 = r.generate_uniform_random_number()
+        r2 = r.generate_uniform_random_number().item()
         a.position += C * r2 * (a.position - producer.position) + (1 - r2) * (
             a.position - consumer.position
         )
@@ -157,10 +157,10 @@ class AEO(Optimizer):
             if i == 0:
                 a = self._production(agent, best_agent, iteration, n_iterations)
             else:
-                r1 = r.generate_uniform_random_number()
+                r1 = r.generate_uniform_random_number().item()
 
-                v1 = r.generate_gaussian_random_number()
-                v2 = r.generate_gaussian_random_number()
+                v1 = r.generate_gaussian_random_number().item()
+                v2 = r.generate_gaussian_random_number().item()
 
                 # Calculates the consumption factor (eq. 4)
                 C = 0.5 * v1 / np.abs(v2)
@@ -168,10 +168,10 @@ class AEO(Optimizer):
                 if r1 < 1 / 3:
                     a = self._herbivore_consumption(agent, agents[0], C)
                 elif 1 / 3 <= r1 <= 2 / 3:
-                    j = int(r.generate_uniform_random_number(1, i))
+                    j = int(r.generate_uniform_random_number(1, i).item())
                     a = self._omnivore_consumption(agent, agents[0], agents[j], C)
                 else:
-                    j = int(r.generate_uniform_random_number(1, i))
+                    j = int(r.generate_uniform_random_number(1, i).item())
                     a = self._carnivore_consumption(agent, agents[j], C)
 
             a.clip_by_bound()
@@ -198,12 +198,12 @@ class AEO(Optimizer):
             a = copy.deepcopy(agent)
 
             # Calculates the decomposition factor (eq. 10)
-            D = 3 * r.generate_gaussian_random_number()
+            D = 3 * r.generate_gaussian_random_number().item()
 
-            r3 = r.generate_uniform_random_number()
+            r3 = r.generate_uniform_random_number().item()
 
             # First weight coefficient (eq. 11)
-            e = r3 * int(r.generate_uniform_random_number(1, 2)) - 1
+            e = r3 * int(r.generate_uniform_random_number(1, 2).item()) - 1
 
             # Second weight coefficient (eq. 12)
             _h = 2 * r3 - 1

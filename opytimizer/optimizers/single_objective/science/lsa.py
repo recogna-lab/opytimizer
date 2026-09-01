@@ -178,17 +178,17 @@ class LSA(Optimizer):
         for j in range(agent.n_variables):
             for k in range(agent.n_dimensions):
                 if distance[j][k] == 0:
-                    r1 = r.generate_gaussian_random_number(0, energy)
+                    r1 = r.generate_gaussian_random_number(0, energy).item()
                     a.position[j][k] += self.direction[j][k] * r1
                 else:
                     if distance[j][k] < 0:
                         a.position[j][k] += r.generate_exponential_random_number(
                             np.fabs(distance[j][k])
-                        )
+                        ).item()
                     else:
                         a.position[j][k] -= r.generate_exponential_random_number(
                             distance[j][k]
-                        )
+                        ).item()
         a.clip_by_bound()
 
         a.fit = function(a.position)
@@ -196,7 +196,7 @@ class LSA(Optimizer):
             agent.position = copy.deepcopy(a.position)
             agent.fit = copy.deepcopy(a.fit)
 
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
             if r1 < self.p_fork:
                 a = copy.deepcopy(agent)
                 a.fill_with_uniform()

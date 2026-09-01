@@ -6,7 +6,7 @@ a separate PerformanceTracker class.
 import time
 
 from opytimark.markers.n_dimensional import Sphere
-
+from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
@@ -59,7 +59,7 @@ opt = Opytimizer(space, h, function)
 print("Starting optimization with PerformanceTrackingCallback...")
 start_time = time.time()
 
-opt.start(n_iterations=50, callbacks=[performance_callback])
+opt.start(MaxIterations(50), callbacks=[performance_callback])
 
 total_time = time.time() - start_time
 

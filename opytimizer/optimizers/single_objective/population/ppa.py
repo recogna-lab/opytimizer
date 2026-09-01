@@ -152,7 +152,7 @@ class PPA(Optimizer):
             k = np.expand_dims(k, -1)
 
             # Calculates the gaussian-based step distribution (eq. 11)
-            rand = r.generate_uniform_random_number()
+            rand = r.generate_uniform_random_number().item()
             S_g = (space.agents[i].position - space.agents[j].position) * rand
 
             # Updates the cuckoo's position and clips its limits (eq. 10)
@@ -187,7 +187,7 @@ class PPA(Optimizer):
             idx = space.n_agents - n_cats + i
 
             # Updates the cat's velocity (eq. 13)
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
             self.velocity[idx] += (
                 r1 * constant * (space.best_agent.position - cat.position)
             )

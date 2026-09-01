@@ -65,7 +65,7 @@ class GA(Optimizer):
     def p_selection(self, p_selection: float) -> None:
         if not isinstance(p_selection, (float, int)):
             raise e.TypeError("`p_selection` should be a float or integer")
-        if p_selection < 0 or p_selection > 1:
+        if p_selection < 0.0 or p_selection > 1.0:
             raise e.ValueError("`p_selection` should be between 0 and 1")
 
         self._p_selection = p_selection
@@ -116,7 +116,7 @@ class GA(Optimizer):
         
         child1, child2 = self.crossover_operator(father, mother)
         
-        return child1, child2
+        return child1[0], child2[0]
 
     def _mutation(self, agent: Agent) -> Agent:
         """Performs the mutation over offsprings (p. 8).

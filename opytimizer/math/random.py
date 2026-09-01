@@ -61,7 +61,7 @@ def generate_integer_random_number(
     Returns:
         (np.ndarray): An integer random number or array.
     """
-    integer_array = xp.random.randint(low, high, size)
+    integer_array = xp.asarray(xp.random.randint(low, high, size))
 
     if exclude_value is not None:
         mask = (integer_array == exclude_value)

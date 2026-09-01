@@ -40,11 +40,10 @@ def test_nsga3_crossover():
     new_nsga3 = nsga3.NSGA3()
 
     children = new_nsga3._crossover(search_space.agents[0], search_space.agents[1])
-
-    alpha = children[0]
+    alpha = children[0][0]
     assert type(alpha).__name__ == "Agent"
     if len(children) == 2:
-        beta = children[1]
+        beta = children[1][0]
         assert type(beta).__name__ == "Agent"
 
 
@@ -130,6 +129,7 @@ def test_nsga3_evaluate():
     new_nsga3.evaluate(search_space, multi_square)
 
     assert isinstance(search_space.pareto_front, list)
+    search_space.update_pareto_front()
     assert len(search_space.pareto_front) > 0
 
 

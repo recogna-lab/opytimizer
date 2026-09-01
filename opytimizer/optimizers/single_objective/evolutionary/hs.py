@@ -740,16 +740,18 @@ class GOGHS(NGHS):
         A = np.zeros((a.n_variables))
         B = np.zeros((a.n_variables))
 
-        k = r.generate_uniform_random_number()
-
+        k = r.generate_uniform_random_number()[0]
+        
         for j in range(a.n_variables):
+            
             A[j], B[j] = c.FLOAT_MAX, -c.FLOAT_MAX
 
             for agent in agents:
+                
                 if A[j] > agent.position[j]:
-                    A[j] = agent.position[j]
+                    A[j] = agent.position[j,0]
                 elif B[j] < agent.position[j]:
-                    B[j] = agent.position[j]
+                    B[j] = agent.position[j,0]
 
             a.position[j] = k * (A[j] + B[j]) - new_agent.position[j]
 

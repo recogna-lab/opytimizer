@@ -2,6 +2,7 @@
 """
 
 from typing import Any, Callable, Dict, List, Optional, Union
+from inspect import signature
 
 import numpy as np
 
@@ -166,7 +167,7 @@ class HyperHeuristic(Optimizer):
             self.performance_history[optimizer_name] = []
         # Use the custom performance metric if provided
         if self.performance_metric is not None:
-            performance = self.performance_metric(space)
+            performance = self.performance_metric(space.agents)
             self.performance_history[optimizer_name].append(performance)
             logger.debug("Updated performance for %s: %f.", optimizer_name, performance)
         else:
@@ -199,10 +200,37 @@ class HyperHeuristic(Optimizer):
             "Compiled hyperheuristic with %d optimizers.", len(self.optimizers)
         )
 
+    
+    def _evaluate_args(self, opt: Optimizer, local_vars: dict) -> List[Any]:
+        params = signature(opt.evaluate).parameters
+        args = []
+        
+        for p in params.values():
+            #
+            if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
+                continue
+
+            if p.name in local_vars:
+                args.append(local_vars[p.name])
+            elif hasattr(self, p.name):
+                args.append(getattr(self, p.name))
+            else:
+                raise e.BuildError(f"Missing parameter '{p.name}' for {opt.__class__.__name__}.evaluate")
+                
+        return args
+    
     def evaluate(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function) -> None:
         if not self.current_optimizer:
             raise e.ValueError("No optimizer selected for evaluation")
-        self.current_optimizer.evaluate(space, function)
+
+        args = self._evaluate_args(self.current_optimizer, locals())
+        
+        self.current_optimizer.evaluate(*args)
+
+        if hasattr(space, 'update_pareto_front'):
+            
+                space.update_pareto_front()
+       
         self.update_performance(self.current_optimizer, space)
 
     def update(self, space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace], function: Function = None) -> None:

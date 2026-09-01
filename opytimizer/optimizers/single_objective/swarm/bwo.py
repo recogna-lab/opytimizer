@@ -185,7 +185,7 @@ class BWO(Optimizer):
             agents2.extend(new_agents[:n_cannibals])
 
         for _ in range(0, n_mutate):
-            idx = int(r.generate_uniform_random_number(0, n_reproduct))
+            idx = int(r.generate_uniform_random_number(0, n_reproduct).item())
 
             alpha = self._mutation(agents1[idx])
             alpha.clip_by_bound()

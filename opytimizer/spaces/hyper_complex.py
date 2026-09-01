@@ -40,10 +40,10 @@ class _SingleObjectiveHyperComplexSpace(_SingleObjectiveSpace):
 
         logger.info("Overriding class: _SingleObjectiveSpace -> _SingleObjectiveHyperComplexSpace.")
 
-        lower_bound = self.env.xp.zeros(n_variables, dtype=self.env.dtype)
-        upper_bound = self.env.xp.ones(n_variables, dtype=self.env.dtype)
+        lower_bound = env.xp.zeros(n_variables, dtype=env.dtype)
+        upper_bound = env.xp.ones(n_variables, dtype=env.dtype)
 
-        super(_SingleObjectiveHyperComplexSpace, self).__init__(
+        super().__init__(
             n_agents=n_agents,
             n_variables=n_variables,
             n_dimensions=n_dimensions,
@@ -96,10 +96,10 @@ class _MultiObjectiveHyperComplexSpace(_MultiObjectiveSpace):
 
         logger.info("Overriding class: _MultiObjectiveSpace -> _MultiObjectiveHyperComplexSpace.")
 
-        lower_bound = self.env.xp.zeros(n_variables, dtype=self.env.dtype)
-        upper_bound = self.env.xp.ones(n_variables, self.env.dtype)
+        lower_bound = env.xp.zeros(n_variables, dtype=env.dtype)
+        upper_bound = env.xp.ones(n_variables, dtype=env.dtype)
 
-        super(_MultiObjectiveHyperComplexSpace, self).__init__(
+        super().__init__(
             n_agents=n_agents,
             n_variables=n_variables,
             n_dimensions=n_dimensions,
@@ -147,7 +147,7 @@ class HyperComplexSpace:
             env: Environment class object.
 
         """
-        if env is None: env = Environment('cpu', 'float32')
+        if env is None: env = Environment('numpy', 'float32')
 
         if n_objectives <= 0: raise e.ValueError('`n_objectives` should be a positive integer.')
         elif n_objectives == 1: return _SingleObjectiveHyperComplexSpace(n_agents, n_variables, n_dimensions, n_objectives, mapping, env)

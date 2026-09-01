@@ -11,29 +11,22 @@ from opytimizer.visualization._core import fields as F
 
 
 
+def _extract_val(item):
+   
+    if isinstance(item, (tuple, list)) and len(item) >= 2:
+        return item[1]
+    return item
+
+
 def extract_data(
     result=None,
     *args: List,
     fields: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> Dict:
-    """
-    Extract convergence curves from one or more optimiser histories.
+    """Extract convergence curves from one or more optimizer histories.
 
-    Parameters
-    ----------
-    *args  : each positional arg is a convergence history –
-             a list of ``(iteration, best_fitness)`` pairs.
-    fields : iterable of field names, or ``None`` for all.
-             Available: ``"curves"``, ``"x_axis"``, ``"labels"``,
-             ``"title"``, ``"xlabel"``, ``"ylabel"``.
-    **kwargs
-        iterations : list[int] – 1-based iteration indices to extract.
-                                 ``None`` → all iterations.
-        labels     : list[str] – algorithm names
-        title      : str
-        xlabel     : str
-        ylabel     : str
+    Accepts histories as tuples (pos, value) or direct numeric/NumPy arrays.
     """
     if not args:
         raise e.ValueError("No convergence data provided.")
@@ -49,14 +42,16 @@ def extract_data(
         if requested_indices is not None:
             for opt in args:
                 curves.append([
-                    opt[i - 1][1]
+                    float(_extract_val(opt[i - 1]))
                     for i in requested_indices
                     if i <= len(opt)
                 ])
             x_axis = requested_indices
         else:
             for opt in args:
-                curves.append([float(opt[i][1]) for i in range(len(opt))])
+                curves.append(
+                    [float(_extract_val(opt[i])) for i in range(len(opt))]
+                )
             x_axis = list(range(1, len(args[0]) + 1))
 
         if F.wants(fmap, "curves"):
@@ -65,9 +60,9 @@ def extract_data(
             out["x_axis"] = x_axis
 
     if F.wants(fmap, "labels"):
-        out["labels"] = (
-            kwargs.get("labels") or [f"Alg {i+1}" for i in range(len(args))]
-        )
+        out["labels"] = kwargs.get("labels") or [
+            f"Alg {i+1}" for i in range(len(args))
+        ]
     if F.wants(fmap, "title"):
         out["title"] = kwargs.get("title") or "Convergence Analysis"
     if F.wants(fmap, "xlabel"):
@@ -76,7 +71,6 @@ def extract_data(
         out["ylabel"] = kwargs.get("ylabel") or "Best Fitness"
 
     return out
-
 
 def draw_mpl(ax, data: Dict) -> None:
     """Matplotlib: one line per algorithm."""

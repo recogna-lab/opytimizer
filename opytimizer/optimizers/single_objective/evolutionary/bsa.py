@@ -164,7 +164,7 @@ class BSA(Optimizer):
 
         if a < b:
             for i in range(n_agents):
-                r1 = r.generate_uniform_random_number()
+                r1 = r.generate_uniform_random_number()[0]
 
                 non_crosses = int(self.mix_rate * r1 * n_variables)
 

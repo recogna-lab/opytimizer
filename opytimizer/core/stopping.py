@@ -105,7 +105,8 @@ class NoImprovement(_StoppingCriterion):
 
 
     def init_pbar(self, position) -> None:
-        self.pbar = tqdm(total=self.patience, desc=f"Non-improvement iterations ({self.min_delta})", position=position, leave=True, ascii=True)
+        self.pbar = tqdm(total=self.patience, desc=f"Non-improvement iterations ({self.min_delta})", position=position,
+                         leave=True, ascii=True)
 
     def update_pbar(self, opt) -> None:
         if self.pbar:

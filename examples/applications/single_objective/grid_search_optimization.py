@@ -1,8 +1,9 @@
 from opytimark.markers.n_dimensional import Sphere
 
+from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
 from opytimizer.core import Function
-from opytimizer.optimizers.misc import GS
+from opytimizer.optimizers.single_objective.misc import GS
 from opytimizer.spaces import GridSpace
 
 # Number of decision variables and step size of the grid
@@ -14,7 +15,7 @@ lower_bound = [-10, -10]
 upper_bound = [10, 10]
 
 # Creates the space, optimizer and function
-space = GridSpace(n_variables, step, lower_bound, upper_bound)
+space = GridSpace(n_variables, 1, step, lower_bound, upper_bound)
 optimizer = GS()
 function = Function(Sphere())
 
@@ -22,4 +23,4 @@ function = Function(Sphere())
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start()
+opt.start(MaxIterations(10))

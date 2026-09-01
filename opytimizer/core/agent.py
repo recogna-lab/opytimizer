@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union, Any
 import numpy as np
 
 import opytimizer.math.random as r
-import opytimizer.utils.constant as c
+
 import opytimizer.utils.exception as e
 from opytimizer.utils import logging
 from opytimizer.core.environment import Environment
@@ -40,7 +40,7 @@ class Agent:
             env: Environment class object.
 
         """
-        if env is None: env = Environment('cpu','float32')
+        if env is None: env = Environment('numpy','float32')
 
         self.env = env
         self.xp = env.xp
@@ -90,6 +90,9 @@ class Agent:
 
         self._n_dimensions = n_dimensions
 
+
+    def _is_ndarray(self, attr) -> bool:
+        return (attr.__class__.__name__ == 'ndarray')
     @property
     def position(self) -> np.ndarray:
         """N-dimensional array of positions."""
@@ -98,7 +101,8 @@ class Agent:
 
     @position.setter
     def position(self, position: Union[np.ndarray, Any]) -> None:
-
+        if not self._is_ndarray(position):
+            raise e.TypeError('`position` should be a ndarray') 
         self._position = position
 
     @property
@@ -120,13 +124,13 @@ class Agent:
         """Fitness value(s).
 
         Returns:
-            Union[float, Any]: Single value for mono-objective or array for multi-objective.
+            Union[float, Any]: Single value for single-objective or n-dimensional array for multi-objective.
         """
         return self._fit
 
     @fit.setter
     def fit(self, fit: Union[int, float, Any]) -> None:
-        self._fit = self.xp.asarray(fit, dtype=self.xp.float64)
+        self._fit = fit
 
     @property
     def lb(self) -> np.ndarray:

@@ -60,11 +60,11 @@ class Function:
         """
         if self.budget is not None and self.n_calls >= self.budget:
             raise e.BudgetExhausted(f'Evaluation budget of {self.budget} calls exhausted')
-        self.n_calls += 1
-
+        
+        self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
+       
         if xp is None:
-            xp = np
-            
+            xp = np   
             
         result = self.pointer(x)
         result = xp.asarray(result)

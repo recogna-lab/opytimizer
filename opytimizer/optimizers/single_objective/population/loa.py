@@ -85,7 +85,7 @@ class Lion(Agent):
 
     @p_fit.setter
     def p_fit(self, p_fit: float) -> None:
-        if not isinstance(p_fit, (float, int, np.int32, np.int64)):
+        if not isinstance(p_fit, (float, int, np.int32, np.int64, np.float32, np.float64, np.ndarray)):
             raise e.TypeError("`p_fit` should be a float or integer")
 
         self._p_fit = p_fit
@@ -366,7 +366,7 @@ class LOA(Optimizer):
         for pride in prides:
             for agent in pride:
                 if agent.female:
-                    agent.group = r.generate_integer_random_number(high=4)
+                    agent.group = r.generate_integer_random_number(high=4).item()
                 else:
                     agent.group = 0
 
@@ -390,12 +390,12 @@ class LOA(Optimizer):
                             # Updates its position (eq. 5 - top)
                             agent.position[j] = r.generate_uniform_random_number(
                                 agent.position[j], prey[j]
-                            )
+                            ).item()
                         else:
                             # Updates its position (eq. 5 - bottom)
                             agent.position[j] = r.generate_uniform_random_number(
                                 prey[j], agent.position[j]
-                            )
+                            ).item()
 
                 if agent.group in [left, right]:
                     for j in range(agent.n_variables):
@@ -405,12 +405,12 @@ class LOA(Optimizer):
                             # Updates its position (eq. 4 - top)
                             agent.position[j] = r.generate_uniform_random_number(
                                 encircling, prey[j]
-                            )
+                            ).item()
                         else:
                             # Updates its position (eq. 4 - bottom)
                             agent.position[j] = r.generate_uniform_random_number(
                                 prey[j], encircling
-                            )
+                            ).item()
 
                 agent.clip_by_bound()
 
@@ -421,7 +421,7 @@ class LOA(Optimizer):
 
                     p_improvement = agent.fit / agent.p_fit
 
-                    r1 = r.generate_uniform_random_number()
+                    r1 = r.generate_uniform_random_number().item()
                     prey += r1 * p_improvement * (prey - agent.position)
 
     def _moving_safe_place(self, prides: List[Lion]) -> None:
@@ -448,9 +448,9 @@ class LOA(Optimizer):
 
                     distance = g.euclidean_distance(agent.position, pride[w].position)
 
-                    rand = r.generate_uniform_random_number()
-                    u = r.generate_uniform_random_number(-1, 1)
-                    theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6)
+                    rand = r.generate_uniform_random_number().item()
+                    u = r.generate_uniform_random_number(-1, 1).item()
+                    theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6).item()
 
                     R1 = pride[w].position - agent.position
                     R2 = np.random.randn(*R1.T.shape)
@@ -478,14 +478,14 @@ class LOA(Optimizer):
             for agent in pride:
                 if not agent.female:
                     for s in selected:
-                        theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6)
+                        theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6).item()
 
                         distance = g.euclidean_distance(
                             pride[s].best_position, agent.position
                         )
 
                         # Generates the step (eq. 10)
-                        step = r.generate_uniform_random_number(0, 2 * distance)
+                        step = r.generate_uniform_random_number(0, 2 * distance).item()
                         agent.position += step * np.tan(theta)
                         agent.clip_by_bound()
 
@@ -521,13 +521,13 @@ class LOA(Optimizer):
         a2.position = (1 - beta) * a2.position + beta * males_average
 
         for j in range(agent.n_variables):
-            r2 = r.generate_uniform_random_number()
+            r2 = r.generate_uniform_random_number().item()
             if r2 < self.Mu:
-                a1.position[j] = r.generate_uniform_random_number(a1.lb[j], a1.ub[j])
+                a1.position[j] = r.generate_uniform_random_number(a1.lb[j], a1.ub[j]).item()
 
-            r3 = r.generate_uniform_random_number()
+            r3 = r.generate_uniform_random_number().item()
             if r3 < self.Mu:
-                a2.position[j] = r.generate_uniform_random_number(a2.lb[j], a2.ub[j])
+                a2.position[j] = r.generate_uniform_random_number(a2.lb[j], a2.ub[j]).item()
 
         a1.clip_by_bound()
         a2.clip_by_bound()
@@ -560,7 +560,7 @@ class LOA(Optimizer):
 
             for agent in pride:
                 if agent.female:
-                    r1 = r.generate_uniform_random_number()
+                    r1 = r.generate_uniform_random_number().item()
                     if r1 < self.Ma:
                         males = [agent for agent in pride if not agent.female]
 
@@ -623,13 +623,13 @@ class LOA(Optimizer):
                 0.5, (agent.fit - best_fit) / (best_fit + c.EPSILON)
             )
 
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
             if r1 < prob:
                 for j in range(agent.n_variables):
                     # Updates the agent's position (eq. 11 - bottom)
                     agent.position[j] = r.generate_uniform_random_number(
                         agent.lb[j], agent.ub[j]
-                    )
+                    ).item()
 
             agent.clip_by_bound()
 
@@ -654,7 +654,7 @@ class LOA(Optimizer):
 
         for agent in nomads:
             if agent.female:
-                r1 = r.generate_uniform_random_number()
+                r1 = r.generate_uniform_random_number().item()
                 if r1 < self.Ma:
                     males = [agent for agent in nomads if not agent.female]
 

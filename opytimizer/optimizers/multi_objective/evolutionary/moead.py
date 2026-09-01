@@ -3,18 +3,15 @@
 import copy
 from typing import Any, Dict, Optional, Union, Tuple, List
 
-
-
 import numpy as np
 
-from opytimizer.core.environment import Backend
 from opytimizer.core import Environment
 import opytimizer.math.general as g
 import opytimizer.utils.exception as e
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.optimizer import MultiObjectiveOptimizer
-from opytimizer.core.space import _MultiObjectiveSpace
+from opytimizer.core import MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer
+from opytimizer.core.space import _MultiObjectiveSpace, _MultiObjectiveTensorSpace
 from opytimizer.utils import logging
 from opytimizer.math.aggregation import  Tchebycheff, PBI, _BaseAggregation
 from opytimizer.utils.operators import PolynomialMutation, SBXCrossover, PolynomialMutationTensor, SBXCrossoverTensor
@@ -67,8 +64,7 @@ class MOEAD(MultiObjectiveOptimizer):
         self.build(params)
 
         self.T = None # neighborhood index array
-        
-
+    
         logger.info("Class overrided.")
 
 
@@ -146,7 +142,7 @@ class MOEAD(MultiObjectiveOptimizer):
         if isinstance(offspring, tuple):
             # two offsprings
             child_1, child_2 = offspring
-            child_1, child_2 = self.mutation_operator(child_1, child_2)
+            child_1, child_2 = self.mutation_operator(child_1[0]), self.mutation_operator(child_2[0])
             return [child_1, child_2]
         else:
             #one offspring
@@ -156,8 +152,10 @@ class MOEAD(MultiObjectiveOptimizer):
     def _environmental_selection(self, children: List[Agent], subproblem_index: int, space: _MultiObjectiveSpace) -> None:
         
         neighbors = self.T[subproblem_index]
+        
         weights = self.weight_vectors[neighbors]
         neighbors_fit = np.array([space.agents[idx].fit for idx in neighbors])
+        
         current_pop_aggr = self.decomposition_method(neighbors_fit, weights, np, z=self.z)
 
         children_aggr = np.array([
@@ -165,9 +163,10 @@ class MOEAD(MultiObjectiveOptimizer):
             for child in children
         ])
 
+       
         best_child_indices = np.argmin(children_aggr, axis=0)
         best_child_aggr = np.min(children_aggr, axis=0)
-
+        
         replace_mask = best_child_aggr <= current_pop_aggr
 
         for i, neighbor_index in enumerate(neighbors):
@@ -193,7 +192,9 @@ class MOEAD(MultiObjectiveOptimizer):
             agent.fit = function(agent.position)
             self.z = np.minimum(self.z, agent.fit)
 
-        self.evaluate = lambda: None
+        
+
+        self.evaluate = lambda : None
 
 
     def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
@@ -210,7 +211,8 @@ class MOEAD(MultiObjectiveOptimizer):
             for child in children:
                 child.fit = function(child.position)
                 fits.append(child.fit) 
-            self.z = np.minimum(self.z, fits)
+            
+            self.z = np.minimum(self.z, np.min(fits, axis=0))
             
             self._environmental_selection(children, sub_problem_index, space)
 
@@ -219,7 +221,7 @@ class MOEAD(MultiObjectiveOptimizer):
 # //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-class MOEADTensor(MultiObjectiveOptimizer):
+class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
     """
         Tensorized implementation of MOEA/D
         based on the following work:
@@ -243,14 +245,10 @@ class MOEADTensor(MultiObjectiveOptimizer):
 
         self.n_subproblems = None
         self.neighborhood_size = None
-        self.crossover_operator = crossover_operator or SBXCrossoverTensor(env=Environment('cpu', 'float32'))
-        self.mutation_operator = mutation_operator or PolynomialMutationTensor(env=Environment('cpu', 'float32'))
+        self.crossover_operator = crossover_operator or SBXCrossoverTensor(env=Environment('numpy', 'float32'))
+        self.mutation_operator = mutation_operator or PolynomialMutationTensor(env=Environment('numpy', 'float32'))
         self.decomposition_method = decomposition_method or PBI()
         self.weight_vectors = weight_vectors
-        
-        
-        self.X = None
-        self.F = None
 
         self.build(params)
 
@@ -306,7 +304,7 @@ class MOEADTensor(MultiObjectiveOptimizer):
     def z(self, ref: Any) -> None:
         self._z = ref
 
-    def compile(self, space: _MultiObjectiveSpace, **kwargs) -> None:
+    def compile(self, space: _MultiObjectiveTensorSpace, **kwargs) -> None:
         """Compiles additional information that is used by this optimizer."""
         if self.n_subproblems is None:
             self.n_subproblems = space.n_agents
@@ -328,20 +326,20 @@ class MOEADTensor(MultiObjectiveOptimizer):
         self.T = xp.argsort(dist_matrix, axis=1)[:, :self.neighborhood_size]
 
 
-    def evaluate(self, space: _MultiObjectiveSpace, function: Function) -> None:
+    def evaluate(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
         xp = space.env.xp
         
      
-        self.X = xp.stack([agent.position.squeeze() for agent in space.agents])
-        self.F = function(self.X, xp=xp)
+        
+        space.F = function(space.X, xp=xp)
             
-        self.z = xp.minimum(self.z, xp.min(self.F, axis=0))
+        self.z = xp.minimum(self.z, xp.min(space.F, axis=0))
 
-        self.evaluate = lambda: None
+        self.evaluate = lambda args: None
            
 
 
-    def _mating_selection(self, space: _MultiObjectiveSpace) -> Tuple:
+    def _mating_selection(self, space: _MultiObjectiveTensorSpace) -> Tuple:
         xp = space.env.xp
         
         rand_idx = xp.random.randint(0, self.neighborhood_size, size=(self.n_subproblems, 2))
@@ -352,12 +350,12 @@ class MOEADTensor(MultiObjectiveOptimizer):
         parent2_indices = neighbors_idx[:, 1] % space.n_agents
         
         
-        parents1_X = self.X[parent1_indices]
-        parents2_X = self.X[parent2_indices]
+        parents1_X = space.X[parent1_indices]
+        parents2_X = space.X[parent2_indices]
         
         return parents1_X, parents2_X
 
-    def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
+    def update(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
         xp = space.env.xp
 
         
@@ -384,7 +382,7 @@ class MOEADTensor(MultiObjectiveOptimizer):
         F2_exp = xp.repeat(F2, self.neighborhood_size, axis=0)
         
         
-        F_nb = self.F[targets]
+        F_nb = space.F[targets]
         W_nb = self.weight_vectors[targets]
         
         
@@ -411,24 +409,9 @@ class MOEADTensor(MultiObjectiveOptimizer):
         final_O = valid_O[unique_indices]
         final_F2 = valid_F2[unique_indices]
 
-        self.X[final_targets] = final_O
-        self.F[final_targets] = final_F2
+        space.X[final_targets] = final_O
+        space.F[final_targets] = final_F2
         
-
-    
-    def sync(self, space: _MultiObjectiveSpace):
-        
-        xp = space.env.xp
-        X_cpu = self.X
-        F_cpu = self.F
-        
-        for i, agent in enumerate(space.agents):
-            agent.position[:] = xp.array(X_cpu[i]).reshape(agent.position.shape)
-            agent.fit[:] = F_cpu[i]
-        
-        space.update_pareto_front()
-
-
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -681,7 +664,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
         Returns:
             np.ndarray: mutated solution position
         """
-
+       
         mutant = copy.deepcopy(parent1)
         mutant.position = parent1.position + self.F * (parent2.position - parent3.position)
         
@@ -797,7 +780,6 @@ class MOEAD_DE(MultiObjectiveOptimizer):
 
        
 
-
     def update(self, space: _MultiObjectiveSpace, function: Function) -> None:
         """Updates the population using MOEA/D.
 
@@ -810,6 +792,7 @@ class MOEAD_DE(MultiObjectiveOptimizer):
         for index, agent in enumerate(space.agents):
             
             parent1 = copy.deepcopy(agent)
+            
             # Build the mating pool
             mating_pool = self._build_mating_pool(index)
 

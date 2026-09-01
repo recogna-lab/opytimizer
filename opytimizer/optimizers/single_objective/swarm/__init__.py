@@ -24,6 +24,8 @@ from opytimizer.optimizers.single_objective.swarm.pio import PIO
 from opytimizer.optimizers.single_objective.swarm.pso import (
     AIWPSO,
     PSO,
+    PSOCuda,
+    PSOTensor,
     RPSO,
     SAVPSO,
     VPSO,

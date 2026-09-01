@@ -143,8 +143,6 @@ class RRA(Optimizer):
 
     @last_best_fit.setter
     def last_best_fit(self, last_best_fit: float) -> None:
-        if not isinstance(last_best_fit, (float, int)):
-            raise e.TypeError("`last_best_fit` should be a float or integer")
 
         self._last_best_fit = last_best_fit
 

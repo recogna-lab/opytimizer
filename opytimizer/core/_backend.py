@@ -6,9 +6,12 @@ from __future__ import annotations
 import importlib
 from types import ModuleType
 from typing import Any, TYPE_CHECKING
+from opytimizer.utils import logging
+
+logger = logging.get_logger(__name__)
 
 if TYPE_CHECKING:
-    from opytimizer.core.environment import Backend, Environment
+    from opytimizer.core.environment import Environment
 
 
 
@@ -30,12 +33,9 @@ class ArrayBackendProxy:
         from opytimizer.core.environment import Backend
         env = object.__getattribute__(self, "_env")
         current = env.backend
-        
-        if current is Backend.CUDA:
-            try:
-                return importlib.import_module("cupy")
-            except ImportError:
-                return importlib.import_module("numpy")
+        if current is Backend.CUPY:
+            return importlib.import_module("cupy")
+            
         return importlib.import_module("numpy")
     
  

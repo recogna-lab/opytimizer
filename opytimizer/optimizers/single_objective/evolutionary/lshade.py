@@ -12,7 +12,6 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer, Function
 from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
-from opytimizer.core.environment import Backend
 from scipy.stats import cauchy
 logger = logging.get_logger(__name__)
 

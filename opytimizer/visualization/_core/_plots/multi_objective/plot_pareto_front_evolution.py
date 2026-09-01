@@ -1,41 +1,21 @@
-"""
-"""
-
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from opytimizer.core import Agent
 import opytimizer.utils.exception as e
 
 from opytimizer.visualization._core import fields as F
-from opytimizer.visualization._core.transfer import batch_agents_to_matrices
-
+from opytimizer.visualization._core.transfer import batch_agents_to_matrices, to_numpy
 
 
 def extract_data(
-    pareto_fronts: List[List[Agent]],
+    pareto_fronts: List[Union[List[Agent], Tuple[Any, Any], Any]],
     *args,
     fields: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> Dict:
-    """
-    Extract selected Pareto-front snapshots for evolution plotting.
-
-    Parameters
-    ----------
-    pareto_fronts : list of agent-lists, one entry per optimiser iteration.
-    fields        : iterable of field names to include, or ``None`` for all.
-                    Available: ``"evolution"``, ``"iterations"``, ``"n_obj"``,
-                    ``"title"``, ``"labels"``, ``"cmap"``.
-    **kwargs
-        iterations : list[int] – 1-based iteration indices to show.
-                                 ``None`` → show all.
-        title      : str
-        labels     : list[str] – axis labels
-        cmap       : str       – matplotlib colormap name (default "viridis")
-    """
     if not pareto_fronts:
         raise e.ValueError("pareto_fronts list is empty.")
 
@@ -55,14 +35,33 @@ def extract_data(
         selected_groups = pareto_fronts
         iter_labels = list(range(1, len(pareto_fronts) + 1))
 
-    
     need_matrix = F.wants_any(fmap, "evolution", "n_obj", "labels")
     if need_matrix:
-        
-        matrices = batch_agents_to_matrices(selected_groups)
+        is_agent_list = (
+            len(selected_groups) > 0
+            and isinstance(selected_groups[0], list)
+            and len(selected_groups[0]) > 0
+            and isinstance(selected_groups[0][0], Agent)
+        )
+
+        if is_agent_list:
+            matrices = batch_agents_to_matrices(selected_groups)
+        else:
+            matrices = []
+            for group in selected_groups:
+                if isinstance(group, tuple) and len(group) == 2:
+                    matrices.append(to_numpy(group[1]))
+                else:
+                    matrices.append(to_numpy(group))
+
+        for idx, matrix in enumerate(matrices):
+            if matrix.ndim != 2:
+                raise e.ValueError(
+                    f"Matrix at index {idx} must be 2D with shape (N, M), got shape {matrix.shape}."
+                )
 
         if not matrices or matrices[0].size == 0:
-            raise e.ValueError("Could not extract fitness data from agents.")
+            raise e.ValueError("Could not extract fitness data.")
 
         n_obj = matrices[0].shape[1]
 
@@ -75,7 +74,6 @@ def extract_data(
                 kwargs.get("labels") or [f"Obj {i+1}" for i in range(n_obj)]
             )
 
-    
     if F.wants(fmap, "iterations"):
         result["iterations"] = iter_labels
     if F.wants(fmap, "title"):
@@ -87,7 +85,6 @@ def extract_data(
 
 
 def draw_mpl(ax, data: Dict) -> None:
-    """Matplotlib: temporal Pareto-front scatter with colour gradient."""
     import matplotlib.pyplot as plt
 
     n_obj = data["n_obj"]
@@ -127,9 +124,7 @@ def draw_mpl(ax, data: Dict) -> None:
     ax.grid(True, linestyle="--", alpha=0.5)
 
 
-
 def draw_ply(fig, data: Dict) -> None:
-    """Plotly: interactive temporal Pareto-front evolution."""
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
     import plotly.graph_objects as go

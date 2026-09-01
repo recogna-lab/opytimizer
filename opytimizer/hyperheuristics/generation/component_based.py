@@ -9,7 +9,7 @@ import numpy as np
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.hyperheuristic import HyperHeuristic
-from opytimizer.core.space import Space
+from opytimizer.core.space import _Space
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -83,21 +83,21 @@ class ComponentBasedHyperHeuristic(HyperHeuristic):
             ],
         }
 
-    def _random_initialization(self, space: Space) -> None:
+    def _random_initialization(self, space: _Space) -> None:
         """Random initialization component."""
         for agent in space.agents:
             agent.position = np.random.uniform(
                 space.lb, space.ub, size=agent.position.shape
             )
 
-    def _uniform_initialization(self, space: Space) -> None:
+    def _uniform_initialization(self, space: _Space) -> None:
         """Uniform initialization component."""
         for agent in space.agents:
             agent.position = np.random.uniform(
                 space.lb, space.ub, size=agent.position.shape
             )
 
-    def _gaussian_initialization(self, space: Space) -> None:
+    def _gaussian_initialization(self, space: _Space) -> None:
         """Gaussian initialization component."""
         for agent in space.agents:
             mean = (space.lb + space.ub) / 2
@@ -221,7 +221,7 @@ class ComponentBasedHyperHeuristic(HyperHeuristic):
             algorithm[component_type] = random.choice(component_list)
         return algorithm
 
-    def _evaluate_algorithm(self, algorithm: Dict[str, Any], space: Space) -> float:
+    def _evaluate_algorithm(self, algorithm: Dict[str, Any], space: _Space) -> float:
         """Evaluate a generated algorithm.
 
         Args:
@@ -344,7 +344,7 @@ class ComponentBasedHyperHeuristic(HyperHeuristic):
             }
         return individual
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _Space) -> None:
         """Compile the component-based hyperheuristic.
 
         Args:
@@ -356,7 +356,7 @@ class ComponentBasedHyperHeuristic(HyperHeuristic):
             self.population_size,
         )
 
-    def evaluate(self, space: Space, function: Function) -> None:
+    def evaluate(self, space: _Space, function: Function) -> None:
         """Evaluate the population of generated algorithms.
 
         Args:
@@ -379,7 +379,7 @@ class ComponentBasedHyperHeuristic(HyperHeuristic):
         avg_fitness = np.mean([ind["fitness"] for ind in self.population])
         self.fitness_history.append(avg_fitness)
 
-    def update(self, space: Space) -> None:
+    def update(self, space: _Space) -> None:
         """Update the population through evolution.
 
         Args:

@@ -236,7 +236,7 @@ class HGSO(Optimizer):
         gamma = self.beta * np.exp(-(best_agent.fit + 0.05) / (agent.fit + 0.05))
         flag = np.sign(r.generate_uniform_random_number(-1, 1))
 
-        r1 = r.generate_uniform_random_number()
+        r1 = r.generate_uniform_random_number().item()
 
         new_position = (
             agent.position
@@ -288,7 +288,7 @@ class HGSO(Optimizer):
         space.agents.sort(key=lambda x: x.fit)
 
         # Calculates the number of worst agents (eq. 11)
-        r1 = r.generate_uniform_random_number()
+        r1 = r.generate_uniform_random_number().item()
         N = int(len(space.agents) * (r1 * (0.2 - 0.1) + 0.1))
 
         for agent in space.agents[-N:]:

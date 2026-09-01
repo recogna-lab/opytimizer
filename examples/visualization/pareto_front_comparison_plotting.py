@@ -1,6 +1,6 @@
 import numpy as np
 
-
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.core import Function
 from opytimizer.spaces import SearchSpace
 from opytimizer.optimizers.multi_objective.evolutionary import RVEA, MOEAD
@@ -38,11 +38,11 @@ np.random.seed(0)
 
 #####################################################################################################################################
 space = SearchSpace(n_agents=N_AGENTS, n_variables=N_VARIABLES, n_objectives=N_OBJECTIVES, lower_bound=LOWER_BOUND, upper_bound=UPPER_BOUND)
-optimizer = RVEA(reference_vectors=WEIGHTS, mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, return_mode='both'), max_generations=N_GENERATIONS)
+optimizer = RVEA(reference_vectors=WEIGHTS, mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, n_offspring=2), max_generations=N_GENERATIONS)
 
 opt_rvea = Opytimizer(space=space, optimizer=optimizer, function=func, save_agents=True)
 
-opt_rvea.start(N_GENERATIONS)
+opt_rvea.start(MaxIterations(N_GENERATIONS))
 #####################################################################################################################################
 
 np.random.seed(0)
@@ -50,11 +50,11 @@ np.random.seed(0)
 #####################################################################################################################################
 
 space = SearchSpace(n_agents=N_AGENTS, n_variables=N_VARIABLES, n_objectives=N_OBJECTIVES, lower_bound=LOWER_BOUND, upper_bound=UPPER_BOUND)
-optimizer = MOEAD(weights_vector=WEIGHTS, mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, return_mode='random'))
+optimizer = MOEAD(weight_vectors=WEIGHTS, mutation_operator=PolynomialMutation(eta=20, rate=(1./N_VARIABLES)), crossover_operator=SBXCrossover(eta=30, rate=1.0, gene_rate=1.0, n_offspring=1))
 
 opt_moead = Opytimizer(space=space, optimizer=optimizer, function=func, save_agents=True)
 
-opt_moead.start(N_GENERATIONS)
+opt_moead.start(MaxIterations(N_GENERATIONS))
 
 #####################################################################################################################################
 

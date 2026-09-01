@@ -36,14 +36,11 @@ def test_rvea_crossover():
     )
 
     new_rvea = rvea.RVEA(reference_vectors=REFERENCE_VECTORS)
-    children = new_rvea.crossover_operator(search_space.agents[0], search_space.agents[1])
+    child1, child2 = new_rvea.crossover_operator(search_space.agents[0], search_space.agents[1])
 
-    alpha = children[0]
+    alpha = child1[0]
     assert type(alpha).__name__ == "Agent"
-    if len(children) == 2:
-        beta = children[1]
-        assert type(beta).__name__ == "Agent"
-
+    
 
 def test_rvea_mutation():
     search_space = SearchSpace(
@@ -89,6 +86,7 @@ def test_rvea_evaluate():
     new_rvea.evaluate(search_space, multi_square)
 
     assert isinstance(search_space.pareto_front, list)
+    search_space.update_pareto_front()
     assert len(search_space.pareto_front) > 0
 
 

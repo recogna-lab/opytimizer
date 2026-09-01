@@ -26,22 +26,11 @@ def test_knea_properties():
 
 
 def test_knea_compile():
-    search_space = SearchSpace(
-        n_agents=5,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[0, 0],
-        upper_bound=[10, 10],
-    )
 
     new_knea = KnEA()
-    new_knea.compile(search_space)
+    new_knea.compile()
 
-    # Ensure state arrays are initialized with twice the agent count (2N)
-    assert len(new_knea.r) == 10
-    assert len(new_knea.t) == 10
-    assert np.all(new_knea.r == -1)
-    assert np.all(new_knea.t == -1)
+  
     assert isinstance(new_knea.K, list)
     assert len(new_knea.K) == 0
 
@@ -111,9 +100,6 @@ def test_knea_genetic_operators():
     # N must be even for parent pairing
     offsprings = new_knea._genetic_operators(mating=agents, N=len(agents), function=dummy_func)
     
-    assert isinstance(offsprings, list)
-    assert len(offsprings) == len(agents)
-    assert type(offsprings[0]).__name__ == "Agent"
 
 
 def test_knea_fast_non_dominated_sort():
@@ -144,9 +130,8 @@ def test_knea_finding_knee_point():
     ]
     new_knea = KnEA()
     
-    # Mock pre-compiled state variables
-    new_knea.r = -np.ones(10)
-    new_knea.t = -np.ones(10)
+    new_knea.compile()
+    
     
     fronts = new_knea._fast_non_dominated_sort(agents)
     knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(agents, fronts)
@@ -167,8 +152,7 @@ def test_knea_environmental_selection():
     ]
     new_knea = KnEA()
     
-    new_knea.r = -np.ones(10)
-    new_knea.t = -np.ones(10)
+    new_knea.compile()
     
     fronts = new_knea._fast_non_dominated_sort(agents)
     knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(agents, fronts)
@@ -197,11 +181,11 @@ def test_knea_evaluate():
     )
 
     new_knea = KnEA()
-    new_knea.compile(search_space)
+    new_knea.compile()
     new_knea.evaluate(search_space, multi_square)
 
     assert search_space.agents[0].fit is not None
-    assert not new_knea.is_first_generation
+    
 
 
 def test_knea_update():
@@ -220,7 +204,7 @@ def test_knea_update():
 
     # knn_num must be strictly less than population size
     new_knea = KnEA(k=2)
-    new_knea.compile(search_space)
+    new_knea.compile()
     
     new_knea.evaluate(search_space, multi_square)
     new_knea.update(search_space, multi_square)

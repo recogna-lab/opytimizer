@@ -196,7 +196,7 @@ class BA(Optimizer):
         for i, agent in enumerate(space.agents):
             # Updates frequency (eq. 2)
             # Note that we have to apply (min - max) instead of (max - min) or it will not converge
-            beta = rnd.generate_uniform_random_number()
+            beta = rnd.generate_uniform_random_number().item()
             self.frequency[i] = self.f_min + (self.f_min - self.f_max) * beta
 
             # Updates velocity (eq. 3)

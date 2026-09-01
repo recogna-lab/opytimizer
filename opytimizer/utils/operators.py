@@ -380,7 +380,6 @@ class PolynomialMutation(BaseMutation):
 
 # TENSORIZED GPU OPERATORS
 
-
 class ArithmeticCrossoverTensor:
     """
     Highly parallelized Arithmetic Crossover executing on GPU.
@@ -444,7 +443,7 @@ class GaussianMutationTensor:
 
 class SBXCrossoverTensor:
     """
-    Simulated Binary Crossover (SBX) re-architected for CUDA Tensor operations.
+    Simulated Binary Crossover (SBX) re-architected for tensorized operations.
     """
     def __init__(self, env: Environment, eta: int = 20, rate: float = 1.0, gene_rate: float = 1.0):
         self.env = env
@@ -568,7 +567,7 @@ class BitFlipMutationTensor:
 
 class PolynomialMutationTensor:
     """
-    Polynomial Mutation designed for tensor execution inside VRAM.
+    Polynomial Mutation designed for tensorized execution.
     """
     def __init__(self, env: Environment, eta: int = 20, rate: float = 1/30):
         self.env = env
