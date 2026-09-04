@@ -199,6 +199,255 @@ class RVEA(MultiObjectiveOptimizer):
         self.currentGeneration += 1
 
 
+class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
+    """
+        Backend-agnostic (NumPy/CuPy) tensorized implementation of RVEA, based on:
+        Z. Liang, T. Jiang, K. Sun and R. Cheng, "GPU-accelerated Evolutionary
+        Multiobjective Optimization Using Tensorized RVEA," in Proceedings of
+        the Genetic and Evolutionary Computation Conference (GECCO '24), 2024,
+        doi: 10.1145/3638529.3654223.
+    """
+ 
+    def __init__(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        crossover_operator=None,
+        mutation_operator=None,
+        reference_vectors: np.ndarray = None,
+        max_generations: int = 250,
+        alpha: Union[float, int] = 2.0,
+        fr: float = 0.1,
+    ):
+        super().__init__()
+        logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (Tensor).")
+ 
+        
+ 
+        self.crossover_operator = crossover_operator or SBXCrossoverTensor(
+             rate=1.0, gene_rate=1.0
+        )
+        self.mutation_operator = mutation_operator or PolynomialMutationTensor(
+            rate=1.0 / 30.0
+        )
+ 
+        self.reference_vectors = reference_vectors
+        self.current_reference_vectors = reference_vectors.copy()
+ 
+        self.max_generations = max_generations
+        self.currentGeneration = 0
+        self.z = None
+        self.alpha = alpha
+        self.fr = fr
+ 
+        self._gammas = None
+        self.dtype = None
+ 
+        self.build(params)
+ 
+        logger.info("Class overrided.")
+ 
+    @property
+    def max_generations(self) -> int:
+        return self._max_generations
+ 
+    @max_generations.setter
+    def max_generations(self, value: int) -> None:
+        if not isinstance(value, int):
+            raise e.TypeError('`max_generations` should be an integer.')
+        if value <= 0:
+            raise e.ValueError('`max_generations` should be higher than 0.')
+        self._max_generations = value
+ 
+    @property
+    def fr(self) -> float:
+        return self._fr
+ 
+    @fr.setter
+    def fr(self, value: Union[int, float]) -> None:
+        if not isinstance(value, (int, float)):
+            raise e.TypeError('`fr` should be an integer or a float.')
+        if value <= 0:
+            raise e.ValueError('`fr` should be higher than 0.')
+        self._fr = value
+ 
+    @property
+    def alpha(self) -> float:
+        return self._alpha
+ 
+    @alpha.setter
+    def alpha(self, value: float) -> None:
+        if not isinstance(value, float):
+            raise e.TypeError('`alpha` should be a float.')
+        if value <= 0:
+            raise e.ValueError('`alpha` should be higher than 0.')
+        self._alpha = value
+ 
+    def compile(self, space: _MultiObjectiveSpace):
+        if len(self.reference_vectors) != space.n_agents:
+            raise e.ValueError(
+                'The number of `reference_vectors` must equal the number of agents.'
+            )
+ 
+        xp = space.env.xp
+        self.dtype = xp.float32
+ 
+        self.reference_vectors = xp.asarray(
+            self.reference_vectors, dtype=xp.float32
+        )
+        self.current_reference_vectors = xp.asarray(
+            self.current_reference_vectors, dtype=xp.float32
+        )
+ 
+        self._update_gammas(xp)
+ 
+    def _update_gammas(self, xp):
+        V = self.current_reference_vectors
+        nrm = xp.linalg.norm(V, axis=1, keepdims=True)
+        V_n = V / xp.where(nrm < xp.asarray(1e-10, dtype=self.dtype),
+                             xp.asarray(1e-10, dtype=self.dtype), nrm)
+ 
+        cos = xp.clip(V_n @ V_n.T, xp.asarray(-1.0, dtype=self.dtype), xp.asarray(1.0, dtype=self.dtype))
+        ang = xp.arccos(cos)
+        xp.fill_diagonal(ang, xp.asarray(xp.inf, dtype=self.dtype))
+        self._gammas = ang.min(axis=1)
+ 
+    def _grouped_argmin(self, apd_values: Any, assignments: Any, N_ref: int, xp) -> Any:
+        """
+        Pure-tensor grouped-argmin: for each of the N_ref reference-vector
+        groups, finds the index (into the pooled population) of the member
+        with the smallest APD value, or -1 if the group is empty.
+        """
+        J = xp.arange(N_ref, dtype=xp.int32)
+        member = assignments[:, None] == J[None, :]
+ 
+        apd_mat = xp.where(member, apd_values[:, None],
+                           xp.asarray(float('inf'), dtype=self.dtype))
+        col_min = apd_mat.min(axis=0)
+        best_raw = apd_mat.argmin(axis=0).astype(xp.int32)
+ 
+        best = xp.where(xp.isfinite(col_min), best_raw,
+                        xp.full((N_ref,), xp.int32(-1), dtype=xp.int32))
+ 
+        return best
+ 
+    def _apd_selection(self, X_combined: Any, F_combined: Any, xp, X_, F_):
+        """
+        Computes the Angle-Penalized Distance selection (Algorithm 1 of the
+        paper) and returns a population of FIXED size `N_ref` (== n_agents).
+        """
+        N_pop = X_combined.shape[0]
+        N_ref = int(self.current_reference_vectors.shape[0])
+        M = int(F_combined.shape[1])
+ 
+        F_t = F_combined - self.z
+        norms  = xp.linalg.norm(F_t, axis=1)
+        safe_norms = xp.where(norms < xp.asarray(1e-10, dtype=self.dtype),
+                              xp.asarray(1e-10, dtype=self.dtype), norms)
+ 
+        V_nrm = xp.linalg.norm(self.current_reference_vectors,
+                                  axis=1, keepdims=True)
+        V_unit = self.current_reference_vectors / xp.where(
+            V_nrm < xp.asarray(1e-10, dtype=self.dtype), xp.asarray(1e-10, dtype=self.dtype), V_nrm
+        )
+ 
+        F_unit = F_t / safe_norms[:, None]
+        cos_mat = xp.clip(F_unit @ V_unit.T,
+                          xp.asarray(-1.0, dtype=self.dtype), xp.asarray(1.0, dtype=self.dtype))
+ 
+        asgn = xp.argmax(cos_mat, axis=1).astype(xp.int32)
+ 
+        asgn_cos = cos_mat[xp.arange(N_pop), asgn]
+        asgn_ang = xp.arccos(xp.clip(asgn_cos,
+                                      xp.asarray(-1.0, dtype=self.dtype),
+                                      xp.asarray(1.0, dtype=self.dtype)))
+ 
+        gamma_i = self._gammas[asgn]
+ 
+        t_rat = xp.asarray(self.currentGeneration / self.max_generations, dtype=self.dtype)
+        P = (xp.asarray(M, dtype=self.dtype)
+             * (t_rat ** xp.asarray(self.alpha, dtype=self.dtype))
+             * (asgn_ang / (gamma_i + xp.asarray(1e-10, dtype=self.dtype))))
+ 
+        apd = (xp.asarray(1.0, dtype=self.dtype) + P) * norms
+ 
+        best_idx = self._grouped_argmin(apd, asgn, N_ref, xp)   # shape (N_ref,); -1 == no candidate
+        valid = best_idx >= 0
+ 
+        safe_idx = xp.where(valid, best_idx, xp.int32(0))
+        X_sel = X_combined[safe_idx]
+        F_sel = F_combined[safe_idx]
+ 
+        X_new = xp.where(valid[:, None], X_sel, X_)
+        F_new = xp.where(valid[:, None], F_sel, F_)
+ 
+        return X_new, F_new
+ 
+    def _adapt_reference_vectors(self, F_agents: Any, xp):
+        fr_period = max(1, int(self.max_generations * self.fr))
+        if self.currentGeneration % fr_period != 0:
+            return
+ 
+        z_min = F_agents.min(axis=0)
+        z_max = F_agents.max(axis=0)
+        scale = xp.where(
+            (z_max - z_min) < xp.asarray(1e-10, dtype=self.dtype),
+            xp.asarray(1e-10, dtype=self.dtype),
+            z_max - z_min,
+        )
+ 
+        adapted = self.reference_vectors * scale
+        norms = xp.linalg.norm(adapted, axis=1, keepdims=True)
+        self.current_reference_vectors = adapted / xp.where(
+            norms < xp.asarray(1e-10, dtype=self.dtype), xp.asarray(1e-10, dtype=self.dtype), norms
+        )
+        self._update_gammas(xp)
+ 
+    def evaluate(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
+        xp = space.env.xp
+ 
+        space.F = function(space.X, xp=xp)
+ 
+        self.z = space.F.min(axis=0)
+ 
+        self.evaluate = lambda : None
+ 
+    def update(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
+        xp = space.env.xp
+        n = space.X.shape[0]
+        half = n // 2
+ 
+        perm = xp.random.permutation(n)
+        idx1 = perm[:half]
+        idx2 = perm[half:2 * half]
+ 
+        parents1 = space.X[idx1]
+        parents2 = space.X[idx2]
+ 
+        X_off = self.crossover_operator(parents1, parents2, space.lb, space.ub)
+        X_off = xp.concatenate(X_off, axis=0)
+ 
+        X_off = self.mutation_operator(X_off, space.lb, space.ub)
+ 
+        F_off = function(X_off, xp=xp)
+        if not isinstance(F_off, xp.ndarray):
+            F_off = xp.asarray(F_off, dtype=self.dtype)
+ 
+        self.z = xp.minimum(self.z, F_off.min(axis=0))
+ 
+        X_pool = xp.concatenate([space.X, X_off], axis=0)
+        F_pool = xp.concatenate([space.F, F_off], axis=0)
+ 
+        X_new, F_new = self._apd_selection(X_pool, F_pool, xp, space.X, space.F)
+ 
+        space.X = X_new
+        space.F = F_new
+ 
+        self._adapt_reference_vectors(space.F, xp)
+        self.currentGeneration += 1
+
+
+
+
 class RVEACuda(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
     """
         GPU-friendly, fully tensorized implementation of RVEA, based on:
@@ -217,7 +466,6 @@ class RVEACuda(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         max_generations: int = 250,
         alpha: Union[float, int] = 2.0,
         fr: float = 0.1,
-        **kwargs
     ):
         super().__init__()
         logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (CUDA).")
