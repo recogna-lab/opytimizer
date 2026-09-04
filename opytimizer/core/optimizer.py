@@ -160,7 +160,7 @@ class MultiObjectiveOptimizer(Optimizer):
         """
 
         for agent in space.agents:
-            agent.fit = function(agent.position)
+            agent.fit = function(agent.position).flatten()
 
         
 

@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import numpy as np
 
 import copy
 import time 
 from typing import List, Any, Dict
-import opytimizer.utils.exception as e
-from opytimizer.core import Optimizer, Function
-from opytimizer.core.space import _SingleObjectiveSpace
+
+from opytimizer.core import Optimizer, TensorizedOptimizer, Function
+from opytimizer.core.space import _SingleObjectiveSpace, _SingleObjectiveTensorSpace
 from opytimizer.utils import logging
+import opytimizer.utils.exception as e
+
 from scipy.stats import cauchy
 logger = logging.get_logger(__name__)
 
@@ -23,7 +24,7 @@ class LSHADE(Optimizer):
                  H: int = 100,
                  p: float = 0.11,
                  f_arc: float = 2.6,
-                 **kwds):
+                 ):
         
         logger.info("Overriding class: Optimizer -> L-SHADE (Default).")
 
@@ -221,25 +222,25 @@ class LSHADE(Optimizer):
 
 
     def evaluate(self, space, function):
-        if function.n_calls == 0:
-            for agent in space.agents:
-                agent.fit = function(agent.position)
+        for agent in space.agents:
+            agent.fit = function(agent.position)
                 
-                if agent.fit < space.best_agent.fit:
-                    space.best_agent.position = copy.deepcopy(agent.position)
-                    space.best_agent.fit = copy.deepcopy(agent.fit)
-                    space.best_agent.ts = int(time.time())
+            if agent.fit < space.best_agent.fit:
+                space.best_agent.position = copy.deepcopy(agent.position)
+                space.best_agent.fit = copy.deepcopy(agent.fit)
+                space.best_agent.ts = int(time.time())
 
-class LSHADECuda(Optimizer):
+        self.evaluate = lambda : None
+
+class LSHADETensor(Optimizer, TensorizedOptimizer):
     def __init__(self,
                  params: Dict = None,
                  MAX_NFE: int = 100,
                  H: int = 100,
                  p: float = 0.11,
-                 f_arc: float = 2.6,
-                 **kwds):
+                 f_arc: float = 2.6):
         
-        logger.info("Overriding class: Optimizer -> L-SHADE (CUDA).")
+        logger.info("Overriding class: Optimizer -> L-SHADE (Tensor).")
         
         super().__init__()
 
@@ -261,7 +262,7 @@ class LSHADECuda(Optimizer):
 
         logger.info("Class overrided.")
 
-    def compile(self, space: _SingleObjectiveSpace, **kwargs):
+    def compile(self, space: _SingleObjectiveTensorSpace, **kwargs):
         self.DTYPE = space.env.xp.float32
         self.N_G = space.n_agents
         self.N_init = space.n_agents
@@ -271,7 +272,7 @@ class LSHADECuda(Optimizer):
         self.N_A = int(np.round(self.f_arc * self.N_G))
         self.A = []
 
-    def _mutate_hybrid(self, X_gpu: Any, F_cpu: np.ndarray, space: _SingleObjectiveSpace, xp: Any) -> Any:
+    def _mutate_hybrid(self, X_gpu: Any, F_cpu: np.ndarray, space: _SingleObjectiveTensorSpace, xp: Any) -> Any:
         N_G = self.N_G
 
        
@@ -325,7 +326,7 @@ class LSHADECuda(Optimizer):
 
         return V_gpu
 
-    def _crossover_gpu(self, CR_cpu: np.ndarray, V_gpu: Any, X_gpu: Any, space: _SingleObjectiveSpace, xp: Any) -> Any:
+    def _crossover_gpu(self, CR_cpu: np.ndarray, V_gpu: Any, X_gpu: Any, space: _SingleObjectiveTensorSpace, xp: Any) -> Any:
         N_G, D = X_gpu.shape
         CR_gpu = xp.asarray(CR_cpu, dtype=self.DTYPE)[:, xp.newaxis]
 
@@ -338,7 +339,7 @@ class LSHADECuda(Optimizer):
         U_gpu = xp.where(crossover_mask, V_gpu, X_gpu)
         return U_gpu
 
-    def update(self, space: _SingleObjectiveSpace, function: Function):
+    def update(self, space: _SingleObjectiveTensorSpace, function: Function):
         xp = space.env.xp  
 
         
@@ -349,13 +350,13 @@ class LSHADECuda(Optimizer):
         mu_CR = self.M_CR[selected_indices]
         mu_F = self.M_F[selected_indices]
 
-        CR = np.random.normal(loc=mu_CR, scale=0.1)
-        CR = np.where(np.isnan(mu_CR), 0.0, CR)
-        CR = np.clip(CR, 0.0, 1.0)
+        CR = xp.random.normal(loc=mu_CR, scale=0.1)
+        CR = xp.where(np.isnan(mu_CR), 0.0, CR)
+        CR = xp.clip(CR, 0.0, 1.0)
 
         F = cauchy.rvs(loc=mu_F, scale=0.1, size=self.N_G)
         invalid_mask = (F <= 0.0)
-        while np.any(invalid_mask):
+        while xp.any(invalid_mask):
             num_invalid = np.sum(invalid_mask)
             F[invalid_mask] = cauchy.rvs(loc=mu_F[invalid_mask], scale=0.1, size=num_invalid)
             invalid_mask = (F <= 0.0)

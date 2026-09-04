@@ -1,5 +1,7 @@
 import numpy as np
+
 from typing import List, Tuple
+
 
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer, Function
@@ -385,7 +387,7 @@ class NSGA3(MultiObjectiveOptimizer):
         offspring = self._create_offspring(space)
         
         for i in range(len(offspring)):
-            offspring[i].fit = function(offspring[i].position)
+            offspring[i].fit = function(offspring[i].position).flatten()
 
         combined = space.agents + offspring
         new_pop = self._select_survivors(combined, len(space.agents))

@@ -30,9 +30,9 @@ class BaseCrossover(ABC):
         return self._rate
     
     @rate.setter
-    def rate(self, value: float) -> None:
-        if not isinstance(value, float):
-            raise e.TypeError('Crossover rate should be a float')
+    def rate(self, value: Union[float, rate]) -> None:
+        if not isinstance(value, (float, int)):
+            raise e.TypeError('Crossover rate should be a float or an int')
         if value < 0.0 or value > 1.0:
             raise e.ValueError('Crossover rate should be in interval [0.0, 1.0]')
         self._rate = value
@@ -66,9 +66,9 @@ class ContinuousCrossover(BaseCrossover):
         return self._gene_rate
     
     @gene_rate.setter
-    def gene_rate(self, value: float) -> None:
-        if not isinstance(value, float):
-            raise e.TypeError('Gene rate should be a float')
+    def gene_rate(self, value: Union[float, int]) -> None:
+        if not isinstance(value, (float, int)):
+            raise e.TypeError('Gene rate should be a float or an int')
         if value < 0.0 or value > 1.0:
             raise e.ValueError('Gene rate should be in interval [0.0, 1.0]')
         self._gene_rate = value

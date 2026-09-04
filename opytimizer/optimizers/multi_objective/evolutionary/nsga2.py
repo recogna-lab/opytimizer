@@ -5,26 +5,19 @@ from __future__ import annotations
  
 import numpy as np
 
-from typing import List, Tuple, Any, Dict
+from typing import List, Any, Dict
 import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer, Environment, TensorizedMultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import _MultiObjectiveSpace, _MultiObjectiveTensorSpace
 from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation, SBXCrossoverTensor, PolynomialMutationTensor
-from opytimizer.math.random import generate_integer_random_number 
 
 logger = logging.get_logger(__name__)
 
 
 class NSGA2(MultiObjectiveOptimizer):
-    """NSGA2 class, inherited from MultiObjectiveOptimizer.
-
-    References:
-        K. Deb et al. A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II.
-        IEEE Transactions on Evolutionary Computation (2002).
-
-    """
+    """NSGA2 class, inherited from MultiObjectiveOptimizer."""
 
     def __init__(
         self,
@@ -32,114 +25,53 @@ class NSGA2(MultiObjectiveOptimizer):
         crossover_operator=None,
         mutation_operator=None,
     ) -> None:
-        """Initialization method.
-
-        Args:
-            params: Contains key-value parameters to the meta-heuristics.
-            crossover_operator: Crossover operator to be used.
-            mutation_operator: Mutation operator to be used.
-
-        """
-
-        logger.info("Overriding class: MultiObjectiveOptimizer -> NSGA2 (Default).")
-
         super().__init__()
-
-    
         self.crossover_operator = crossover_operator or SBXCrossover()
         self.mutation_operator = mutation_operator or PolynomialMutation()
-
         self.build(params)
 
-        
-
-        logger.info("Class overrided.")
-
-    
     @property
     def rank(self) -> np.ndarray:
-        """Array of ranks."""
-
         return self._rank
 
     @rank.setter
     def rank(self, rank: np.ndarray) -> None:
-        if not isinstance(rank, np.ndarray):
-            raise e.TypeError("`rank` should be a numpy array")
-
         self._rank = rank
 
     @property
     def crowding_distance(self) -> np.ndarray:
-        """Array of crowding distances."""
-
         return self._crowding_distance
 
     @crowding_distance.setter
     def crowding_distance(self, crowding_distance: np.ndarray) -> None:
-        if not isinstance(crowding_distance, np.ndarray):
-            raise e.TypeError("`crowding_distance` should be a numpy array")
-
         self._crowding_distance = crowding_distance
 
     def compile(self, space: _MultiObjectiveSpace) -> None:
-        """Compiles additional information that is used by this optimizer.
-
-        Args:
-            space: A Space object containing meta-information.
-
-        """
-
-        
         self.crowding_distance = np.zeros(space.n_agents)
 
-    def _fast_non_dominated_sort(self, agents:List[Agent]) -> List:
-        """Performs the fast non-dominated sort.
-
-        Args:
-            agents: List of agents to be sorted.
-
-        Returns:
-            (List): List of fronts.
-
-        """
-
+    def _fast_non_dominated_sort(self, agents: List[Agent]):
         n = len(agents)
-        # fit extraction for numpy broadcasting -> matricial operations
-        population_fitness = [ag.fit for ag in agents] # (N, M) where N=number of agents; and M=number of objectives
-        population_fitness = np.array(population_fitness)
+        population_fitness = np.array([ag.fit for ag in agents])
+        
         P = population_fitness[:, np.newaxis, :] # (N, 1, M)
         Q = population_fitness[np.newaxis, :, :] # (1, N, M)
 
-        # pareto dominance operation
-        # a solution X dominates Y if, and only if, all objectives m_{x} <= m_{y} and
-        # m_{x} < m_{y} on at least one objective 
+        cond_1 = np.all(P <= Q, axis=2)
+        cond_2 = np.any(P < Q, axis=2)
+        dominance_matrix = cond_1 & cond_2
 
-        cond_1 = np.all(P <= Q, axis=2) # (N, N)
-        cond_2 = np.any(P < Q, axis=2) # (N, N)
-        
-        dominance_matrix = cond_1 & cond_2 # (N, N)
-
-        # A_{ij} = True means that agent i dominates agent j
-
-        num_dominance = np.sum(dominance_matrix, axis=0) # (N, )
-        # np.sum() == 0 means that no other solution dominates agent j
-
+        num_dominance = np.sum(dominance_matrix, axis=0)
         local_rank = np.zeros(n, dtype=int)
 
         current_front = np.where(num_dominance == 0)[0].tolist()
         fronts = [current_front]
-
         local_rank[current_front] = 0
 
-        # crucial for tournament selection
         aux_rank = 1
-
         while len(current_front) > 0:
             next_front = []
             for p in current_front:
                 dominated_by_p = np.where(dominance_matrix[p])[0]
-
                 for q in dominated_by_p:
                     num_dominance[q] -= 1
                     if num_dominance[q] == 0:
@@ -148,140 +80,68 @@ class NSGA2(MultiObjectiveOptimizer):
             
             if len(next_front) > 0:
                 fronts.append(next_front)
-            
             current_front = next_front
             aux_rank += 1
 
-        return fronts, local_rank # return a list of agents indices in each front
-    
+        return fronts, local_rank
+
     def _calculate_crowding_distance(self, front: List, agents: List[Agent]) -> np.ndarray:
-        """Calculates the crowding distance for a front.
-
-        Args:
-            front: List of agents indices in the front.
-            agents: List of all agents.
-
-        Returns:
-            (np.ndarray): Crowding distance for the front.
-
-        """
-        
         n_agents_in_front = len(front)
         distances = np.zeros(n_agents_in_front)
-        n_objectives = len(agents[0].fit)
-        fit_values = np.array([ag.fit for ag in agents])
-
-        if len(front) <= 2:
-            distances[:]= np.inf
+        
+        if n_agents_in_front <= 2:
+            distances[:] = np.inf
             return distances
 
+        n_objectives = len(agents[0].fit)
+        fit_values = np.array([agents[idx].fit for idx in front]) # Shape: (len(front), M)
+
         for m in range(n_objectives):
-            objective_values = fit_values[front, m]
+            obj_m = fit_values[:, m]
+            sorted_order = np.argsort(obj_m)
+            sorted_obj = obj_m[sorted_order]
 
-            sorted_indices = np.argsort(objective_values)
-
-            # edge agents -> crowding distance = inf
-            distances[sorted_indices[0]] = np.inf
-            distances[sorted_indices[-1]] = np.inf
-
-            amplitude = objective_values[sorted_indices[-1]] - objective_values[sorted_indices[0]]
-
-            # avoid division by zero
-
-            if amplitude == 0:
-                 continue
             
-            distances[sorted_indices[1:-1]] += (objective_values[sorted_indices[2:]] - objective_values[sorted_indices[:-2]]) / amplitude
+            distances[sorted_order[0]] = np.inf
+            distances[sorted_order[-1]] = np.inf
+
+            amplitude = sorted_obj[-1] - sorted_obj[0]
+            if amplitude == 0:
+                continue
+
+            
+            distances[sorted_order[1:-1]] += (sorted_obj[2:] - sorted_obj[:-2]) / amplitude
 
         return distances
 
     def _tournament_selection(self, agents: List[Agent]) -> np.ndarray:
-        """Performs tournament selection.
-
-        Args:
-            agents: List of agents.
-            n_selections: Number of selections to be made.
-
-        Returns:
-            (np.ndarray): List of selected parents indices.
-
-        """
-
         N = len(agents)
 
-        competitors_A = generate_integer_random_number(low=0, high=N, size=N)
-        competitors_B = generate_integer_random_number(low=0, high=N, size=N)
+        competitors_A = np.random.randint(0, N, size=2 * N)
+        competitors_B = np.random.randint(0, N, size=2 * N)
 
-        # Condition 1: A has better ranking than B
         cond_ranking = self.rank[competitors_A] < self.rank[competitors_B]
-
-        # Condition 2: Ranking tie. A has higher crowd distance than B
-        cond_tie = (self.rank[competitors_A] == self.rank[competitors_B]) & (self.crowding_distance[competitors_A] > self.crowding_distance[competitors_B]) 
+        cond_tie = (self.rank[competitors_A] == self.rank[competitors_B]) & \
+                   (self.crowding_distance[competitors_A] > self.crowding_distance[competitors_B]) 
 
         victory_A = cond_ranking | cond_tie
-        
-        selected_parents = np.where(victory_A, competitors_A, competitors_B)
+        selected = np.where(victory_A, competitors_A, competitors_B)
 
-        return selected_parents
-
-        
-
-    def _crossover(self, parent1: Agent, parent2: Agent) -> Tuple:
-        """Performs the crossover between two parents.
-
-        The operator used can be customized via the constructor.
-
-        Args:
-            parent1: First parent.
-            parent2: Second parent.
-
-        Returns:
-            (tuple): Two children.
-        """
-        
-        children = self.crossover_operator(parent1, parent2)
-        
-        return children
-
-    def _mutation(self, agent: Agent) -> Agent:
-        """Performs the mutation on an agent.
-
-        The operator used can be customized via the constructor.
-
-        Args:
-            agent: Agent to be mutated.
-
-        Returns:
-            (Agent): Mutated agent.
-        """
-        mutated = self.mutation_operator(agent)
-        return mutated
+        return selected
 
     def _create_offspring(self, space: _MultiObjectiveSpace) -> List[Agent]:
-        """Generates offspring using SBX crossover and PM mutation.
-
-        Args:
-            space: Space containing agents and offspring-related information.
-
-        Returns:
-            (list): Offspring agents.
-        """
-
         parents_idx = self._tournament_selection(space.agents)
+        N = len(space.agents)
 
-        n = len(space.agents)
-        half = n // 2
         
-        parents1 = [space.agents[int(i)] for i in parents_idx[:half]]
-        parents2 = [space.agents[int(i)] for i in parents_idx[half : half * 2]]
-        
-        # batched crossover
+        parents1 = [space.agents[int(i)] for i in parents_idx[:N]]
+        parents2 = [space.agents[int(i)] for i in parents_idx[N : 2 * N]]
+
         crossed = self.crossover_operator(parents1, parents2)
-
-        # batched mutation
         mutated = self.mutation_operator(crossed)
 
         return mutated
+
     def _select_survivors(self, combined_population: List[Agent], space: _MultiObjectiveSpace):
         fronts, _ = self._fast_non_dominated_sort(combined_population)
 
@@ -295,60 +155,51 @@ class NSGA2(MultiObjectiveOptimizer):
                 break
 
             crowding = self._calculate_crowding_distance(front, combined_population)
-            sorted_front = sorted(
-                zip(front, crowding), key=lambda x: x[1], reverse=True
-            )
+            
+            
+            if len(new_population) + len(front) <= n_agents:
+                for idx, cd in zip(front, crowding):
+                    new_population.append(combined_population[idx])
+                    new_ranks.append(front_idx)
+                    new_crowding.append(cd)
+            else:
+               
+                remaining = n_agents - len(new_population)
+                
+                
+                top_indices = np.argsort(crowding)[-remaining:][::-1]
+                
+                for local_idx in top_indices:
+                    global_idx = front[local_idx]
+                    new_population.append(combined_population[global_idx])
+                    new_ranks.append(front_idx)
+                    new_crowding.append(crowding[local_idx])
 
-            remaining = n_agents - len(new_population)
-            for idx, cd in sorted_front[:remaining]:
-                new_population.append(combined_population[idx])
-                new_ranks.append(front_idx)
-                new_crowding.append(cd)
-
-        return new_population, np.array(new_ranks), np.array(new_crowding)
-    
+        return new_population, np.array(new_ranks, dtype=int), np.array(new_crowding, dtype=float)
 
     def update(self, space: _MultiObjectiveSpace, function) -> None:
         offspring = self._create_offspring(space)
-
         agent_shape = space.agents[0].position.shape
-        n_offspring = min(len(offspring), len(space.agents))
 
-        for i in range(n_offspring):
-            pos = offspring[i].position.reshape(agent_shape)
-            
-            offspring[i].position = pos
-            offspring[i].fit = function(offspring[i].position).reshape(-1)
+        for i in range(len(offspring)):
+            offspring[i].position = offspring[i].position.reshape(agent_shape)
+            offspring[i].fit = function(offspring[i].position).flatten()
 
-        combined_population = space.agents + list(offspring)[:n_offspring]
-
-        
+        combined_population = space.agents + offspring
         new_pop, new_ranks, new_crowding = self._select_survivors(combined_population, space)
 
-        for i in range(len(space.agents)):
-            space.agents[i] = new_pop[i]
-            
-
+        space.agents = new_pop
         self.rank = new_ranks
         self.crowding_distance = new_crowding
 
     def evaluate(self, space, function):
-        """Evaluates the fitness of the agents.
-
-        Args:
-            space: Space containing agents and evaluation-related information.
-            function: Function to evaluate the fitness of the agents.
-
-        """
-        
         for agent in space.agents:
-            agent.fit = function(agent.position).squeeze()
-       
-        # Non-dominated sorting
+            agent.fit = function(agent.position).flatten()
+
         fronts, local_rank = self._fast_non_dominated_sort(space.agents)
         self.rank = local_rank
         self.crowding_distance = np.zeros(len(space.agents))
-        
+
         for front in fronts:
             if not front:
                 continue
@@ -357,8 +208,7 @@ class NSGA2(MultiObjectiveOptimizer):
                 front, space.agents
             )
 
-        self.evaluate = lambda : None
-
+        self.evaluate = lambda: None
 
 class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
     """Tensorized NSGA-II, following the general tensorization methodology of:

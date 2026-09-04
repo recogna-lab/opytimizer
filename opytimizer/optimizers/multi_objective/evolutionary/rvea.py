@@ -1,8 +1,9 @@
 """Reference Vector Guided Evolutionary Algorithm"""
 
 import numpy as np
+
 from typing import Optional, Dict, Any, Union
-import opytimizer.utils.exception as e
+
 from opytimizer.core import MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer
 from opytimizer.core.space import _MultiObjectiveSpace, _MultiObjectiveTensorSpace
 from opytimizer.core.function import Function
@@ -10,6 +11,7 @@ from opytimizer.utils import logging
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation, SBXCrossoverTensor, PolynomialMutationTensor
 from opytimizer.core import Environment
 
+import opytimizer.utils.exception as e
 
 logger = logging.get_logger(__name__)
 

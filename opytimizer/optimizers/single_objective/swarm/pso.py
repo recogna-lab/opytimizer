@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from dataclasses import dataclass
 
 import opytimizer.math.random as r
 import opytimizer.utils.constant as c
@@ -22,7 +21,6 @@ logger = logging.get_logger(__name__)
 
 
 
-@dataclass
 class PSO(Optimizer):
     """A PSO class, inherited from Optimizer.
 
