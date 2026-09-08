@@ -227,7 +227,9 @@ class ASO(Optimizer):
 
         return acceleration
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Atom Search Optimization over all agents and variables.
 
         Args:

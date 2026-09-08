@@ -1,8 +1,9 @@
 import numpy as np
 from opytimark.markers.n_dimensional import Sphere
-from opytimizer.core.stopping import MaxIterations
+
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.callback import CheckpointCallback

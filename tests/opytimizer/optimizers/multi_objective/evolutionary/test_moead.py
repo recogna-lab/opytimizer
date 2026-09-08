@@ -11,12 +11,10 @@ def test_moead_params():
     new_moead = moead.MOEAD(params=params)
 
     assert new_moead.neighborhood_size == 10
-  
+
 
 def test_moead_params_setter():
     new_moead = moead.MOEAD()
-
-    
 
     try:
         new_moead.neighborhood_size = "d"
@@ -29,7 +27,7 @@ def test_moead_params_setter():
         new_moead.neighborhood_size = 10
 
     assert new_moead.neighborhood_size == 10
-    
+
 
 def test_moead_compile():
     weights, n_agents = das_dennis(2, 19)
@@ -73,8 +71,6 @@ def test_moead_genetic_operators():
     if len(children) == 2:
         child2 = children[1]
         assert child2.position.shape == parent2.position.shape
-
-
 
 
 def test_moead_evaluate():

@@ -57,7 +57,9 @@ class WAOA(Optimizer):
                 space.best_agent.fit = copy.deepcopy(agent.fit)
                 space.best_agent.ts = int(time.time())
 
-    def update(self, space: _SingleObjectiveSpace, function: Function, iteration: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int
+    ) -> None:
         """Wraps Walrus Optimization Algorithm over all agents and variables.
 
         Args:

@@ -5,8 +5,6 @@ from opytimizer.optimizers.multi_objective.evolutionary import nsga3
 from opytimizer.spaces.search import SearchSpace
 
 
-
-
 def test_nsga3_compile():
     search_space = SearchSpace(
         n_agents=13,
@@ -25,7 +23,6 @@ def test_nsga3_compile():
         new_nsga3.rank = np.array([1])
 
     assert new_nsga3.rank == np.array([1])
-
 
 
 def test_nsga3_crossover():
@@ -84,7 +81,6 @@ def test_nsga3_fast_non_dominated_sort():
     assert isinstance(fronts, list)
     assert len(fronts) > 0
     assert 0 in fronts[0] or 1 in fronts[0]
-
 
 
 def test_nsga3_tournament_selection():
@@ -166,8 +162,6 @@ def test_nsga3_conflict_number_reference_points():
         new_nsga3 = nsga3.NSGA3()
         new_nsga3.compile(search_space)
     except:
-       assert len(new_nsga3.reference_points) == 13
-       search_space.n_agents = 13
-       new_nsga3.compile(search_space)
-    
- 
+        assert len(new_nsga3.reference_points) == 13
+        search_space.n_agents = 13
+        new_nsga3.compile(search_space)

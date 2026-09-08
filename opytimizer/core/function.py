@@ -40,7 +40,7 @@ class Function:
                 self.name = pointer.__class__.__name__
 
         self.n_calls = 0
-        self.budget = budget # None = ilimited
+        self.budget = budget  # None = ilimited
 
         self.built = True
 
@@ -59,23 +59,23 @@ class Function:
 
         """
         if self.budget is not None and self.n_calls >= self.budget:
-            raise e.BudgetExhausted(f'Evaluation budget of {self.budget} calls exhausted')
-        
+            raise e.BudgetExhausted(
+                f"Evaluation budget of {self.budget} calls exhausted"
+            )
+
         self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
-       
+
         if xp is None:
-            xp = np   
-            
+            xp = np
+
         result = self.pointer(x)
         result = xp.asarray(result)
         return result
 
-
-
     @property
     def budget(self):
         return self._budget
-    
+
     @budget.setter
     def budget(self, budget):
         if budget is not None:
@@ -83,7 +83,7 @@ class Function:
                 raise e.TypeError("`budget` should be an integer")
             if budget <= 0:
                 raise e.ValueError("`budget` should be > 0")
-            
+
         self._budget = budget
 
     @property

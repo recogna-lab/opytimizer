@@ -109,7 +109,9 @@ class AOA(Optimizer):
 
         self._mu = mu
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Arithmetic Optimization Algorithm over all agents and variables.
 
         Args:

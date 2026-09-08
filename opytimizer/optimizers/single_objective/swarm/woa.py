@@ -73,7 +73,9 @@ class WOA(Optimizer):
 
         return a
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Whale Optimization Algorithm over all agents and variables.
 
         Args:

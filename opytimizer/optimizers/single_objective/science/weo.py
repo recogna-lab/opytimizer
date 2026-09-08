@@ -129,7 +129,11 @@ class WEO(Optimizer):
         return J
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Water Evaporation Optimization over all agents and variables.
 

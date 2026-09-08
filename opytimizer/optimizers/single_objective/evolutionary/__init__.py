@@ -3,6 +3,12 @@ It contains implementations of evolutionary-based optimizers.
 """
 
 from opytimizer.optimizers.single_objective.evolutionary.bsa import BSA
+from opytimizer.optimizers.single_objective.evolutionary.ce import CE, OBCE
+from opytimizer.optimizers.single_objective.evolutionary.cmaes import (
+    CMAES,
+    CMAESCuda,
+    CMAESTensor,
+)
 from opytimizer.optimizers.single_objective.evolutionary.de import DE
 from opytimizer.optimizers.single_objective.evolutionary.ep import EP
 from opytimizer.optimizers.single_objective.evolutionary.es import ES
@@ -19,7 +25,8 @@ from opytimizer.optimizers.single_objective.evolutionary.hs import (
     SGHS,
 )
 from opytimizer.optimizers.single_objective.evolutionary.iwo import IWO
+from opytimizer.optimizers.single_objective.evolutionary.lshade import (
+    LSHADE,
+    LSHADETensor,
+)
 from opytimizer.optimizers.single_objective.evolutionary.rra import RRA
-from opytimizer.optimizers.single_objective.evolutionary.ce import CE, OBCE
-from opytimizer.optimizers.single_objective.evolutionary.lshade import LSHADE
-from opytimizer.optimizers.single_objective.evolutionary.cmaes import CMAES, CMAESTensor, CMAESCuda

@@ -1,16 +1,16 @@
 import numpy as np
 import pytest
 
-from opytimizer.core.agent import Agent
-from opytimizer.spaces.search import SearchSpace
-from opytimizer.optimizers.multi_objective.evolutionary.knea import KnEA
 import opytimizer.utils.exception as e
+from opytimizer.core.agent import Agent
+from opytimizer.optimizers.multi_objective.evolutionary.knea import KnEA
+from opytimizer.spaces.search import SearchSpace
 
 
 def test_knea_properties():
     # Test property setters and validation constraints
     new_knea = KnEA(k=3, T=0.5)
-    
+
     assert new_knea.knn_num == 3
     assert new_knea.T == 0.5
 
@@ -30,15 +30,19 @@ def test_knea_compile():
     new_knea = KnEA()
     new_knea.compile()
 
-  
     assert isinstance(new_knea.K, list)
     assert len(new_knea.K) == 0
 
 
 def make_agent(fit):
     """Helper to instantiate mock agents with specific fitness values."""
-    a = Agent(n_variables=3, n_dimensions=1, n_objectives=2, 
-              lower_bound=[0, 0, 0], upper_bound=[1, 1, 1])
+    a = Agent(
+        n_variables=3,
+        n_dimensions=1,
+        n_objectives=2,
+        lower_bound=[0, 0, 0],
+        upper_bound=[1, 1, 1],
+    )
     a.fit = np.array(fit)
     a.position = np.random.rand(3, 1)  # Required for genetic operator evaluation
     return a
@@ -52,10 +56,10 @@ def test_knea_precompute_weighted_distances():
         make_agent([3.0, 3.0]),
         make_agent([0.5, 2.5]),
     ]
-    
+
     new_knea = KnEA(k=2)
     new_knea._precompute_weighted_distances(agents)
-    
+
     assert new_knea._weighted_dists is not None
     assert len(new_knea._weighted_dists) == len(agents)
     assert isinstance(new_knea._weighted_dists, np.ndarray)
@@ -69,16 +73,16 @@ def test_knea_mating_selection():
         make_agent([3, 3]),
         make_agent([0.5, 2.5]),
     ]
-    
+
     new_knea = KnEA(k=2)
     new_knea._precompute_weighted_distances(agents)
-    
+
     # Mock knee points set
     K_mock = [agents[0], agents[1]]
     N_to_select = 3
-    
+
     mating_pool = new_knea._mating_selection(agents, K_mock, N_to_select)
-    
+
     assert isinstance(mating_pool, list)
     assert len(mating_pool) == N_to_select
     assert all(isinstance(a, Agent) for a in mating_pool)
@@ -87,19 +91,18 @@ def test_knea_mating_selection():
 def test_knea_genetic_operators():
     def dummy_func(x):
         return np.array([np.sum(x), np.sum(x**2)])
-        
+
     agents = [
         make_agent([1, 2]),
         make_agent([2, 1]),
         make_agent([1.5, 1.5]),
-        make_agent([3, 3])
+        make_agent([3, 3]),
     ]
-    
+
     new_knea = KnEA()
-    
+
     # N must be even for parent pairing
-    offsprings = new_knea._genetic_operators(mating=agents, N=len(agents), function=dummy_func)
-    
+    _ = new_knea._genetic_operators(mating=agents, N=len(agents), function=dummy_func)
 
 
 def test_knea_fast_non_dominated_sort():
@@ -112,10 +115,10 @@ def test_knea_fast_non_dominated_sort():
     ]
     new_knea = KnEA()
     fronts = new_knea._fast_non_dominated_sort(agents)
-    
+
     assert isinstance(fronts, list)
     assert len(fronts) > 0
-    
+
     # Agent [3, 3] at index 3 is dominated and should not be in the first front
     assert 3 not in fronts[0]
 
@@ -129,13 +132,14 @@ def test_knea_finding_knee_point():
         make_agent([10, 1]),
     ]
     new_knea = KnEA()
-    
+
     new_knea.compile()
-    
-    
+
     fronts = new_knea._fast_non_dominated_sort(agents)
-    knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(agents, fronts)
-    
+    knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(
+        agents, fronts
+    )
+
     assert isinstance(knee_indices, list)
     assert isinstance(sorted_fronts, list)
     assert isinstance(front_map, list)
@@ -151,17 +155,19 @@ def test_knea_environmental_selection():
         make_agent([10, 1]),
     ]
     new_knea = KnEA()
-    
+
     new_knea.compile()
-    
+
     fronts = new_knea._fast_non_dominated_sort(agents)
-    knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(agents, fronts)
-    
+    knee_indices, sorted_fronts, front_map = new_knea._finding_knee_point(
+        agents, fronts
+    )
+
     # Request exactly 3 agents to trigger truncation logic
     survivors = new_knea._environmental_selection(
         agents, fronts, knee_indices, sorted_fronts, front_map, N=3
     )
-    
+
     assert isinstance(survivors, list)
     assert len(survivors) == 3
 
@@ -185,7 +191,6 @@ def test_knea_evaluate():
     new_knea.evaluate(search_space, multi_square)
 
     assert search_space.agents[0].fit is not None
-    
 
 
 def test_knea_update():
@@ -205,7 +210,7 @@ def test_knea_update():
     # knn_num must be strictly less than population size
     new_knea = KnEA(k=2)
     new_knea.compile()
-    
+
     new_knea.evaluate(search_space, multi_square)
     new_knea.update(search_space, multi_square)
 

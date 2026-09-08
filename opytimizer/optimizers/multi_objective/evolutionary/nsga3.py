@@ -1,17 +1,17 @@
-import numpy as np
-
 from typing import List, Tuple
 
+import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core import MultiObjectiveOptimizer, Function
+from opytimizer.core import Function, MultiObjectiveOptimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
-from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
+from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
 from opytimizer.utils.reference_vectors import das_dennis
 
 logger = logging.get_logger(__name__)
+
 
 class NSGA3(MultiObjectiveOptimizer):
     """NSGA3 class, inherited from MultiObjectiveOptimizer.
@@ -41,22 +41,24 @@ class NSGA3(MultiObjectiveOptimizer):
             mutation_operator: Mutation operator to be used.
             reference_points: Pre-computed reference points of shape (H, M).
                 If None, they are generated via Das and Dennis's approach using
-                n_divisions (default set to 12). 
-            
+                n_divisions (default set to 12).
+
         """
 
         logger.info("Overriding class: MultiObjectiveOptimizer -> NSGA3.")
 
         super().__init__()
 
-        self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2, eta=30, gene_rate=1.0)
+        self.crossover_operator = crossover_operator or SBXCrossover(
+            n_offspring=2, eta=30, gene_rate=1.0
+        )
         self.mutation_operator = mutation_operator or PolynomialMutation()
 
         self._user_reference_points = reference_points
 
-        self.reference_points: np.ndarray = None 
+        self.reference_points: np.ndarray = None
         self.rank: np.ndarray = None
-        
+
         self.is_first_generation = True
         self.build(params)
 
@@ -105,14 +107,16 @@ class NSGA3(MultiObjectiveOptimizer):
         if self._user_reference_points is not None:
             self.reference_points = np.asarray(self._user_reference_points, dtype=float)
         else:
-            self.reference_points,_ = das_dennis(n_objectives, 12)
+            self.reference_points, _ = das_dennis(n_objectives, 12)
             logger.debug(
                 f"Generated {len(self.reference_points)} Das-Dennis reference points "
                 f"(M={n_objectives}, p={12})."
             )
-            
+
             if len(self.reference_points) != space.n_agents:
-                raise e.ValueError('Error: conflict between the number of reference points and `n_agents` provided.')
+                raise e.ValueError(
+                    "Error: conflict between the number of reference points and `n_agents` provided."
+                )
 
         self.rank = np.zeros(n_agents, dtype=int)
 
@@ -128,17 +132,19 @@ class NSGA3(MultiObjectiveOptimizer):
         """
         n = len(agents)
         fits = np.array([a.fit for a in agents])
-        
+
         fits_i = fits[:, np.newaxis, :]
         fits_j = fits[np.newaxis, :, :]
-        
-        dominates = np.logical_and(np.all(fits_i <= fits_j, axis=2), np.any(fits_i < fits_j, axis=2))
-        
+
+        dominates = np.logical_and(
+            np.all(fits_i <= fits_j, axis=2), np.any(fits_i < fits_j, axis=2)
+        )
+
         domination_count = np.sum(dominates, axis=0)
         dominated_solutions = [np.where(dominates[i])[0].tolist() for i in range(n)]
-        
+
         fronts = [np.where(domination_count == 0)[0].tolist()]
-        
+
         i = 0
         while i < len(fronts) and fronts[i]:
             next_front = []
@@ -179,7 +185,7 @@ class NSGA3(MultiObjectiveOptimizer):
 
         ideal_point = fitnesses.min(axis=0)
 
-        f_prime = fitnesses - ideal_point 
+        f_prime = fitnesses - ideal_point
 
         extreme_indices = []
         for i in range(M):
@@ -188,7 +194,7 @@ class NSGA3(MultiObjectiveOptimizer):
             asf_vals = np.max(f_prime / w, axis=1)
             extreme_indices.append(int(np.argmin(asf_vals)))
 
-        extreme_points = f_prime[extreme_indices] 
+        extreme_points = f_prime[extreme_indices]
 
         try:
             b = np.linalg.solve(extreme_points, np.ones(M))
@@ -199,13 +205,11 @@ class NSGA3(MultiObjectiveOptimizer):
             intercepts = np.max(f_prime, axis=0)
             intercepts[intercepts == 0] = 1e-6
 
-        f_n = f_prime / intercepts 
+        f_n = f_prime / intercepts
 
         return f_n
 
-    def _associate(
-        self, f_n: np.ndarray, ref_points: np.ndarray
-    ) -> Tuple:
+    def _associate(self, f_n: np.ndarray, ref_points: np.ndarray) -> Tuple:
         """Associates each population member with its closest reference line.
 
         The reference line for reference point z is the ray from the origin
@@ -229,14 +233,14 @@ class NSGA3(MultiObjectiveOptimizer):
 
         norms = np.linalg.norm(ref_points, axis=1, keepdims=True)
         norms[norms == 0] = 1.0
-        w = ref_points / norms 
+        w = ref_points / norms
 
         dot = f_n @ w.T
         s_norm_sq = np.sum(f_n**2, axis=1)[:, np.newaxis]
         dists = np.sqrt(np.maximum(0, s_norm_sq - dot**2))
 
-        pi = np.argmin(dists, axis=1) 
-        d = dists[np.arange(n_members), pi] 
+        pi = np.argmin(dists, axis=1)
+        d = dists[np.arange(n_members), pi]
 
         return pi, d
 
@@ -265,12 +269,12 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         selected = []
-        rho = rho.copy() 
-        
+        rho = rho.copy()
+
         candidates_map = {j: [] for j in range(len(rho))}
         for idx in fl_local:
             candidates_map[pi[idx]].append(idx)
-            
+
         active_refs = {j for j, cands in candidates_map.items() if cands}
 
         for _ in range(K):
@@ -294,7 +298,7 @@ class NSGA3(MultiObjectiveOptimizer):
             selected.append(chosen)
             candidates.pop(chosen_idx)
             rho[j_bar] += 1
-            
+
             if not candidates:
                 active_refs.remove(j_bar)
 
@@ -316,7 +320,7 @@ class NSGA3(MultiObjectiveOptimizer):
             children = self._crossover(p1, p2)
             for child in children:
                 offspring.extend(self._mutation(child))
-        
+
         return offspring[: len(space.agents)]
 
     def _tournament_selection(self, agents: list) -> List:
@@ -329,20 +333,20 @@ class NSGA3(MultiObjectiveOptimizer):
 
     def _select_survivors(self, combined: list, n_agents: int) -> List:
         """Selects the next generation using non-dominated sorting + niching.
- 
+
         Implements the main body of Algorithm 1 from the paper.
- 
+
         Args:
             combined: Combined population (parents + offspring).
             n_agents: Target population size N.
- 
+
         Returns:
             (list): Selected agents for the next generation (length n_agents).
- 
+
         """
- 
+
         fronts = self._fast_non_dominated_sort(combined)
- 
+
         st_indices = []
         last_front_idx = 0
         for fi, front in enumerate(fronts):
@@ -353,25 +357,25 @@ class NSGA3(MultiObjectiveOptimizer):
             last_front_idx = fi
         else:
             return [combined[i] for i in st_indices]
- 
+
         fl = fronts[last_front_idx]
         K = n_agents - len(st_indices)
- 
+
         full_st = st_indices + list(fl)
- 
+
         f_n = self._normalize(combined, full_st)
- 
+
         fl_local = list(range(len(st_indices), len(full_st)))
- 
+
         pi, d = self._associate(f_n, self.reference_points)
- 
+
         H = len(self.reference_points)
         rho = np.zeros(H, dtype=int)
         for local_idx in range(len(st_indices)):
             rho[pi[local_idx]] += 1
- 
+
         chosen_local = self._niching(K, rho, pi, d, fl_local)
- 
+
         final_indices = st_indices + [full_st[loc] for loc in chosen_local]
         return [combined[i] for i in final_indices[:n_agents]]
 
@@ -385,7 +389,7 @@ class NSGA3(MultiObjectiveOptimizer):
         """
 
         offspring = self._create_offspring(space)
-        
+
         for i in range(len(offspring)):
             offspring[i].fit = function(offspring[i].position).flatten()
 
@@ -399,5 +403,4 @@ class NSGA3(MultiObjectiveOptimizer):
 
     def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         super().evaluate(space, function)
-        self.evaluate = lambda : None
-    
+        self.evaluate = lambda: None

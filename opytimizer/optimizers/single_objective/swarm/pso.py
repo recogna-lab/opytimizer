@@ -7,18 +7,16 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-
 import opytimizer.math.random as r
 import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer, TensorizedOptimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import  _SingleObjectiveSpace, _SingleObjectiveTensorSpace
+from opytimizer.core.space import _SingleObjectiveSpace, _SingleObjectiveTensorSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
-
 
 
 class PSO(Optimizer):
@@ -185,31 +183,31 @@ class PSO(Optimizer):
 _VELOCITY_UPDATE_KERNEL_SRC = r"""
 extern "C" __global__
 void velocity_update(
-    double* __restrict__ vel,         
-    const double* __restrict__ lbest,  
-    const double* __restrict__ pos,    
-    const double* __restrict__ gbest,  
-    const double* __restrict__ r1,     
-    const double* __restrict__ r2,     
+    double* __restrict__ vel,
+    const double* __restrict__ lbest,
+    const double* __restrict__ pos,
+    const double* __restrict__ gbest,
+    const double* __restrict__ r1,
+    const double* __restrict__ r2,
     const double w,
     const double c1,
     const double c2,
-    const int vars_dims,               
-    const int N                        
+    const int vars_dims,
+    const int N
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= N) return;
- 
+
     int agent_idx = idx / vars_dims;
     int var_idx   = idx % vars_dims;
- 
+
     double v = w * vel[idx]
              + c1 * r1[agent_idx] * (lbest[idx] - pos[idx])
              + c2 * r2[agent_idx] * (gbest[var_idx] - pos[idx]);
     vel[idx] = v;
 }
 """
- 
+
 _VELOCITY_UPDATE_KERNEL_F32_SRC = r"""
 extern "C" __global__
 void velocity_update_f32(
@@ -227,10 +225,10 @@ void velocity_update_f32(
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= N) return;
- 
+
     int agent_idx = idx / vars_dims;
     int var_idx   = idx % vars_dims;
- 
+
     float v = w * vel[idx]
             + c1 * r1[agent_idx] * (lbest[idx] - pos[idx])
             + c2 * r2[agent_idx] * (gbest[var_idx] - pos[idx]);
@@ -241,15 +239,15 @@ void velocity_update_f32(
 
 class PSOCuda(Optimizer, TensorizedOptimizer):
     """
-        GPU-friendly, fully tensorized implementation of PSO (single-objective).
+    GPU-friendly, fully tensorized implementation of PSO (single-objective).
 
-        All particle state -- current position, velocity, personal best
-        (local) position/fitness, and the running global best -- lives on the
-        GPU as `xp` tensors for the entire run. There is NO host <-> device
-        synchronization inside `evaluate`/`update`; `space.agents` is read
-        exactly once, at `compile` time, to seed the initial positions. The
-        only place data is pulled back to the host is `sync_with_cpu`, meant
-        to be called a single time, after the optimization loop has finished.
+    All particle state -- current position, velocity, personal best
+    (local) position/fitness, and the running global best -- lives on the
+    GPU as `xp` tensors for the entire run. There is NO host <-> device
+    synchronization inside `evaluate`/`update`; `space.agents` is read
+    exactly once, at `compile` time, to seed the initial positions. The
+    only place data is pulled back to the host is `sync_with_cpu`, meant
+    to be called a single time, after the optimization loop has finished.
     """
 
     def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
@@ -263,11 +261,11 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
         # Persistent GPU-resident state, populated in `compile`.
         self.position = None  # current particle positions (n_a, n_v)
         self.velocity = None  # particle velocities (n_a, n_v,)
-        self.local_position = None   # personal-best (pbest) position (n_a, n_v)
-        self.fit = None   # fitness of `self.position` (n_a,)
-        self.local_fit = None   # personal-best fitness  (n_a,)
-        self.global_best_position = None # gbest position  (n_v, n_d)
-        self.global_best_fit = None   # gbest fitness  scalar tensor
+        self.local_position = None  # personal-best (pbest) position (n_a, n_v)
+        self.fit = None  # fitness of `self.position` (n_a,)
+        self.local_fit = None  # personal-best fitness  (n_a,)
+        self.global_best_position = None  # gbest position  (n_v, n_d)
+        self.global_best_fit = None  # gbest fitness  scalar tensor
 
         self.build(params)
         self._vel_kernel = None
@@ -333,26 +331,25 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
         n_v = space.n_variables
         n_d = space.n_dimensions
 
-        
-        
         self.local_position = space.X.copy()
-        self.velocity = xp.zeros((n_a, n_v), dtype=dtype)
-
-
+        self.velocity = xp.zeros((n_a, n_v, n_d), dtype=dtype)
         self.local_fit = xp.full(n_a, xp.inf, dtype=dtype)
 
         self.global_best_position = xp.zeros((n_v, n_d), dtype=dtype)
-        
         self.global_best_fit = xp.asarray(xp.inf, dtype=dtype)
 
-        self._lb = xp.asarray(space.lb, dtype=dtype).reshape(1, n_v, 1)
-        self._ub = xp.asarray(space.ub, dtype=dtype).reshape(1, n_v, 1)
+        self._lb = xp.asarray(space.lb, dtype=dtype).reshape(1, n_v, n_d)
+        self._ub = xp.asarray(space.ub, dtype=dtype).reshape(1, n_v, n_d)
 
-        use_f64 = (dtype == xp.float64 or dtype == 'float64')
+        use_f64 = dtype == xp.float64 or dtype == "float64"
         if use_f64:
-            self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_SRC, 'velocity_update')
+            self._vel_kernel = xp.RawKernel(
+                _VELOCITY_UPDATE_KERNEL_SRC, "velocity_update"
+            )
         else:
-            self._vel_kernel = xp.RawKernel(_VELOCITY_UPDATE_KERNEL_F32_SRC, 'velocity_update_f32')
+            self._vel_kernel = xp.RawKernel(
+                _VELOCITY_UPDATE_KERNEL_F32_SRC, "velocity_update_f32"
+            )
 
         self._vars_dims = n_v * n_d
         self._kernel_N = n_a * self._vars_dims
@@ -363,12 +360,10 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
     def evaluate(self, space: _SingleObjectiveTensorSpace, function: Function) -> None:
         xp = space.env.xp
 
-        space.F = function(space.X.squeeze(), xp)
-        
-
+        space.F = function(space.X, xp)
         improved_mask = space.F < self.local_fit
-      
-        xp.copyto(self.local_position, space.X, where=improved_mask[:, None])
+
+        xp.copyto(self.local_position, space.X, where=improved_mask[:, None, None])
         xp.minimum(self.local_fit, space.F, out=self.local_fit)
 
         best_idx = xp.argmin(self.local_fit)
@@ -376,53 +371,58 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
 
         improved_global = best_fit_val < self.global_best_fit
         self.global_best_position = xp.where(
-            improved_global, self.local_position[best_idx].reshape(-1,1), self.global_best_position
+            improved_global, self.local_position[best_idx], self.global_best_position
         )
-       
-        self.global_best_fit = xp.where(improved_global, best_fit_val, self.global_best_fit)
 
-        space.best_agent.position = self.global_best_position.reshape(space.best_agent.position.shape)
+        self.global_best_fit = xp.where(
+            improved_global, best_fit_val, self.global_best_fit
+        )
+
+        space.best_agent.position = self.global_best_position.reshape(
+            space.best_agent.position.shape
+        )
         space.best_agent.fit = self.global_best_fit
         space.best_agent.ts = int(time.time())
-
 
     def update(self, space: _SingleObjectiveTensorSpace) -> None:
         xp = space.env.xp
         n_agents = space.n_agents
         dtype = self._dtype
 
-        r1_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
-        r2_buf = xp.random.uniform(0.0, 1.0, n_agents, dtype=(dtype if (dtype == 'float64') else xp.float32))
+        r1_buf = xp.random.uniform(
+            0.0, 1.0, n_agents, dtype=(dtype if (dtype == "float64") else xp.float32)
+        )
+        r2_buf = xp.random.uniform(
+            0.0, 1.0, n_agents, dtype=(dtype if (dtype == "float64") else xp.float32)
+        )
         gbest_flat = self.global_best_position.ravel()
 
         scalar_type = np.dtype(dtype).type
 
         self._vel_kernel(
-            (self._kernel_grid,), (self._block_size,),
-            (self.velocity,
-             self.local_position,
-             space.X,
-             gbest_flat,
-             r1_buf,
-             r2_buf,
-             scalar_type(self.w),
-             scalar_type(self.c1),
-             scalar_type(self.c2),
-             np.int32(self._vars_dims),
-             np.int32(self._kernel_N))
+            (self._kernel_grid,),
+            (self._block_size,),
+            (
+                self.velocity,
+                self.local_position,
+                space.X,
+                gbest_flat,
+                r1_buf,
+                r2_buf,
+                scalar_type(self.w),
+                scalar_type(self.c1),
+                scalar_type(self.c2),
+                np.int32(self._vars_dims),
+                np.int32(self._kernel_N),
+            ),
         )
-        
 
         space.X += self.velocity
 
-        
-       
-
-    
 
 class PSOTensor(Optimizer, TensorizedOptimizer):
     """
-        GPU/CPU-agnostic, fully tensorized implementation of PSO (single-objective),
+    GPU/CPU-agnostic, fully tensorized implementation of PSO (single-objective),
     """
 
     def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
@@ -441,7 +441,6 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         self.global_best_position = None
         self.global_best_fit = None
 
-        
         self._tmp_cognitive = None
         self._tmp_social = None
         self._r1 = None
@@ -508,26 +507,25 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         dtype = space.env.dtype
         n_a = space.n_agents
         n_v = space.n_variables
+        n_d = space.n_dimensions
 
-        self.local_position = space.X.copy()  # (n_a, n_v)
-        self.velocity = xp.zeros((n_a, n_v), dtype=dtype)
-
+        self.local_position = space.X.copy()
+        self.velocity = xp.zeros((n_a, n_v, n_d), dtype=dtype)
         self.local_fit = xp.full(n_a, xp.inf, dtype=dtype)
 
-        self.global_best_position = xp.zeros((n_v, 1), dtype=dtype)
+        self.global_best_position = xp.zeros((n_v, n_d), dtype=dtype)
         self.global_best_fit = xp.asarray(xp.inf, dtype=dtype)
 
-        self._lb = xp.asarray(space.lb, dtype=dtype).reshape(1, n_v)
-        self._ub = xp.asarray(space.ub, dtype=dtype).reshape(1, n_v)
+        self._lb = xp.asarray(space.lb, dtype=dtype).reshape(1, n_v, n_d)
+        self._ub = xp.asarray(space.ub, dtype=dtype).reshape(1, n_v, n_d)
 
         self._dtype = dtype
 
-       
-        self._tmp_cognitive = xp.empty((n_a, n_v), dtype=dtype)
-        self._tmp_social = xp.empty((n_a, n_v), dtype=dtype)
-        self._r1 = xp.empty((n_a, 1), dtype=dtype)
-        self._r2 = xp.empty((n_a, 1), dtype=dtype)
-        self._gbest_row = xp.empty((1, n_v), dtype=dtype)  
+        self._tmp_cognitive = xp.empty((n_a, n_v, n_d), dtype=dtype)
+        self._tmp_social = xp.empty((n_a, n_v, n_d), dtype=dtype)
+        self._r1 = xp.empty((n_a, 1, 1), dtype=dtype)
+        self._r2 = xp.empty((n_a, 1, 1), dtype=dtype)
+        self._gbest_row = xp.empty((1, n_v, n_d), dtype=dtype)
 
         self._warmup(space)
 
@@ -542,7 +540,7 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         dummy_F = xp.zeros(n_a, dtype=dtype)
 
         improved_mask = dummy_F < dummy_local_fit
-        xp.copyto(dummy_local_position, dummy_X, where=improved_mask[:, None])
+        xp.copyto(dummy_local_position, dummy_X, where=improved_mask[:, None, None])
         xp.minimum(dummy_local_fit, dummy_F, out=dummy_local_fit)
 
         best_idx = xp.argmin(dummy_local_fit)
@@ -552,13 +550,16 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         dummy_gbest_fit = self.global_best_fit.copy()
 
         improved_global = best_fit_val < dummy_gbest_fit
-        candidate = dummy_local_position[best_idx].reshape(-1, 1)
+        candidate = dummy_local_position[best_idx]
         dummy_gbest_pos = xp.where(improved_global, candidate, dummy_gbest_pos)
         dummy_gbest_fit = xp.where(improved_global, best_fit_val, dummy_gbest_fit)
 
         xp.copyto(self._r1, xp.random.uniform(0.0, 1.0, self._r1.shape).astype(dtype))
         xp.copyto(self._r2, xp.random.uniform(0.0, 1.0, self._r2.shape).astype(dtype))
-        xp.copyto(self._gbest_row, dummy_gbest_pos.reshape(1, -1))
+        xp.copyto(
+            self._gbest_row,
+            dummy_gbest_pos.reshape(1, space.n_variables, space.n_dimensions),
+        )
 
         xp.subtract(dummy_local_position, dummy_X, out=self._tmp_cognitive)
         self._tmp_cognitive *= self._r1
@@ -576,59 +577,67 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         dummy_X += dummy_velocity
         xp.clip(dummy_X, self._lb, self._ub, out=dummy_X)
 
-        #if hasattr(xp, "cuda"):
-            #xp.cuda.Stream.null.synchronize()
-
     def evaluate(self, space: _SingleObjectiveTensorSpace, function: Function) -> None:
         xp = space.env.xp
 
-        space.F = function(space.X.squeeze(), xp)
-
+        space.F = function(space.X, xp)
         improved_mask = space.F < self.local_fit
 
-        xp.copyto(self.local_position, space.X, where=improved_mask[:, None])
+        xp.copyto(self.local_position, space.X, where=improved_mask[:, None, None])
         xp.minimum(self.local_fit, space.F, out=self.local_fit)
 
         best_idx = xp.argmin(self.local_fit)
         best_fit_val = self.local_fit[best_idx]
 
         improved_global = best_fit_val < self.global_best_fit
-        candidate = self.local_position[best_idx].reshape(-1, 1)
-        self.global_best_position = xp.where(improved_global, candidate, self.global_best_position)
-        self.global_best_fit = xp.where(improved_global, best_fit_val, self.global_best_fit)
+        candidate = self.local_position[best_idx]
+        self.global_best_position = xp.where(
+            improved_global, candidate, self.global_best_position
+        )
+        self.global_best_fit = xp.where(
+            improved_global, best_fit_val, self.global_best_fit
+        )
 
-        space.best_agent.position = self.global_best_position.reshape(space.best_agent.position.shape)
+        space.best_agent.position = self.global_best_position.reshape(
+            space.best_agent.position.shape
+        )
         space.best_agent.fit = self.global_best_fit
-        #space.best_agent.ts = int(time.time())
+        space.best_agent.ts = int(time.time())
 
     def update(self, space: _SingleObjectiveTensorSpace) -> None:
         xp = space.env.xp
 
-        # Fill pre-allocated random buffers in-place 
-        xp.copyto(self._r1, xp.random.uniform(0.0, 1.0, self._r1.shape).astype(self._dtype))
-        xp.copyto(self._r2, xp.random.uniform(0.0, 1.0, self._r2.shape).astype(self._dtype))
+        # Fill pre-allocated random buffers in-place
+        xp.copyto(
+            self._r1, xp.random.uniform(0.0, 1.0, self._r1.shape).astype(self._dtype)
+        )
+        xp.copyto(
+            self._r2, xp.random.uniform(0.0, 1.0, self._r2.shape).astype(self._dtype)
+        )
 
         # gbest as a (1, n_v) row, written into a reused buffer
-        xp.copyto(self._gbest_row, self.global_best_position.reshape(1, -1))
+        xp.copyto(
+            self._gbest_row,
+            self.global_best_position.reshape(1, space.n_variables, space.n_dimensions),
+        )
 
-        # cognitive = c1 * r1 * (local_position - X) 
+        # cognitive = c1 * r1 * (local_position - X)
         xp.subtract(self.local_position, space.X, out=self._tmp_cognitive)
         self._tmp_cognitive *= self._r1
         self._tmp_cognitive *= self.c1
 
-        # social = c2 * r2 * (gbest - X) 
+        # social = c2 * r2 * (gbest - X)
         xp.subtract(self._gbest_row, space.X, out=self._tmp_social)
         self._tmp_social *= self._r2
         self._tmp_social *= self.c2
 
-        # velocity = w*velocity + cognitive + social   
+        # velocity = w*velocity + cognitive + social
         self.velocity *= self.w
         self.velocity += self._tmp_cognitive
         self.velocity += self._tmp_social
 
         space.X += self.velocity
 
-       
 
 class AIWPSO(PSO):
     """An AIWPSO class, inherited from PSO.

@@ -111,7 +111,9 @@ class SMA(Optimizer):
                     (best - agents[i].fit) / ((best - worst) + c.EPSILON) + 1
                 )
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Slime Mould Algorithm over all agents and variables.
 
         Args:

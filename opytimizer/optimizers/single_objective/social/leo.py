@@ -3,10 +3,11 @@
 
 import copy
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
+import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
 from opytimizer.core.space import _SingleObjectiveSpace
@@ -40,10 +41,10 @@ class LEO(Optimizer):
 
         super(LEO, self).__init__()
 
-        self.best_agent_index = 0 
-            
+        self.best_agent_index = 0
+
         self.t = 1
-        
+
         self.build(params)
 
         logger.info("Class overrided.")
@@ -61,7 +62,6 @@ class LEO(Optimizer):
 
         self._local_position = local_position
 
-        
     def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
@@ -73,7 +73,7 @@ class LEO(Optimizer):
         self.local_position = np.zeros(
             (space.n_agents, space.n_variables, space.n_dimensions)
         )
-        
+
     def evaluate(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Evaluates the search space according to the objective function.
 
@@ -95,84 +95,95 @@ class LEO(Optimizer):
                 space.best_agent.ts = int(time.time())
                 self.best_agent_index = i
 
-        
-
     def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """
         Args:
             space: Space containing a list of Agent objects, each with 'position' (NumPy array of shape (n, 1)) and 'fit' (scalar).
             function: A Function object that will be used as the objective function.
         """
-        
+
         # To ensure compatibility with the position array shape (n, 1), the lower and upper bounds arrays are reshaped to (n, 1).
-        reshaped_lb, reshaped_ub = space.lb.reshape(-1,1), space.ub.reshape(-1,1)
+        reshaped_lb, reshaped_ub = space.lb.reshape(-1, 1), space.ub.reshape(-1, 1)
 
         # --- Phase 1: Teacher Selection and Learning ---
 
-        # Array of fitness values for all agents        
+        # Array of fitness values for all agents
         fitness = np.array([agent.fit for agent in space.agents])
 
         for i in range(space.n_agents):
 
             # Create mask to exclude the current agent and the best agent
-            mask = (np.arange(space.n_agents) != i) & (np.arange(space.n_agents) != self.best_agent_index)
+            mask = (np.arange(space.n_agents) != i) & (
+                np.arange(space.n_agents) != self.best_agent_index
+            )
 
             # Select teachers: agents with better fitness than the current agent
             valid_teachers = np.where((fitness < fitness[i]) & mask)[0]
-            
+
             if len(valid_teachers) == 0:
                 selected_teacher = self.best_agent_index
             else:
                 # Include the best agent as an option and select randomly
                 valid_teachers = np.append(valid_teachers, self.best_agent_index)
                 selected_teacher = np.random.choice(valid_teachers)
-            
-            # Vectorized position update
-            r = np.random.rand() 
-            I = np.random.randint(1, 3)
-            new_pos = space.agents[i].position + r * (space.agents[selected_teacher].position - I * space.agents[i].position)
 
-            # Apply bounds 
+            # Vectorized position update
+            r = np.random.rand()
+            I = np.random.randint(1, 3)
+            new_pos = space.agents[i].position + r * (
+                space.agents[selected_teacher].position - I * space.agents[i].position
+            )
+
+            # Apply bounds
             new_pos = np.clip(new_pos, reshaped_lb, reshaped_ub)
-            
+
             # Calculate new fitness
             new_fitness = function(new_pos)
             if new_fitness < space.agents[i].fit:
                 space.agents[i].position = np.copy(new_pos)
                 space.agents[i].fit = new_fitness
 
-        # --- Phase 2: Student-to-Student Learning ---
+            # --- Phase 2: Student-to-Student Learning ---
 
             # Select a random student (different from the current agent)
             selected_student = np.random.randint(0, space.n_agents)
             while selected_student == i:
                 selected_student = np.random.randint(0, space.n_agents)
-            
+
             # Vectorized position update
-            r = np.random.rand()  
+            r = np.random.rand()
             I = np.random.randint(1, 3)
             if space.agents[selected_student].fit < space.agents[i].fit:
-                new_pos = space.agents[i].position + r * (space.agents[selected_student].position - I * space.agents[i].position)
+                new_pos = space.agents[i].position + r * (
+                    space.agents[selected_student].position
+                    - I * space.agents[i].position
+                )
             else:
-                new_pos = space.agents[i].position + r * (space.agents[i].position - I * space.agents[selected_student].position)
-            
+                new_pos = space.agents[i].position + r * (
+                    space.agents[i].position
+                    - I * space.agents[selected_student].position
+                )
+
             # Apply bounds
             new_pos = np.clip(new_pos, reshaped_lb, reshaped_ub)
-            
+
             # Calculate new fitness
             new_fitness = function(new_pos)
             if new_fitness < space.agents[i].fit:
                 space.agents[i].position = np.copy(new_pos)
                 space.agents[i].fit = new_fitness
 
-        # --- Phase 3: Individual Practice ---
+            # --- Phase 3: Individual Practice ---
             # Vectorized position update
-            r = np.random.rand()  
-            new_pos = space.agents[i].position + (reshaped_lb + r * (reshaped_ub - reshaped_lb)) / self.t
-            
+            r = np.random.rand()
+            new_pos = (
+                space.agents[i].position
+                + (reshaped_lb + r * (reshaped_ub - reshaped_lb)) / self.t
+            )
+
             # Apply bounds
             new_pos = np.clip(new_pos, reshaped_lb, reshaped_ub)
-            
+
             # Calculate new fitness
             new_fitness = function(new_pos)
             if new_fitness < space.agents[i].fit:

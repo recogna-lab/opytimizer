@@ -1,17 +1,14 @@
-from typing import List, FrozenSet, Optional, Set, Union
 import importlib
+from typing import FrozenSet, List, Optional, Set, Union
 
 from opytimizer.core import Agent
-from opytimizer.visualization._core.router import PlotRouter, MatplotlibRenderer
 from opytimizer.visualization._core.result import PlotResult
+from opytimizer.visualization._core.router import MatplotlibRenderer, PlotRouter
 
 _router = PlotRouter(default_backend="matplotlib")
 
 _MAPPING: dict[str, str] = {
-    "agents": (
-        "opytimizer.visualization._core._plots"
-        ".multi_objective.plot_agents"
-    ),
+    "agents": ("opytimizer.visualization._core._plots" ".multi_objective.plot_agents"),
     "pareto_front_evolution": (
         "opytimizer.visualization._core._plots"
         ".multi_objective.plot_pareto_front_evolution"
@@ -25,15 +22,15 @@ _MAPPING: dict[str, str] = {
         ".plot_population_distribution_histogram"
     ),
     "convergence": (
-        "opytimizer.visualization._core._plots"
-        ".single_objective.plot_convergence"
+        "opytimizer.visualization._core._plots" ".single_objective.plot_convergence"
     ),
 }
 
 FieldsParam = Optional[Union[Set[str], FrozenSet[str]]]
 
+
 def _call_plot(name, result, backend=None, *args, **kwargs) -> PlotResult:
-   
+
     resolved_backend = backend or _router.default_backend
     renderer = _router._resolve_backend(resolved_backend)
 
@@ -45,9 +42,10 @@ def _call_plot(name, result, backend=None, *args, **kwargs) -> PlotResult:
 
 # Public API Functions
 
+
 def plot_agents(
-    result, 
-    backend: str | None = None, 
+    result,
+    backend: str | None = None,
     title: str = "Agents",
     color: str = "#2ca02c",
     labels: List[str] | None = None,
@@ -63,12 +61,14 @@ def plot_agents(
         labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("agents", result, backend, title=title, color=color, labels=labels, **kwargs)
+    return _call_plot(
+        "agents", result, backend, title=title, color=color, labels=labels, **kwargs
+    )
 
 
 def plot_pareto_front_evolution(
-    result: List[List[Agent]], 
-    backend: str | None = None, 
+    result: List[List[Agent]],
+    backend: str | None = None,
     title: str = "Pareto Front Evolution",
     cmap: str = "viridis",
     labels: List[str] | None = None,
@@ -86,11 +86,21 @@ def plot_pareto_front_evolution(
         iterations: Specific iteration indices to be plotted.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front_evolution", result, backend, title=title, cmap=cmap, labels=labels, iterations=iterations, **kwargs)
+    return _call_plot(
+        "pareto_front_evolution",
+        result,
+        backend,
+        title=title,
+        cmap=cmap,
+        labels=labels,
+        iterations=iterations,
+        **kwargs
+    )
+
 
 def plot_pareto_front_comparison(
-    *args, 
-    backend: str | None = None, 
+    *args,
+    backend: str | None = None,
     title: str = "Pareto Front Comparison",
     labels: List[str] | None = None,
     obj_labels: List[str] | None = None,
@@ -106,12 +116,21 @@ def plot_pareto_front_comparison(
         obj_labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front_comparison", None, backend, *args, title=title, labels=labels, obj_labels=obj_labels, **kwargs)
+    return _call_plot(
+        "pareto_front_comparison",
+        None,
+        backend,
+        *args,
+        title=title,
+        labels=labels,
+        obj_labels=obj_labels,
+        **kwargs
+    )
 
 
 def plot_population_distribution_histogram(
-    result, 
-    backend: str | None = None, 
+    result,
+    backend: str | None = None,
     target: int = 0,
     title: str = None,
     color: str = "#2ca02c",
@@ -129,11 +148,21 @@ def plot_population_distribution_histogram(
         label: Label for the data series.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("population_distribution_histogram", result, backend, target=target, title=title, color=color, label=label, **kwargs)
-    
+    return _call_plot(
+        "population_distribution_histogram",
+        result,
+        backend,
+        target=target,
+        title=title,
+        color=color,
+        label=label,
+        **kwargs
+    )
+
+
 def plot_convergence(
-    *args, 
-    backend: str | None = None, 
+    *args,
+    backend: str | None = None,
     title: str | None = "Convergence Comparison",
     labels: List[str] | None = None,
     x_axis: str | None = None,
@@ -155,10 +184,22 @@ def plot_convergence(
         iterations: Specific iteration indices to be plotted.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("convergence", None, backend, *args, title=title, labels=labels, x_axis=x_axis, xlabel=xlabel, ylabel=ylabel, iterations=iterations,**kwargs)
-    
-    
+    return _call_plot(
+        "convergence",
+        None,
+        backend,
+        *args,
+        title=title,
+        labels=labels,
+        x_axis=x_axis,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        iterations=iterations,
+        **kwargs
+    )
+
+
 def _load_plot(name, result, *args, **kwargs):
     module = importlib.import_module(_MAPPING[name])
-    data = module.extract_data(result, *args, **kwargs) 
+    data = module.extract_data(result, *args, **kwargs)
     return module.draw_mpl, module.draw_ply, data

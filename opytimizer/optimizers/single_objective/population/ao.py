@@ -129,7 +129,11 @@ class AO(Optimizer):
         self._w = w
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Aquila Optimizer over all agents and variables.
 

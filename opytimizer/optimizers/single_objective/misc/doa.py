@@ -96,7 +96,7 @@ class DOA(Optimizer):
         """
 
         r1 = rnd.generate_uniform_random_number(lb, ub)
-       
+
         # Calculates the chaotic map (eq. 3)
         c_map = self.r * r1 * (1 - r1) + ((4 - self.r) * np.sin(np.pi * r1)) / 4
 

@@ -1,8 +1,8 @@
 import numpy as np
 from opytimark.markers.n_dimensional import Sphere
 
-from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.functions import ConstrainedFunction
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace

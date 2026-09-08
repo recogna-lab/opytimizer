@@ -5,7 +5,7 @@ from opytimizer.optimizers.single_objective.evolutionary import OBCE
 params = {
     "CR": 0.7,
     "DR": 0.7,
-    "chaotic_system": 'gauss',
+    "chaotic_system": "gauss",
 }
 
 # Creates a OBCE optimizer

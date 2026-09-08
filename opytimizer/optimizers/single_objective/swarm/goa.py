@@ -128,7 +128,11 @@ class GOA(Optimizer):
         return s
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Grasshopper Optimization Algorithm over all agents and variables.
 

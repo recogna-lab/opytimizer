@@ -63,7 +63,9 @@ class OSA(Optimizer):
 
         self._beta = beta
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Owl Search Algorithm over all agents and variables.
 
         Args:

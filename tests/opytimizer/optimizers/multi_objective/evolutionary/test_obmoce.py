@@ -1,6 +1,7 @@
 import numpy as np
-from opytimizer.spaces import search
+
 from opytimizer.optimizers.multi_objective.evolutionary import moce
+from opytimizer.spaces import search
 
 
 def zdt1(x):
@@ -106,12 +107,14 @@ def test_obmoce_compile():
 
 def test_obmoce_non_dominated_sort():
     opt = moce.OBMOCE()
-    fits = np.array([
-        [0.0, 1.0],
-        [0.5, 0.5],
-        [1.0, 0.0],
-        [2.0, 2.0],
-    ])
+    fits = np.array(
+        [
+            [0.0, 1.0],
+            [0.5, 0.5],
+            [1.0, 0.0],
+            [2.0, 2.0],
+        ]
+    )
     fronts = opt._non_dominated_sort(fits)
     assert set(fronts[0]) == {0, 1, 2}
     assert set(fronts[1]) == {3}
@@ -119,11 +122,13 @@ def test_obmoce_non_dominated_sort():
 
 def test_obmoce_crowding_distance():
     opt = moce.OBMOCE()
-    fits = np.array([
-        [0.0, 1.0],
-        [0.5, 0.5],
-        [1.0, 0.0],
-    ])
+    fits = np.array(
+        [
+            [0.0, 1.0],
+            [0.5, 0.5],
+            [1.0, 0.0],
+        ]
+    )
     dist = opt._crowding_distance(fits, [0, 1, 2])
     assert np.isinf(dist[0])
     assert np.isinf(dist[2])

@@ -182,7 +182,9 @@ class SFO(Optimizer):
 
         return new_position
 
-    def update(self, space: _SingleObjectiveSpace, function: Function, iteration: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int
+    ) -> None:
         """Wraps Sailfish Optimizer over all agents and variables.
 
         Args:

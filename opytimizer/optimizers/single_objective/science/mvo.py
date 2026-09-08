@@ -96,7 +96,11 @@ class MVO(Optimizer):
         self._p = p
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Multi-Verse Optimizer over all agents and variables (eq. 3.1-3.4).
 

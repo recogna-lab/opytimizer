@@ -1,10 +1,11 @@
 import numpy as np
-from opytimizer.spaces import search
+
 from opytimizer.optimizers.single_objective.evolutionary import ce as obce
+from opytimizer.spaces import search
 
 
 def sphere(x):
-    return float(np.sum(x ** 2))
+    return float(np.sum(x**2))
 
 
 def test_obce_params():
@@ -74,7 +75,7 @@ def test_obce_henon():
 def test_obce_opposite():
     opt = obce.OBCE()
     lb = np.full(5, -100.0)
-    ub = np.full(5,  100.0)
+    ub = np.full(5, 100.0)
     pos = np.random.uniform(-100, 100, (10, 5))
     op = opt._opposite(pos, lb, ub)
     assert op.shape == pos.shape
@@ -89,7 +90,7 @@ def test_obce_compile():
         n_variables=5,
         n_objectives=1,
         lower_bound=[-100] * 5,
-        upper_bound=[ 100] * 5,
+        upper_bound=[100] * 5,
     )
     opt.compile(space)
     assert opt.D.shape == (10, 5)
@@ -106,7 +107,7 @@ def test_obce_update():
         n_variables=5,
         n_objectives=1,
         lower_bound=[-100] * 5,
-        upper_bound=[ 100] * 5,
+        upper_bound=[100] * 5,
     )
     opt.compile(space)
     for ag in space.agents:
@@ -118,4 +119,4 @@ def test_obce_update():
         assert a <= b + 1e-10
     for ag in space.agents:
         assert np.all(ag.position >= -100)
-        assert np.all(ag.position <=  100)
+        assert np.all(ag.position <= 100)

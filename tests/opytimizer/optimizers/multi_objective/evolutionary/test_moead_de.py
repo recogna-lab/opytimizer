@@ -1,9 +1,9 @@
 import numpy as np
 
+from opytimizer.core import Agent
 from opytimizer.optimizers.multi_objective.evolutionary import moead
 from opytimizer.spaces.search import SearchSpace
 from opytimizer.utils.reference_vectors import das_dennis
-from opytimizer.core import Agent
 
 
 def test_moead_de_params():
@@ -129,7 +129,6 @@ def test_moead_de_operators():
     child1 = new_moead_de._apply_operators(parent1, parent2, parent3)
 
     assert isinstance(child1, Agent)
-    
 
 
 def test_moead_de_select_neighbors():

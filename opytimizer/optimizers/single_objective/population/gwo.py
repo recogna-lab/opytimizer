@@ -66,7 +66,11 @@ class GWO(Optimizer):
         return A, C
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Grey Wolf Optimization over all agents and variables.
 

@@ -181,7 +181,9 @@ class BA(Optimizer):
         self.loudness = rnd.generate_uniform_random_number(0, self.A, space.n_agents)
         self.pulse_rate = rnd.generate_uniform_random_number(0, self.r, space.n_agents)
 
-    def update(self, space: _SingleObjectiveSpace, function: Function, iteration: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, function: Function, iteration: int
+    ) -> None:
         """Wraps Bat Algorithm over all agents and variables.
 
         Args:

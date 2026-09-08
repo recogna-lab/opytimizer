@@ -6,9 +6,10 @@ a separate PerformanceTracker class.
 import time
 
 from opytimark.markers.n_dimensional import Sphere
-from opytimizer.core.stopping import MaxIterations
+
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
 from opytimizer.hyperheuristics.selection_strategy import ChoiceFunction
 from opytimizer.optimizers.single_objective.swarm import ABC, PSO

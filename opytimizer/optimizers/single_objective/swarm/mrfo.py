@@ -188,7 +188,11 @@ class MRFO(Optimizer):
         return somersault_foraging
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Manta Ray Foraging Optimization over all agents and variables.
 

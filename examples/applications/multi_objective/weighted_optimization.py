@@ -1,8 +1,8 @@
 import numpy as np
 from opytimark.markers.n_dimensional import Rastrigin, Sphere
 
-from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.functions import WeightedFunction
 from opytimizer.optimizers.single_objective.swarm.pso import PSO
 from opytimizer.spaces import SearchSpace

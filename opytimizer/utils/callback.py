@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, TypeVar, Union
 import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core.space import _SingleObjectiveSpace, _MultiObjectiveSpace
+from opytimizer.core.space import _MultiObjectiveSpace, _SingleObjectiveSpace
 
 Opytimizer = TypeVar("Opytimizer")
 

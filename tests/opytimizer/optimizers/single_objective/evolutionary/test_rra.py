@@ -101,7 +101,6 @@ def test_rra_params_setter():
     assert new_rra.n_stall == 0
 
 
-
 def test_rra_stalling_search():
     def square(x):
         return np.sum(x**2)

@@ -1,7 +1,8 @@
 import numpy as np
-from opytimizer.core.stopping import MaxIterations
+
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
 from opytimizer.hyperheuristics.selection_strategy import (
     ChoiceFunction,

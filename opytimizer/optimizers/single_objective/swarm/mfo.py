@@ -60,7 +60,9 @@ class MFO(Optimizer):
 
         self._b = b
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Moth-Flame Optimization over all agents and variables.
 
         Args:

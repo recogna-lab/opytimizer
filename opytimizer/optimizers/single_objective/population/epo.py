@@ -71,7 +71,9 @@ class EPO(Optimizer):
 
         self._l = l
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Emperor Penguin Optimization over all agents and variables.
 
         Args:

@@ -62,7 +62,9 @@ class AEO(Optimizer):
         a = copy.deepcopy(agent)
 
         # Calculates the alpha factor (eq. 2)
-        alpha = (1 - iteration / n_iterations) * r.generate_uniform_random_number().item()
+        alpha = (
+            1 - iteration / n_iterations
+        ) * r.generate_uniform_random_number().item()
 
         for j, (lb, ub) in enumerate(zip(a.lb, a.ub)):
             a.position[j] = (1 - alpha) * best_agent.position[
@@ -219,7 +221,11 @@ class AEO(Optimizer):
                 agent.fit = copy.deepcopy(a.fit)
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Artificial Ecosystem-based Optimization over all agents and variables.
 

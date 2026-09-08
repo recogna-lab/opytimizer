@@ -1,9 +1,9 @@
 import numpy as np
 from opytimark.markers.n_dimensional import Rastrigin, Sphere
 
-from opytimizer.core.stopping import MaxIterations
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
 

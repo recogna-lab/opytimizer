@@ -30,4 +30,6 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
 # CheckpointCallback will snapshot the optimization every `frequency` iterations
-opt.start(stopping_criteria=MaxIterations(10), callbacks=[CheckpointCallback(frequency=1)])
+opt.start(
+    stopping_criteria=MaxIterations(10), callbacks=[CheckpointCallback(frequency=1)]
+)

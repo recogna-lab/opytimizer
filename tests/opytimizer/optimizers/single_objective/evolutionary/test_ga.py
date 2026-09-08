@@ -35,7 +35,6 @@ def test_ga_params_setter():
 
     assert new_ga.p_selection == 0.75
 
-    
 
 def test_ga_roulette_selection():
     new_ga = ga.GA()
@@ -78,7 +77,6 @@ def test_ga_mutation():
     alpha = new_ga._mutation(search_space.agents[0])
 
     assert type(alpha).__name__ == "Agent"
-    
 
 
 def test_ga_update():

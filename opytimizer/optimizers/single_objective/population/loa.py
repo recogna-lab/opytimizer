@@ -85,7 +85,9 @@ class Lion(Agent):
 
     @p_fit.setter
     def p_fit(self, p_fit: float) -> None:
-        if not isinstance(p_fit, (float, int, np.int32, np.int64, np.float32, np.float64, np.ndarray)):
+        if not isinstance(
+            p_fit, (float, int, np.int32, np.int64, np.float32, np.float64, np.ndarray)
+        ):
             raise e.TypeError("`p_fit` should be a float or integer")
 
         self._p_fit = p_fit
@@ -450,7 +452,9 @@ class LOA(Optimizer):
 
                     rand = r.generate_uniform_random_number().item()
                     u = r.generate_uniform_random_number(-1, 1).item()
-                    theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6).item()
+                    theta = r.generate_uniform_random_number(
+                        -np.pi / 6, np.pi / 6
+                    ).item()
 
                     R1 = pride[w].position - agent.position
                     R2 = np.random.randn(*R1.T.shape)
@@ -478,7 +482,9 @@ class LOA(Optimizer):
             for agent in pride:
                 if not agent.female:
                     for s in selected:
-                        theta = r.generate_uniform_random_number(-np.pi / 6, np.pi / 6).item()
+                        theta = r.generate_uniform_random_number(
+                            -np.pi / 6, np.pi / 6
+                        ).item()
 
                         distance = g.euclidean_distance(
                             pride[s].best_position, agent.position
@@ -523,11 +529,15 @@ class LOA(Optimizer):
         for j in range(agent.n_variables):
             r2 = r.generate_uniform_random_number().item()
             if r2 < self.Mu:
-                a1.position[j] = r.generate_uniform_random_number(a1.lb[j], a1.ub[j]).item()
+                a1.position[j] = r.generate_uniform_random_number(
+                    a1.lb[j], a1.ub[j]
+                ).item()
 
             r3 = r.generate_uniform_random_number().item()
             if r3 < self.Mu:
-                a2.position[j] = r.generate_uniform_random_number(a2.lb[j], a2.ub[j]).item()
+                a2.position[j] = r.generate_uniform_random_number(
+                    a2.lb[j], a2.ub[j]
+                ).item()
 
         a1.clip_by_bound()
         a2.clip_by_bound()

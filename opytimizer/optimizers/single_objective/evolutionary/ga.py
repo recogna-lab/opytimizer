@@ -70,7 +70,6 @@ class GA(Optimizer):
 
         self._p_selection = p_selection
 
-
     def _roulette_selection(self, n_agents: int, fitness: List[float]) -> List[int]:
         """Performs a roulette selection on the population (p. 8).
 
@@ -113,9 +112,8 @@ class GA(Optimizer):
 
         """
 
-        
         child1, child2 = self.crossover_operator(father, mother)
-        
+
         return child1[0], child2[0]
 
     def _mutation(self, agent: Agent) -> Agent:
@@ -130,9 +128,7 @@ class GA(Optimizer):
 
         """
 
-        
         mutated = self.mutation_operator(agent)
-       
 
         mutated.clip_by_bound()
         return mutated
@@ -157,14 +153,13 @@ class GA(Optimizer):
             parent2 = space.agents[s[1]]
             children = self._crossover(parent1, parent2)
             child1, child2 = children
-           
+
             child1 = self._mutation(child1)
-            
+
             child2 = self._mutation(child2)
 
             child1.fit = function(child1.position)
             child2.fit = function(child2.position)
-
 
             new_agents.extend([child1, child2])
 

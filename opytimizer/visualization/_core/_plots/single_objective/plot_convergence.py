@@ -6,13 +6,11 @@ from __future__ import annotations
 from typing import Dict, Iterable, List, Optional
 
 import opytimizer.utils.exception as e
-
 from opytimizer.visualization._core import fields as F
 
 
-
 def _extract_val(item):
-   
+
     if isinstance(item, (tuple, list)) and len(item) >= 2:
         return item[1]
     return item
@@ -41,17 +39,17 @@ def extract_data(
         curves: List[List[float]] = []
         if requested_indices is not None:
             for opt in args:
-                curves.append([
-                    float(_extract_val(opt[i - 1]))
-                    for i in requested_indices
-                    if i <= len(opt)
-                ])
+                curves.append(
+                    [
+                        float(_extract_val(opt[i - 1]))
+                        for i in requested_indices
+                        if i <= len(opt)
+                    ]
+                )
             x_axis = requested_indices
         else:
             for opt in args:
-                curves.append(
-                    [float(_extract_val(opt[i])) for i in range(len(opt))]
-                )
+                curves.append([float(_extract_val(opt[i])) for i in range(len(opt))])
             x_axis = list(range(1, len(args[0]) + 1))
 
         if F.wants(fmap, "curves"):
@@ -60,9 +58,7 @@ def extract_data(
             out["x_axis"] = x_axis
 
     if F.wants(fmap, "labels"):
-        out["labels"] = kwargs.get("labels") or [
-            f"Alg {i+1}" for i in range(len(args))
-        ]
+        out["labels"] = kwargs.get("labels") or [f"Alg {i+1}" for i in range(len(args))]
     if F.wants(fmap, "title"):
         out["title"] = kwargs.get("title") or "Convergence Analysis"
     if F.wants(fmap, "xlabel"):
@@ -72,11 +68,13 @@ def extract_data(
 
     return out
 
+
 def draw_mpl(ax, data: Dict) -> None:
     """Matplotlib: one line per algorithm."""
     for curve, label in zip(data["curves"], data["labels"]):
         ax.plot(
-            data["x_axis"], curve,
+            data["x_axis"],
+            curve,
             label=label,
             marker="o" if len(curve) < 20 else None,
         )
@@ -93,11 +91,14 @@ def draw_ply(fig, data: Dict) -> None:
     import plotly.graph_objects as go
 
     for curve, label in zip(data["curves"], data["labels"]):
-        fig.add_trace(go.Scatter(
-            x=data["x_axis"], y=curve,
-            mode="lines",
-            name=label,
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=data["x_axis"],
+                y=curve,
+                mode="lines",
+                name=label,
+            )
+        )
 
     fig.update_layout(
         title=data["title"],

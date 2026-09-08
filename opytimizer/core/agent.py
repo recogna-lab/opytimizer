@@ -2,15 +2,14 @@
 """
 
 import time
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 import opytimizer.math.random as r
-
 import opytimizer.utils.exception as e
-from opytimizer.utils import logging
 from opytimizer.core.environment import Environment
+from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -26,7 +25,7 @@ class Agent:
         lower_bound: List[Union[int, float]],
         upper_bound: List[Union[int, float]],
         mapping: Optional[List[str]] = None,
-        env: Environment = None
+        env: Environment = None,
     ) -> None:
         """Initialization method.
 
@@ -40,11 +39,11 @@ class Agent:
             env: Environment class object.
 
         """
-        if env is None: env = Environment('numpy','float32')
+        if env is None:
+            env = Environment("numpy", "float32")
 
         self.env = env
         self.xp = env.xp
-
 
         self.n_variables = n_variables
         self.n_dimensions = n_dimensions
@@ -54,11 +53,11 @@ class Agent:
         self.ub = self.xp.asarray(upper_bound)
 
         self.position = self.xp.zeros((n_variables, n_dimensions), dtype=self.env.dtype)
-        self._fit = self.xp.full((n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64).squeeze()
+        self._fit = self.xp.full(
+            (n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64
+        ).squeeze()
 
         self.mapping = mapping
-
-        
 
         self.ts = int(time.time())
 
@@ -90,9 +89,9 @@ class Agent:
 
         self._n_dimensions = n_dimensions
 
-
     def _is_ndarray(self, attr) -> bool:
-        return (attr.__class__.__name__ == 'ndarray')
+        return attr.__class__.__name__ == "ndarray"
+
     @property
     def position(self) -> np.ndarray:
         """N-dimensional array of positions."""
@@ -102,7 +101,7 @@ class Agent:
     @position.setter
     def position(self, position: Union[np.ndarray, Any]) -> None:
         if not self._is_ndarray(position):
-            raise e.TypeError('`position` should be a ndarray') 
+            raise e.TypeError("`position` should be a ndarray")
         self._position = position
 
     @property
@@ -153,7 +152,7 @@ class Agent:
 
     @ub.setter
     def ub(self, ub: Union[np.ndarray, Any]) -> None:
-        
+
         if not ub.shape:
             ub = self.xp.expand_dims(ub, -1)
         if ub.shape[0] != self.n_variables:
@@ -190,11 +189,11 @@ class Agent:
             self._mapping = mapping
         else:
             self._mapping = [f"x{i}" for i in range(self.n_variables)]
-    
+
     @property
     def env(self) -> Environment:
         return self._env
-    
+
     @env.setter
     def env(self, env_instance) -> None:
         if not isinstance(env_instance, Environment):
@@ -211,17 +210,14 @@ class Agent:
         """Clips the agent's decision variables to the bounds limits."""
 
         self.position = self.xp.clip(
-            self.position, 
-            self.lb[:, self.xp.newaxis], 
-            self.ub[:, self.xp.newaxis]
+            self.position, self.lb[:, self.xp.newaxis], self.ub[:, self.xp.newaxis]
         )
 
     def fill_with_binary(self) -> None:
         """Fills the agent's decision variables with a binary distribution."""
 
         self.position = r.generate_binary_random_number(
-            size=(self.n_variables, self.n_dimensions), 
-            xp=self.xp
+            size=(self.n_variables, self.n_dimensions), xp=self.xp
         )
 
     def fill_with_static(self, values: np.ndarray) -> None:
@@ -234,13 +230,13 @@ class Agent:
         """
 
         values = self.xp.asarray(values)
-        
+
         if values.ndim == 1:
             values = values[:, self.xp.newaxis]
 
         if values.shape[0] != self.n_variables:
             raise e.SizeError("`values` should be the same size as `n_variables`")
-        
+
         self.position = self.xp.broadcast_to(values, self.position.shape).copy()
 
     def fill_with_uniform(self) -> None:
@@ -250,10 +246,10 @@ class Agent:
         """
 
         self.position = r.generate_uniform_random_number(
-            low=self.lb[:, self.xp.newaxis], 
-            high=self.ub[:, self.xp.newaxis], 
-            size=(self.n_variables, self.n_dimensions), 
-            xp=self.xp
+            low=self.lb[:, self.xp.newaxis],
+            high=self.ub[:, self.xp.newaxis],
+            size=(self.n_variables, self.n_dimensions),
+            xp=self.xp,
         )
 
     def dominates(self, other: "Agent") -> bool:
@@ -267,4 +263,6 @@ class Agent:
 
         """
 
-        return self.xp.all(self._fit <= other._fit) and self.xp.any(self._fit < other._fit)
+        return self.xp.all(self._fit <= other._fit) and self.xp.any(
+            self._fit < other._fit
+        )

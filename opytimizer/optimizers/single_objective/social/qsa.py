@@ -252,7 +252,11 @@ class QSA(Optimizer):
                     agent.fit = copy.deepcopy(a.fit)
 
     def update(
-        self, space:_SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Queue Search Algorithm over all agents and variables.
 

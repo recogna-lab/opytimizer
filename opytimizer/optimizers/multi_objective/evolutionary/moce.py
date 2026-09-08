@@ -2,15 +2,16 @@
 Multi-Objective Chaotic Evolution Algorithms
 """
 import copy
-import numpy as np
+from typing import Any, Dict, List, Optional
 
-from typing import Optional, Dict, Any, List
+import numpy as np
 from typing_extensions import Literal, get_args
+
+import opytimizer.utils.exception as e
 from opytimizer.core import MultiObjectiveOptimizer
 from opytimizer.core.function import Function
 from opytimizer.core.space import _MultiObjectiveSpace
 from opytimizer.utils import logging
-import opytimizer.utils.exception as e
 
 logger = logging.get_logger(__name__)
 
@@ -38,7 +39,7 @@ class MOCE(MultiObjectiveOptimizer):
         params: Optional[Dict[str, Any]] = None,
         DR: float = 0.7,
         CR: float = 0.7,
-        chaotic_system: _validSystems = 'logistic',
+        chaotic_system: _validSystems = "logistic",
     ):
         """
         Initialization method.
@@ -65,55 +66,53 @@ class MOCE(MultiObjectiveOptimizer):
 
         logger.info("Class overrided.")
 
-
-
     @property
     def DR(self) -> float:
         return self._DR
-    
+
     @DR.setter
     def DR(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('`DR` should be a float.')
-        
+            raise e.TypeError("`DR` should be a float.")
+
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('`DR` should be within [0.0, 1.0] interval.')
-        
+            raise e.ValueError("`DR` should be within [0.0, 1.0] interval.")
+
         self._DR = value
-        
+
     @property
     def CR(self) -> float:
         return self._CR
-    
+
     @CR.setter
     def CR(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('`CR` should be a float.')
-        
+            raise e.TypeError("`CR` should be a float.")
+
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('`CR` should be within [0.0, 1.0] interval.')
-        
+            raise e.ValueError("`CR` should be within [0.0, 1.0] interval.")
+
         self._CR = value
-        
+
     @property
     def chaotic_system(self) -> str:
         return self._chaotic_system
-    
+
     @chaotic_system.setter
     def chaotic_system(self, value: _validSystems) -> None:
         if value not in get_args(_validSystems):
-            raise e.ValueError(f'`chaotic_system` possible values are: {get_args(_validSystems)}')
-        
+            raise e.ValueError(
+                f"`chaotic_system` possible values are: {get_args(_validSystems)}"
+            )
+
         self._chaotic_system = value
-        
-        
+
     def _define_chaotic_system(self):
-        return getattr(self, f'_{self.chaotic_system}')
+        return getattr(self, f"_{self.chaotic_system}")
 
     def compile(self, space: _MultiObjectiveSpace):
         self.D = np.where(
-            np.random.random((space.n_agents, space.n_variables)) < self.DR,
-            -1.0, 1.0
+            np.random.random((space.n_agents, space.n_variables)) < self.DR, -1.0, 1.0
         )
         self.cp = np.random.random((space.n_agents, space.n_variables))
         self.y_henon = np.random.random((space.n_agents, space.n_variables))
@@ -122,7 +121,7 @@ class MOCE(MultiObjectiveOptimizer):
     # ------------------------------------------------------------------
     # Chaotic systems
     # ------------------------------------------------------------------
-    
+
     def _logistic(self, x: np.ndarray, **kwargs) -> np.ndarray:
         u = 4.0
         return u * x * (1 - x)
@@ -133,11 +132,11 @@ class MOCE(MultiObjectiveOptimizer):
 
     def _gauss(self, x: np.ndarray, **kwargs) -> np.ndarray:
         a, b = 6.2, -0.5
-        return np.exp(-a * (x ** 2) + b)
+        return np.exp(-a * (x**2) + b)
 
     def _henon(self, x: np.ndarray, **kwargs) -> np.ndarray:
         a, b = 1.4, 0.3
-        x_new = self.y_henon - a * (x ** 2)
+        x_new = self.y_henon - a * (x**2)
         self.y_henon = b * x
         return x_new
 
@@ -147,7 +146,7 @@ class MOCE(MultiObjectiveOptimizer):
 
     def _non_dominated_sort(self, fits: np.ndarray) -> List[List[int]]:
         """
-       
+
 
         Args:
             fits: Array of shape (n, n_objectives).
@@ -158,11 +157,10 @@ class MOCE(MultiObjectiveOptimizer):
         n = len(fits)
 
         # vectorized dominance matrix: dom[i,j] = True if i dominates j
-        fits_i = fits[:, np.newaxis, :]   # (n, 1, n_obj)
-        fits_j = fits[np.newaxis, :, :]   # (1, n, n_obj)
-        dom = (
-            np.all(fits_i <= fits_j, axis=2) &
-            np.any(fits_i < fits_j, axis=2)
+        fits_i = fits[:, np.newaxis, :]  # (n, 1, n_obj)
+        fits_j = fits[np.newaxis, :, :]  # (1, n, n_obj)
+        dom = np.all(fits_i <= fits_j, axis=2) & np.any(
+            fits_i < fits_j, axis=2
         )  # (n, n)
         np.fill_diagonal(dom, False)
 
@@ -220,7 +218,6 @@ class MOCE(MultiObjectiveOptimizer):
 
         return distances
 
-
     def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         if self.currentGen == 0:
             for ag in space.agents:
@@ -230,7 +227,7 @@ class MOCE(MultiObjectiveOptimizer):
         space.update_pareto_front(space.agents)
 
     def update(self, space: _MultiObjectiveSpace, function: Function):
-     
+
         chaotic_agents = copy.deepcopy(space.agents)
 
         # crossover mask: shape (n_agents, n_variables)
@@ -248,25 +245,18 @@ class MOCE(MultiObjectiveOptimizer):
         for i, ag in enumerate(chaotic_agents):
             ag.position = positions[i].reshape(-1, 1)
 
-  
         for ag in chaotic_agents:
-            ag.position = np.clip(
-                ag.position.flatten(), ag.lb, ag.ub
-            ).reshape(-1, 1)
+            ag.position = np.clip(ag.position.flatten(), ag.lb, ag.ub).reshape(-1, 1)
 
-       
         for ag in chaotic_agents:
             ag.fit = function(ag.position)
 
-        
         pool = space.agents + chaotic_agents  # 2 * PS individuals
 
         fits = np.array([np.atleast_1d(ag.fit) for ag in pool])  # (2*PS, n_obj)
 
-        
         fronts = self._non_dominated_sort(fits)
 
-      
         selected = []
         for front in fronts:
             if len(selected) + len(front) <= space.n_agents:
@@ -278,20 +268,15 @@ class MOCE(MultiObjectiveOptimizer):
                 selected.extend([front[o] for o in order[:needed]])
                 break
 
-       
         for idx, pool_idx in enumerate(selected):
             space.agents[idx] = copy.deepcopy(pool[pool_idx])
 
-        
         self.D = np.where(
-            np.random.random((space.n_agents, space.n_variables)) < self.DR,
-            -1.0, 1.0
+            np.random.random((space.n_agents, space.n_variables)) < self.DR, -1.0, 1.0
         )
         self.cp = self.chaotic_system_func(self.cp)
-        
-        
-        
-        
+
+
 class OBMOCE(MultiObjectiveOptimizer):
     """
     Opposition Learning-based Multi-Objective Chaotic Evolution (OBMOCE).
@@ -314,7 +299,7 @@ class OBMOCE(MultiObjectiveOptimizer):
         params: Optional[Dict[str, Any]] = None,
         DR: float = 0.5,
         CR: float = 0.9,
-        chaotic_system: _validSystems = 'logistic',
+        chaotic_system: _validSystems = "logistic",
     ):
         """
         Initialization method.
@@ -339,46 +324,46 @@ class OBMOCE(MultiObjectiveOptimizer):
 
         self.build(params)
         logger.info("Class overrided.")
-        
-        
+
     @property
     def DR(self) -> float:
         return self._DR
-    
+
     @DR.setter
     def DR(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('`DR` should be a float.')
-        
+            raise e.TypeError("`DR` should be a float.")
+
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('`DR` should be within [0.0, 1.0] interval.')
-        
+            raise e.ValueError("`DR` should be within [0.0, 1.0] interval.")
+
         self._DR = value
-        
+
     @property
     def CR(self) -> float:
         return self._CR
-    
+
     @CR.setter
     def CR(self, value: float) -> None:
         if not isinstance(value, float):
-            raise e.TypeError('`CR` should be a float.')
-        
+            raise e.TypeError("`CR` should be a float.")
+
         if value < 0.0 or value > 1.0:
-            raise e.ValueError('`CR` should be within [0.0, 1.0] interval.')
-        
+            raise e.ValueError("`CR` should be within [0.0, 1.0] interval.")
+
         self._CR = value
-        
-    
+
     @property
     def chaotic_system(self) -> str:
         return self._chaotic_system
-    
+
     @chaotic_system.setter
     def chaotic_system(self, value: _validSystems) -> None:
         if value not in get_args(_validSystems):
-            raise e.ValueError(f'`chaotic_system` possible values are: {get_args(_validSystems)}')
-        
+            raise e.ValueError(
+                f"`chaotic_system` possible values are: {get_args(_validSystems)}"
+            )
+
         self._chaotic_system = value
 
     # ------------------------------------------------------------------
@@ -386,12 +371,11 @@ class OBMOCE(MultiObjectiveOptimizer):
     # ------------------------------------------------------------------
 
     def _define_chaotic_system(self):
-        return getattr(self, f'_{self.chaotic_system}')
+        return getattr(self, f"_{self.chaotic_system}")
 
     def compile(self, space: _MultiObjectiveSpace):
         self.D = np.where(
-            np.random.random((space.n_agents, space.n_variables)) < self.DR,
-            -1.0, 1.0
+            np.random.random((space.n_agents, space.n_variables)) < self.DR, -1.0, 1.0
         )
         self.cp = np.random.random((space.n_agents, space.n_variables))
         self.y_henon = np.random.random((space.n_agents, space.n_variables))
@@ -404,10 +388,10 @@ class OBMOCE(MultiObjectiveOptimizer):
         return np.where(x < 0.5, 2.0 * x, 2.0 * (1 - x))
 
     def _gauss(self, x: np.ndarray) -> np.ndarray:
-        return np.exp(-6.2 * (x ** 2) - 0.5)
+        return np.exp(-6.2 * (x**2) - 0.5)
 
     def _henon(self, x: np.ndarray) -> np.ndarray:
-        x_new = self.y_henon - 1.4 * (x ** 2)
+        x_new = self.y_henon - 1.4 * (x**2)
         self.y_henon = 0.3 * x
         return x_new
 
@@ -449,20 +433,17 @@ class OBMOCE(MultiObjectiveOptimizer):
         Returns:
             List of Pareto fronts (list of index lists).
         """
-    
+
         n = len(fits)
 
+        fits_i = fits[:, np.newaxis, :]  # (n, 1, n_obj)
+        fits_j = fits[np.newaxis, :, :]  # (1, n, n_obj)
 
-        fits_i = fits[:, np.newaxis, :]   # (n, 1, n_obj)
-        fits_j = fits[np.newaxis, :, :]   # (1, n, n_obj)
-
-        dom = (
-            np.all(fits_i <= fits_j, axis=2) &
-            np.any(fits_i < fits_j, axis=2)
+        dom = np.all(fits_i <= fits_j, axis=2) & np.any(
+            fits_i < fits_j, axis=2
         )  # dom[i,j] = True if i dominates j
-        
-        np.fill_diagonal(dom, False)
 
+        np.fill_diagonal(dom, False)
 
         dominated_count = dom.sum(axis=0).astype(int)
         dominates_set = [list(np.where(dom[i])[0]) for i in range(n)]
@@ -518,7 +499,6 @@ class OBMOCE(MultiObjectiveOptimizer):
 
         return distances
 
-  
     def evaluate(self, space: _MultiObjectiveSpace, function: Function):
         if self.currentGen == 0:
             for ag in space.agents:
@@ -528,11 +508,11 @@ class OBMOCE(MultiObjectiveOptimizer):
         space.update_pareto_front(space.agents)
 
     def update(self, space: _MultiObjectiveSpace, function: Function):
-      
+
         lb = space.agents[0].lb
         ub = space.agents[0].ub
 
-        # Generate chaotic vectors 
+        # Generate chaotic vectors
         rand_matrix = np.random.random((space.n_agents, space.n_variables))
         k_indices = np.random.randint(0, space.n_variables, size=space.n_agents)
         k_mask = np.zeros((space.n_agents, space.n_variables), dtype=bool)
@@ -543,14 +523,14 @@ class OBMOCE(MultiObjectiveOptimizer):
         mutant = target_pos * (1 + self.D * self.cp)
         chaotic_pos = np.where(cross_mask, mutant, target_pos)
 
-        # Repair chaotic vectors 
+        # Repair chaotic vectors
         chaotic_pos = np.clip(chaotic_pos, lb, ub)
 
         # Generate opposite of chaotic vectors (OBL, Eq. 8)
         # OP(c_j) = lb_j + ub_j - c_j — already within [lb, ub]
         opposite_pos = self._opposite(chaotic_pos, lb, ub)
 
-        # Build chaotic and opposite agent lists 
+        # Build chaotic and opposite agent lists
         chaotic_agents = copy.deepcopy(space.agents)
         opposite_agents = copy.deepcopy(space.agents)
 
@@ -558,22 +538,22 @@ class OBMOCE(MultiObjectiveOptimizer):
             chaotic_agents[i].position = chaotic_pos[i].reshape(-1, 1)
             opposite_agents[i].position = opposite_pos[i].reshape(-1, 1)
 
-        # Evaluate chaotic and opposite populations 
+        # Evaluate chaotic and opposite populations
         for ag in chaotic_agents:
             ag.fit = function(ag.position)
 
         for ag in opposite_agents:
             ag.fit = function(ag.position)
 
-        # Pool = current (PS) + chaotic (PS) + opposite (PS) 
+        # Pool = current (PS) + chaotic (PS) + opposite (PS)
         pool = space.agents + chaotic_agents + opposite_agents  # 3 × PS
 
-        fits = np.array([np.atleast_1d(ag.fit) for ag in pool])# (3*PS, n_obj)
-        
-        # Non-dominated sorting 
+        fits = np.array([np.atleast_1d(ag.fit) for ag in pool])  # (3*PS, n_obj)
+
+        # Non-dominated sorting
         fronts = self._non_dominated_sort(fits)
 
-        # Select PS individuals via crowding distance 
+        # Select PS individuals via crowding distance
         selected = []
         for front in fronts:
             if len(selected) + len(front) <= space.n_agents:
@@ -585,14 +565,12 @@ class OBMOCE(MultiObjectiveOptimizer):
                 selected.extend([front[o] for o in order[:needed]])
                 break
 
-        # Update population 
+        # Update population
         for idx, pool_idx in enumerate(selected):
             space.agents[idx] = copy.deepcopy(pool[pool_idx])
 
-
-        #  Update D and CP 
+        #  Update D and CP
         self.D = np.where(
-            np.random.random((space.n_agents, space.n_variables)) < self.DR,
-            -1.0, 1.0
+            np.random.random((space.n_agents, space.n_variables)) < self.DR, -1.0, 1.0
         )
         self.cp = self.chaotic_system_func(self.cp)

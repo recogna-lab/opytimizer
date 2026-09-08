@@ -5,8 +5,8 @@ from opytimizer.optimizers.multi_objective.evolutionary import rvea
 from opytimizer.spaces.search import SearchSpace
 from opytimizer.utils.reference_vectors import das_dennis
 
+REFERENCE_VECTORS, N_AGENTS = das_dennis(2, 9)  # 10 agents/reference vectors
 
-REFERENCE_VECTORS, N_AGENTS = das_dennis(2, 9) # 10 agents/reference vectors
 
 def test_rvea_compile():
     search_space = SearchSpace(
@@ -25,7 +25,6 @@ def test_rvea_compile():
         new_rvea.compile(search_space)
 
 
-
 def test_rvea_crossover():
     search_space = SearchSpace(
         n_agents=N_AGENTS,
@@ -36,11 +35,13 @@ def test_rvea_crossover():
     )
 
     new_rvea = rvea.RVEA(reference_vectors=REFERENCE_VECTORS)
-    child1, child2 = new_rvea.crossover_operator(search_space.agents[0], search_space.agents[1])
+    child1, child2 = new_rvea.crossover_operator(
+        search_space.agents[0], search_space.agents[1]
+    )
 
     alpha = child1[0]
     assert type(alpha).__name__ == "Agent"
-    
+
 
 def test_rvea_mutation():
     search_space = SearchSpace(
@@ -124,11 +125,11 @@ def test_rvea_reference_vectors():
         new_rvea.compile(space=search_space)
     except:
         search_space = SearchSpace(
-        n_agents=N_AGENTS,
-        n_variables=2,
-        n_objectives=2,
-        lower_bound=[0, 0],
-        upper_bound=[10, 10],
-    )
+            n_agents=N_AGENTS,
+            n_variables=2,
+            n_objectives=2,
+            lower_bound=[0, 0],
+            upper_bound=[10, 10],
+        )
     finally:
         assert search_space.n_agents == len(REFERENCE_VECTORS)

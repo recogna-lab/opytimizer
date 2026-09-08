@@ -196,7 +196,9 @@ class PPA(Optimizer):
             cat.position += self.velocity[idx]
             cat.clip_by_bound()
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Parasitism-Predation Algorithm over all agents and variables.
 
         Args:

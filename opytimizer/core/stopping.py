@@ -2,9 +2,12 @@
 
 from abc import ABC, abstractmethod
 from typing import List, Optional
+
 from tqdm import tqdm
+
+
 class _StoppingCriterion(ABC):
-    """Base Class.  `should_stop` must be implemented in each subclass """
+    """Base Class.  `should_stop` must be implemented in each subclass"""
 
     def __init__(self):
         self.pbar = None
@@ -27,11 +30,10 @@ class _StoppingCriterion(ABC):
         pass
 
     def close_pbar(self) -> None:
-        """Closes the Progress Bar safely """
+        """Closes the Progress Bar safely"""
         if self.pbar is not None:
             self.pbar.close()
             self.pbar = None
-
 
 
 class MaxIterations(_StoppingCriterion):
@@ -39,55 +41,64 @@ class MaxIterations(_StoppingCriterion):
         super().__init__()
         self.n = n
 
-    
     def should_stop(self, opt) -> bool:
         return opt.total_iterations >= self.n
-    
 
     def init_pbar(self, position: int) -> None:
-        self.pbar = tqdm(total=self.n, desc="Max iterations", position=position, leave=True, ascii=True)
+        self.pbar = tqdm(
+            total=self.n,
+            desc="Max iterations",
+            position=position,
+            leave=True,
+            ascii=True,
+        )
 
     def update_pbar(self, opt) -> None:
         if self.pbar:
             self.pbar.n = opt.total_iterations
             self.pbar.refresh()
-        
-        
-    
+
+
 class MaxEvaluations(_StoppingCriterion):
     """Soft check: verified at end of each iteration.
-        For exact enforcement, use Function(budget=n) instead."""
-    
+    For exact enforcement, use Function(budget=n) instead."""
+
     def __init__(self, n: int) -> None:
-       super().__init__()
-       self.n =n
+        super().__init__()
+        self.n = n
 
     def should_stop(self, opt) -> bool:
         return opt.n_evals >= self.n
-    
+
     def init_pbar(self, position) -> None:
-        self.pbar = tqdm(total=self.n, desc="Max function evaluations", position=position, leave=True, ascii=True)
+        self.pbar = tqdm(
+            total=self.n,
+            desc="Max function evaluations",
+            position=position,
+            leave=True,
+            ascii=True,
+        )
 
     def update_pbar(self, opt) -> None:
         if self.pbar:
             self.pbar.n = opt.n_evals
             self.pbar.refresh()
 
+
 class NoImprovement(_StoppingCriterion):
     """`patience` non-improvement iterations"""
 
-    def __init__(self, patience: int, min_delta: float = 1e-8) ->None:
+    def __init__(self, patience: int, min_delta: float = 1e-8) -> None:
         super().__init__()
         self.patience = patience
         self.min_delta = min_delta
         self._best = float("inf")
         self._counter = 0
 
-
     def should_stop(self, opt) -> bool:
         if opt.space.n_objectives != 1:
             return False
-        
+
         current = opt.space.best_agent.fit
         if self._best - current > self.min_delta:
             self._best = current
@@ -97,24 +108,24 @@ class NoImprovement(_StoppingCriterion):
             self._counter += 1
 
         return self._counter >= self.patience
-    
+
     def reset(self) -> None:
         self._best = float("inf")
         self._counter = 0
 
-
-
     def init_pbar(self, position) -> None:
-        self.pbar = tqdm(total=self.patience, desc=f"Non-improvement iterations ({self.min_delta})", position=position,
-                         leave=True, ascii=True)
+        self.pbar = tqdm(
+            total=self.patience,
+            desc=f"Non-improvement iterations ({self.min_delta})",
+            position=position,
+            leave=True,
+            ascii=True,
+        )
 
     def update_pbar(self, opt) -> None:
         if self.pbar:
             self.pbar.n = self._counter
             self.pbar.refresh()
-
-
-
 
 
 class _StoppingVessel:
@@ -125,7 +136,7 @@ class _StoppingVessel:
 
     def should_stop(self, opt) -> bool:
         return any(c.should_stop(opt) for c in self._criteria)
-    
+
     def reset(self) -> None:
         for c in self._criteria:
             c.reset()

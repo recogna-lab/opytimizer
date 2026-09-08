@@ -61,7 +61,11 @@ class CDO(Optimizer):
         self.alpha_fit = c.FLOAT_MAX
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Chernobyl Disaster Optimizer over all agents and variables.
 
@@ -194,7 +198,9 @@ class OBCDO(CDO):
             "elite": 0,
         }
 
-    def get_opposite_position(self, position: np.ndarray, space: _SingleObjectiveSpace) -> np.ndarray:
+    def get_opposite_position(
+        self, position: np.ndarray, space: _SingleObjectiveSpace
+    ) -> np.ndarray:
         """Basic Opposition-Based Learning (BOBL).
 
         Args:
@@ -315,7 +321,11 @@ class OBCDO(CDO):
         return strategy(position, space)
 
     def get_time_varying_opposite_position(
-        self, position: np.ndarray, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+        self,
+        position: np.ndarray,
+        space: _SingleObjectiveSpace,
+        iteration: int,
+        n_iterations: int,
     ) -> np.ndarray:
         """Time-Varying Opposition-Based Learning (TVOBL).
 
@@ -355,7 +365,9 @@ class OBCDO(CDO):
         elite_center = np.mean([sol for sol in self.elite_solutions], axis=0)
         return elite_center + (elite_center - position)
 
-    def update_elite_solutions(self, space: _SingleObjectiveSpace, function: Function) -> None:
+    def update_elite_solutions(
+        self, space: _SingleObjectiveSpace, function: Function
+    ) -> None:
         """Update elite solutions pool."""
         solutions = [
             (agent.position, function(agent.position)) for agent in space.agents
@@ -408,7 +420,11 @@ class OBCDO(CDO):
             self.obl_rate = max(self.min_obl_rate, self.obl_rate * 0.9)
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Updates using Opposition-Based Learning.
 
@@ -546,7 +562,11 @@ class ChaoticCDO(CDO):
             self.current_map = np.random.choice(list(self.map_success.keys()), p=probs)
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Updates using chaotic values.
 
@@ -702,7 +722,11 @@ class MultiReactorCDO(CDO):
                     self.reactor_gamma_fit[i] = self.reactor_alpha_fit[best_reactor]
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Updates using multiple reactors.
 
@@ -849,7 +873,11 @@ class AdaptiveCDO(CDO):
             self.s_alpha_min *= 1 - self.adaptation_rate
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Updates using adaptive parameters.
 
@@ -972,7 +1000,9 @@ class QuantumCDO(CDO):
         self.quantum_radius = params.get("quantum_radius", 0.1)
         self.superposition_rate = params.get("superposition_rate", 0.3)
 
-    def quantum_position(self, center: np.ndarray, space: _SingleObjectiveSpace) -> np.ndarray:
+    def quantum_position(
+        self, center: np.ndarray, space: _SingleObjectiveSpace
+    ) -> np.ndarray:
         """Generate quantum position around center.
 
         Args:
@@ -1013,7 +1043,11 @@ class QuantumCDO(CDO):
         return quantum_pos
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Updates using quantum-inspired mechanisms.
 

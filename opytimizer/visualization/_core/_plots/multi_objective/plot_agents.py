@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from opytimizer.core import Agent
-import opytimizer.utils.exception as e
 
+import opytimizer.utils.exception as e
+from opytimizer.core import Agent
 from opytimizer.visualization._core import fields as F
 from opytimizer.visualization._core.transfer import agents_to_matrix, to_numpy
 
@@ -23,7 +23,11 @@ def extract_data(
     if need_matrix:
         if isinstance(agents, tuple) and len(agents) == 2:
             fitness_matrix = to_numpy(agents[1])
-        elif isinstance(agents, list) and len(agents) > 0 and isinstance(agents[0], Agent):
+        elif (
+            isinstance(agents, list)
+            and len(agents) > 0
+            and isinstance(agents[0], Agent)
+        ):
             fitness_matrix = agents_to_matrix(agents)
         else:
             fitness_matrix = to_numpy(agents)
@@ -36,18 +40,16 @@ def extract_data(
         n_obj = fitness_matrix.shape[1]
 
         if n_obj not in (2, 3):
-            raise e.ValueError(
-                f"This plot supports 2D or 3D fitness, got {n_obj}D."
-            )
+            raise e.ValueError(f"This plot supports 2D or 3D fitness, got {n_obj}D.")
 
         if F.wants(fmap, "fitness"):
             result["fitness"] = fitness_matrix
         if F.wants(fmap, "n_obj"):
             result["n_obj"] = n_obj
         if F.wants(fmap, "labels"):
-            result["labels"] = (
-                kwargs.get("labels") or [f"Obj {i+1}" for i in range(n_obj)]
-            )
+            result["labels"] = kwargs.get("labels") or [
+                f"Obj {i+1}" for i in range(n_obj)
+            ]
 
     if F.wants(fmap, "title"):
         result["title"] = kwargs.get("title", "Solutions")
@@ -84,25 +86,36 @@ def draw_ply(fig, data: Dict) -> None:
     marker = dict(color=data["color"], size=8, line=dict(width=1, color="black"))
 
     if data["n_obj"] == 2:
-        fig.add_trace(go.Scatter(
-            x=fit[:, 0], y=fit[:, 1],
-            mode="markers",
-            marker=marker,
-            name="Feasible solution",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=fit[:, 0],
+                y=fit[:, 1],
+                mode="markers",
+                marker=marker,
+                name="Feasible solution",
+            )
+        )
         fig.update_layout(
             xaxis_title=data["labels"][0],
             yaxis_title=data["labels"][1],
         )
     else:
-        fig.add_trace(go.Scatter3d(
-            x=fit[:, 0], y=fit[:, 1], z=fit[:, 2],
-            mode="markers",
-            marker=dict(color=data["color"], size=5, line=dict(width=1, color="black")),
-            name="Feasible solution",
-        ))
-        fig.update_layout(scene=dict(
-            xaxis_title=data["labels"][0],
-            yaxis_title=data["labels"][1],
-            zaxis_title=data["labels"][2],
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=fit[:, 0],
+                y=fit[:, 1],
+                z=fit[:, 2],
+                mode="markers",
+                marker=dict(
+                    color=data["color"], size=5, line=dict(width=1, color="black")
+                ),
+                name="Feasible solution",
+            )
+        )
+        fig.update_layout(
+            scene=dict(
+                xaxis_title=data["labels"][0],
+                yaxis_title=data["labels"][1],
+                zaxis_title=data["labels"][2],
+            )
+        )

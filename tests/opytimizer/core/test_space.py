@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
-from opytimizer.core import agent
-from opytimizer.core import space
-from opytimizer.core.environment import Environment
+
 import opytimizer.utils.exception as e
+from opytimizer.core import agent, space
+from opytimizer.core.environment import Environment
+
 
 class ConcreteSpace(space._Space):
     def _create_agents(self) -> None:
@@ -19,7 +20,6 @@ class ConcreteSpace(space._Space):
             )
             for _ in range(self.n_agents)
         ]
-
 
 
 def test_space_n_agents():
@@ -202,9 +202,7 @@ def test_single_objective_space_best_agent_setter():
 
 
 def test_single_objective_space_build():
-    new_space = space._SingleObjectiveSpace(
-        n_agents=2, n_variables=1, n_dimensions=1
-    )
+    new_space = space._SingleObjectiveSpace(n_agents=2, n_variables=1, n_dimensions=1)
     new_space.build()
 
     assert len(new_space.agents) == 2
@@ -228,9 +226,7 @@ def test_multi_objective_space_pareto_front():
 
 
 def test_multi_objective_space_update_pareto_front():
-    new_space = space._MultiObjectiveSpace(
-        n_agents=2, n_variables=1, n_objectives=2
-    )
+    new_space = space._MultiObjectiveSpace(n_agents=2, n_variables=1, n_objectives=2)
     new_space.build()
 
     new_space.agents[0].fit = np.array([1.0, 2.0])
@@ -238,7 +234,6 @@ def test_multi_objective_space_update_pareto_front():
     new_space.update_pareto_front()
 
     assert len(new_space.pareto_front) == 2
-
 
 
 def test_single_objective_tensor_space_create_agents():
@@ -254,7 +249,7 @@ def test_single_objective_tensor_space_create_agents():
 
 def test_single_objective_tensor_space_clip_by_bound():
     new_space = space._SingleObjectiveTensorSpace(
-        n_agents=2, n_variables=2, lower_bound=[0.0]*2, upper_bound=[1.0]*2
+        n_agents=2, n_variables=2, lower_bound=[0.0] * 2, upper_bound=[1.0] * 2
     )
     new_space.build()
     new_space.X[0] = np.array([-1.0, 2.0])
@@ -266,7 +261,11 @@ def test_single_objective_tensor_space_clip_by_bound():
 
 def test_multi_objective_tensor_space_create_agents():
     new_space = space._MultiObjectiveTensorSpace(
-        n_agents=2, n_variables=3, n_objectives=2, lower_bound=[0.0]*3, upper_bound=[1.0]*3
+        n_agents=2,
+        n_variables=3,
+        n_objectives=2,
+        lower_bound=[0.0] * 3,
+        upper_bound=[1.0] * 3,
     )
     new_space._create_agents()
 
@@ -276,7 +275,11 @@ def test_multi_objective_tensor_space_create_agents():
 
 def test_multi_objective_tensor_space_update_pareto_front():
     new_space = space._MultiObjectiveTensorSpace(
-        n_agents=2, n_variables=2, n_objectives=2, lower_bound=[0.0]*2, upper_bound=[1.0]*2
+        n_agents=2,
+        n_variables=2,
+        n_objectives=2,
+        lower_bound=[0.0] * 2,
+        upper_bound=[1.0] * 2,
     )
     new_space.build()
 

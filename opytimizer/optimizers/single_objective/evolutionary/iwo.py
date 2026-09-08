@@ -181,7 +181,11 @@ class IWO(Optimizer):
         return a
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Invasive Weed Optimization over all agents and variables.
 

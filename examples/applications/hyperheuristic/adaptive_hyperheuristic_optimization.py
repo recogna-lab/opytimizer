@@ -1,7 +1,8 @@
 from opytimark.markers.n_dimensional import Sphere
-from opytimizer.core.stopping import MaxIterations
+
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.hyperheuristics.adaptation_mechanism import (
     ParameterAdaptation,
     PopulationAdaptation,

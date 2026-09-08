@@ -193,7 +193,11 @@ class BSO(Optimizer):
         return 1 / (1 + np.exp(-x))
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Brain Storm Optimization over all agents and variables.
 

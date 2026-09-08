@@ -1,10 +1,10 @@
 import numpy as np
 from opytimark.markers.boolean import Knapsack
 
-from opytimizer.core.stopping import MaxIterations
 import opytimizer.math.random as r
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.boolean import BPSO
 from opytimizer.spaces import BooleanSpace
 

@@ -41,7 +41,9 @@ class SSA(Optimizer):
 
         logger.info("Class overrided.")
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Salp Swarm Algorithm over all agents and variables.
 
         Args:

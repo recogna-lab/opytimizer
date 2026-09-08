@@ -178,7 +178,9 @@ class WCA(Optimizer):
 
             agents[i].fit = function(agents[i].position)
 
-    def update(self, space: _SingleObjectiveSpace, function: Function, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, function: Function, n_iterations: int
+    ) -> None:
         """Wraps Water Cycle Algorithm over all agents and variables.
 
         Args:

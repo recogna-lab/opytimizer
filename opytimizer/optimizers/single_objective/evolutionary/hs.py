@@ -244,7 +244,11 @@ class IHS(HS):
         self._bw_max = bw_max
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Improved Harmony Search over all agents and variables.
 
@@ -555,7 +559,11 @@ class SGHS(HS):
         return a
 
     def update(
-        self, space: _SingleObjectiveSpace, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Self-Adaptive Global-Best Harmony Search over all agents and variables.
 
@@ -741,17 +749,17 @@ class GOGHS(NGHS):
         B = np.zeros((a.n_variables))
 
         k = r.generate_uniform_random_number()[0]
-        
+
         for j in range(a.n_variables):
-            
+
             A[j], B[j] = c.FLOAT_MAX, -c.FLOAT_MAX
 
             for agent in agents:
-                
+
                 if A[j] > agent.position[j]:
-                    A[j] = agent.position[j,0]
+                    A[j] = agent.position[j, 0]
                 elif B[j] < agent.position[j]:
-                    B[j] = agent.position[j,0]
+                    B[j] = agent.position[j, 0]
 
             a.position[j] = k * (A[j] + B[j]) - new_agent.position[j]
 

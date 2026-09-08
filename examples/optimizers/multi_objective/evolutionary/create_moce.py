@@ -5,7 +5,7 @@ from opytimizer.optimizers.multi_objective.evolutionary import MOCE
 params = {
     "CR": 0.7,
     "DR": 0.7,
-    "chaotic_system": 'gauss',
+    "chaotic_system": "gauss",
 }
 
 # Creates a MOCE optimizer

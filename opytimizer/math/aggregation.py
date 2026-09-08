@@ -1,24 +1,25 @@
-from abc import  ABC, abstractmethod
-class _BaseAggregation(ABC):
+from abc import ABC, abstractmethod
 
+
+class _BaseAggregation(ABC):
     @abstractmethod
     def __call__(self, obj_values, ref_vectors, xp, **kwargs):
-        pass 
+        pass
 
 
 class WeightedSum(_BaseAggregation):
     def __call__(self, obj_values, ref_vectors, xp, **kwargs):
-        
+
         obj_values_ = xp.atleast_2d(obj_values)
         ref_vectors_ = xp.atleast_2d(ref_vectors)
 
         result = xp.sum(ref_vectors_ * obj_values_, axis=1)
         return result.squeeze() if obj_values.ndim == 1 else result
 
-class Tchebycheff(_BaseAggregation):
 
+class Tchebycheff(_BaseAggregation):
     def __call__(self, obj_values, ref_vectors, xp, **kwargs):
-        z = kwargs.get('z')
+        z = kwargs.get("z")
         z_ = xp.atleast_2d(z)
         obj_values_ = xp.atleast_2d(obj_values)
         ref_vectors_ = xp.atleast_2d(ref_vectors)
@@ -30,13 +31,12 @@ class Tchebycheff(_BaseAggregation):
 
 
 class PBI(_BaseAggregation):
-    
     def __init__(self, theta: float = 5.0):
         self.theta = theta
 
     def __call__(self, obj_values, ref_vectors, xp, **kwargs):
-        z = kwargs.get('z')
-       
+        z = kwargs.get("z")
+
         obj_values_ = xp.atleast_2d(obj_values)
         ref_vectors_ = xp.atleast_2d(ref_vectors)
         z_ = xp.atleast_2d(z)
@@ -52,6 +52,3 @@ class PBI(_BaseAggregation):
         result = d1.squeeze(axis=1) + self.theta * d2
 
         return result.squeeze() if obj_values.ndim == 1 else result
-
-
-

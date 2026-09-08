@@ -24,11 +24,11 @@ from opytimizer.optimizers.single_objective.swarm.pio import PIO
 from opytimizer.optimizers.single_objective.swarm.pso import (
     AIWPSO,
     PSO,
-    PSOCuda,
-    PSOTensor,
     RPSO,
     SAVPSO,
     VPSO,
+    PSOCuda,
+    PSOTensor,
 )
 from opytimizer.optimizers.single_objective.swarm.sbo import SBO
 from opytimizer.optimizers.single_objective.swarm.sca import SCA

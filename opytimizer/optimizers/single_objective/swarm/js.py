@@ -187,7 +187,9 @@ class JS(Optimizer):
 
         return motion
 
-    def update(self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int) -> None:
+    def update(
+        self, space: _SingleObjectiveSpace, iteration: int, n_iterations: int
+    ) -> None:
         """Wraps Jellyfish Search over all agents and variables.
 
         Args:
