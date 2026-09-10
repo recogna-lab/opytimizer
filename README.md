@@ -303,7 +303,8 @@ cp.random.seed(42)
 
 
 def sphere(x):
-    return cp.sum(x ** 2, axis=1)
+    # x shape = (n_agents, n_variables, n_dims) = (60, 10, 1)
+    return cp.sum(x ** 2, axis=(1, 2))
 
 
 n_agents = 60
@@ -314,7 +315,9 @@ upper_bound = [10] * n_variables
 
 gpu_environment = Environment().set_backend('cupy').set_dtype('float32')
 
-space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound, env=gpu_environment, tensorized=True)
+space = SearchSpace(n_agents, n_variables, n_objectives,
+                    lower_bound, upper_bound, env=gpu_environment, tensorized=True)
+
 optimizer = PSOCuda()
 function = Function(sphere)
 
@@ -324,7 +327,10 @@ stopping = MaxIterations(1000)
 
 opt.start(stopping_criteria=stopping)
 
-plot_convergence(opt.history.best_agent, title='PSO (CuPy) convergence', labels=['PSO (CuPy - Raw Kernels)']).show()
+plot_convergence(opt.history.best_agent,
+                title='PSO (CuPy) convergence',
+                labels=['PSO (CuPy - Raw Kernels)']
+                ).show()
 ```
 
 
