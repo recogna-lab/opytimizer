@@ -20,10 +20,13 @@ setup(
         "networkx>=2.5.1",
         "numpy>=1.19.5",
         "opytimark>=1.0.7",
+        "plotly>=5.13.0",
         "pre-commit>=2.17.0",
         "pylint>=2.7.2",
         "pytest>=6.2.2",
+        "scipy>=1.14.0",
         "tqdm>=4.49.0",
+        "typing_extensions>=4.15.0",
     ],
     extras_require={
         "tests": [
