@@ -23,7 +23,9 @@ setup(
         "pre-commit>=2.17.0",
         "pylint>=2.7.2",
         "pytest>=6.2.2",
+        "scipy>=1.5.4",
         "tqdm>=4.49.0",
+        "typing_extensions>=4.15.0",
     ],
     extras_require={
         "tests": [
