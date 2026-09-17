@@ -1,7 +1,8 @@
 """Generation routines for typed trees."""
 
-import numpy.random as random
 from typing import Type
+
+import numpy.random as random
 
 import opytimizer.utils.exception as e
 from opytimizer.core.graph.node import GraphNode
@@ -38,7 +39,9 @@ def generate_typed_tree(
     return Tree(root)
 
 
-def generate_node(pset: PrimitiveSet, required_type: Type, depth_left: int, grow: bool) -> GraphNode:
+def generate_node(
+    pset: PrimitiveSet, required_type: Type, depth_left: int, grow: bool
+) -> GraphNode:
     """Recursively generates a single (sub)tree of type `required_type`.
 
     Args:
@@ -70,11 +73,16 @@ def generate_node(pset: PrimitiveSet, required_type: Type, depth_left: int, grow
             )
         term = random.choice(terminals)
         value = term.generator() if hasattr(term, "generator") else term.value
-        return GraphNode(term.name, value=value, output_type=required_type, is_terminal=True)
+        return GraphNode(
+            term.name, value=value, output_type=required_type, is_terminal=True
+        )
 
     primitive = random.choice(primitives)
     node = GraphNode(
-        primitive.name, value=primitive.function, output_type=primitive.output_type, is_terminal=False
+        primitive.name,
+        value=primitive.function,
+        output_type=primitive.output_type,
+        is_terminal=False,
     )
     for input_type in primitive.input_types:
         child = generate_node(pset, input_type, depth_left - 1, grow)

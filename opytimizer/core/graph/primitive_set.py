@@ -24,7 +24,9 @@ class PrimitiveSet:
         self.root_type = root_type
 
         self._primitives: Dict[Type, List[Primitive]] = defaultdict(list)
-        self._terminals: Dict[Type, List[Union[Terminal, Ephemeral]]] = defaultdict(list)
+        self._terminals: Dict[Type, List[Union[Terminal, Ephemeral]]] = defaultdict(
+            list
+        )
 
     def add_primitive(
         self,
@@ -44,13 +46,19 @@ class PrimitiveSet:
         """
 
         self._primitives[output_type].append(
-            Primitive(name or function.__name__, function, tuple(input_types), output_type)
+            Primitive(
+                name or function.__name__, function, tuple(input_types), output_type
+            )
         )
 
-    def add_terminal(self, value: Any, output_type: Type, name: Optional[str] = None) -> None:
+    def add_terminal(
+        self, value: Any, output_type: Type, name: Optional[str] = None
+    ) -> None:
         """Registers a fixed leaf value."""
 
-        self._terminals[output_type].append(Terminal(name or repr(value), value, output_type))
+        self._terminals[output_type].append(
+            Terminal(name or repr(value), value, output_type)
+        )
 
     def add_ephemeral_constant(
         self, name: str, generator: Callable[[], Any], output_type: Type

@@ -67,16 +67,17 @@ class GraphNode:
 
         return len(self._children)
 
-
     def __str__(self) -> str:
         # Leaf Node
         if not self.children:
             return str(self.name)
-        
+
         children_str = ", ".join(str(child) for child in self.children)
         return f"{self.name}({children_str})"
 
-    def add_child(self, child: "GraphNode", expected_type: Optional[Type] = None) -> None:
+    def add_child(
+        self, child: "GraphNode", expected_type: Optional[Type] = None
+    ) -> None:
         """Attaches `child` to this node.
 
         Args:
@@ -87,7 +88,7 @@ class GraphNode:
         """
 
         if expected_type is not None and child.output_type is not expected_type:
-        
+
             raise TypeError(
                 f"Expected child of type `{expected_type}`, got `{child.output_type}` "
                 f"for node `{self.name}`."

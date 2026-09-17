@@ -1,8 +1,13 @@
+import random
+
 from opytimizer.core.graph.primitive import Ephemeral, Primitive, Terminal
 
 
 def test_primitive_arity():
-    primitive = Primitive("add", lambda a, b: a + b, (int, int), int)
+    def _add(a, b):
+        return a + b
+
+    primitive = Primitive("add", _add, (int, int), int)
 
     assert primitive.arity == 2
 
@@ -16,9 +21,11 @@ def test_terminal_fields():
 
 
 def test_ephemeral_fields():
-    generator = lambda: 3
-    ephemeral = Ephemeral("rand", generator, int)
+    def _int_generator():
+        return random.randint(0, 3)
+
+    ephemeral = Ephemeral("rand", _int_generator, int)
 
     assert ephemeral.name == "rand"
-    assert ephemeral.generator is generator
+    assert ephemeral.generator is _int_generator
     assert ephemeral.output_type is int

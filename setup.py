@@ -16,6 +16,7 @@ setup(
     install_requires=[
         "coverage>=5.5",
         "dill>=0.3.4",
+        "graphviz>=0.20.1",
         "matplotlib>=3.3.4",
         "networkx>=2.5.1",
         "numpy>=1.19.5",

@@ -262,9 +262,7 @@ def test_tspaco_construct_graph_fallback_when_desirabilities_are_zero(
     assert graph.edges[-1].target.name == "n0"
 
 
-def test_tspaco_deposit_pheromone_uses_q_over_tour_length(
-    distance_matrix, tsp_space
-):
+def test_tspaco_deposit_pheromone_uses_q_over_tour_length(distance_matrix, tsp_space):
     optimizer = TSPACO(
         params={"rho": 0.5, "q": 100.0},
         distance_matrix=distance_matrix,

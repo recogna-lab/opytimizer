@@ -4,8 +4,8 @@ from typing import Any, List, Optional, Union
 import numpy as np
 
 import opytimizer.utils.exception as e
-from opytimizer.core.graph import GraphAgent
 from opytimizer.core.environment import Environment
+from opytimizer.core.graph import GraphAgent
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -53,8 +53,6 @@ class _Space(ABC):
             raise e.ValueError("`n_objectives` should be > 0")
         self._n_objectives = n_objectives
 
-   
-    
     @property
     def env(self) -> Environment:
         return self._env
@@ -187,7 +185,6 @@ class _MultiObjectiveSpace(_Space):
             for _ in range(self.n_agents)
         ]
 
-
     def update_pareto_front(self, **kwargs) -> None:
         if not self.agents:
             self.pareto_front = []
@@ -219,7 +216,6 @@ class _SingleObjectiveTensorSpace(_SingleObjectiveSpace):
         env: Environment = None,
     ) -> None:
 
-       
         self.F = None
 
         super().__init__(
@@ -232,9 +228,8 @@ class _SingleObjectiveTensorSpace(_SingleObjectiveSpace):
     def _create_agents(self) -> None:
 
         _env = Environment("numpy", self.env.dtype)
-       
+
         self.F = self.env.xp.zeros((self.n_agents,), dtype=self.env.dtype)
-       
 
         for _ in range(self.n_agents):
             agent = GraphAgent(
@@ -253,7 +248,6 @@ class _SingleObjectiveTensorSpace(_SingleObjectiveSpace):
 
     def clip_by_bound(self):
         return
-       
 
 
 class _MultiObjectiveTensorSpace(_MultiObjectiveSpace):
@@ -292,7 +286,7 @@ class _MultiObjectiveTensorSpace(_MultiObjectiveSpace):
             self.agents.append(agent)
 
     def clip_by_bound(self):
-        return 
+        return
 
     def update_pareto_front(self, _xp=np) -> None:
         if self.X is None or self.F is None:

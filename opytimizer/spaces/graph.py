@@ -146,8 +146,10 @@ class GraphSpace:
         if tensorized:
             raise e.Error(
                 cls="GraphSpace",
-                msg=("Tensorized GraphSpace is not implemented yet -- graphs "
-                "currently only support the object-based representation.")
+                msg=(
+                    "Tensorized GraphSpace is not implemented yet -- graphs "
+                    "currently only support the object-based representation."
+                ),
             )
 
         if n_objectives == 1:

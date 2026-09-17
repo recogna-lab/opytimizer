@@ -26,7 +26,9 @@ class Graph:
     def add_node(self, node: GraphNode) -> None:
         self.nodes.append(node)
 
-    def add_edge(self, source: GraphNode, target: GraphNode, weight: Optional[float] = None) -> None:
+    def add_edge(
+        self, source: GraphNode, target: GraphNode, weight: Optional[float] = None
+    ) -> None:
         edge = Edge(source, target, weight, directed=self.directed)
         self.edges.append(edge)
 
@@ -89,19 +91,12 @@ class Graph:
 
             for i in range(n_nodes):
 
-                j_range = (
-                    range(n_nodes)
-                    if directed
-                    else range(i + 1, n_nodes)
-                )
+                j_range = range(n_nodes) if directed else range(i + 1, n_nodes)
 
                 for j in j_range:
 
                     if i != j and random.random() < edge_prob:
-                        graph.add_edge(
-                            nodes[i],
-                            nodes[j]
-                        )
+                        graph.add_edge(nodes[i], nodes[j])
 
             return graph
 
@@ -112,26 +107,16 @@ class Graph:
             parent = random.randrange(i)
 
             if directed:
-                graph.add_edge(
-                    nodes[parent],
-                    nodes[i]
-                )
+                graph.add_edge(nodes[parent], nodes[i])
 
             else:
-                graph.add_edge(
-                    nodes[parent],
-                    nodes[i]
-                )
+                graph.add_edge(nodes[parent], nodes[i])
 
         # random edges
 
         for i in range(n_nodes):
 
-            j_range = (
-                range(n_nodes)
-                if directed
-                else range(i + 1, n_nodes)
-            )
+            j_range = range(n_nodes) if directed else range(i + 1, n_nodes)
 
             for j in j_range:
 
@@ -140,8 +125,7 @@ class Graph:
 
                 # Verify if the edge already exist
                 exists = any(
-                    edge.source is nodes[i]
-                    and edge.target is nodes[j]
+                    edge.source is nodes[i] and edge.target is nodes[j]
                     for edge in graph.edges
                 )
 
@@ -150,9 +134,6 @@ class Graph:
 
                 if random.random() < edge_prob:
 
-                    graph.add_edge(
-                        nodes[i],
-                        nodes[j]
-                    )
+                    graph.add_edge(nodes[i], nodes[j])
 
         return graph

@@ -16,6 +16,7 @@ def _to_networkx(target) -> Tuple[nx.DiGraph, bool]:
     G = nx.DiGraph()
 
     if hasattr(target, "root") and target.root is not None:
+
         def _build_tree(node):
             node_id = id(node)
             G.add_node(node_id, label=str(node.name))

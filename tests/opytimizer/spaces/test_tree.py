@@ -34,7 +34,6 @@ def test_tree_space_rejects_non_positive_objectives(primitive_set):
         TreeSpace(2, 0, primitive_set)
 
 
-
 def test_single_objective_tree_space_copies_best_agent(primitive_set):
     space = TreeSpace(
         3,

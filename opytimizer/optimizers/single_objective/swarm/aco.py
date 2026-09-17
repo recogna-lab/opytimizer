@@ -215,7 +215,7 @@ class ACO(Optimizer):
             space: A GraphSpace object.
 
         """
-       
+
         n_nodes = space.n_nodes
 
         graph = Graph(space.directed)
@@ -237,7 +237,6 @@ class ACO(Optimizer):
                 if r.generate_uniform_random_number() < probability:
                     graph.add_edge(nodes[i], nodes[j])
 
-
         return graph
 
     def update(self, space: _SingleObjectiveGraphSpace) -> None:
@@ -254,7 +253,6 @@ class ACO(Optimizer):
 
         for agent in space.agents:
             agent.position = self._construct_graph(space)
-
 
 
 class TSPACO(ACO):
@@ -323,9 +321,7 @@ class TSPACO(ACO):
         for i in range(n_nodes):
             for j in range(n_nodes):
                 if i != j and self.distance_matrix[i, j] > 0:
-                    self.visibility[i, j] = (
-                        1.0 / self.distance_matrix[i, j]
-                    )
+                    self.visibility[i, j] = 1.0 / self.distance_matrix[i, j]
 
     def _construct_graph(
         self,
@@ -337,10 +333,7 @@ class TSPACO(ACO):
 
         graph = Graph(directed=True)
 
-        nodes = [
-            GraphNode(name=f"n{i}")
-            for i in range(n_nodes)
-        ]
+        nodes = [GraphNode(name=f"n{i}") for i in range(n_nodes)]
 
         for node in nodes:
             graph.add_node(node)
@@ -357,14 +350,8 @@ class TSPACO(ACO):
 
             desirabilities = np.array(
                 [
-                    (
-                        self.pheromone[current, j]
-                        ** self.alpha
-                    )
-                    * (
-                        self.visibility[current, j]
-                        ** self.beta
-                    )
+                    (self.pheromone[current, j] ** self.alpha)
+                    * (self.visibility[current, j] ** self.beta)
                     for j in candidates
                 ],
                 dtype=float,
@@ -373,10 +360,7 @@ class TSPACO(ACO):
             total = np.sum(desirabilities)
 
             # Numerical safety fallback.
-            if (
-                total <= 0
-                or not np.isfinite(total)
-            ):
+            if total <= 0 or not np.isfinite(total):
                 probabilities = np.ones(
                     len(candidates),
                     dtype=float,
@@ -385,9 +369,7 @@ class TSPACO(ACO):
                 probabilities /= probabilities.sum()
 
             else:
-                probabilities = (
-                    desirabilities / total
-                )
+                probabilities = desirabilities / total
 
             # Roulette-wheel selection.
             next_city = np.random.choice(
@@ -429,12 +411,7 @@ class TSPACO(ACO):
 
             deposit = self.q / agent.fit
 
-            node_index = {
-                node: idx
-                for idx, node in enumerate(
-                    agent.position.nodes
-                )
-            }
+            node_index = {node: idx for idx, node in enumerate(agent.position.nodes)}
 
             for edge in agent.position.edges:
 

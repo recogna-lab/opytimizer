@@ -1,4 +1,3 @@
-
 from opytimizer.core.graph.node import GraphNode
 from opytimizer.core.graph.operators import (
     crossover_trees,

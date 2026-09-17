@@ -128,9 +128,11 @@ class TreeSpace:
             raise e.ValueError("`n_objectives` should be a positive integer.")
         if tensorized:
             raise e.Error(
-                cls='TreeSpace',
-                msg=("Tensorized TreeSpace is not implemented yet -- typed trees "
-                "currently only support the object-based representation.")
+                cls="TreeSpace",
+                msg=(
+                    "Tensorized TreeSpace is not implemented yet -- typed trees "
+                    "currently only support the object-based representation."
+                ),
             )
 
         if n_objectives == 1:

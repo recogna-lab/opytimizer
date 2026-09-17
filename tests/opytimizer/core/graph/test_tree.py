@@ -93,7 +93,9 @@ def test_evaluate_empty_tree_raises():
 
 
 def test_evaluate_tree():
-    root = GraphNode("add", value=lambda a, b: a + b, output_type=int, is_terminal=False)
+    root = GraphNode(
+        "add", value=lambda a, b: a + b, output_type=int, is_terminal=False
+    )
     root.add_child(GraphNode("one", value=2, output_type=int))
     root.add_child(GraphNode("two", value=4, output_type=int))
 

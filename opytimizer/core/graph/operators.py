@@ -26,7 +26,7 @@ def crossover_trees(tree_a: Tree, tree_b: Tree) -> None:
     node type."""
     if tree_a is tree_b:
         return
-    
+
     idx_a, idx_b = _index_by_type(tree_a), _index_by_type(tree_b)
     common_types = [t for t in idx_a if idx_b.get(t)]
     if not common_types:
