@@ -1,8 +1,11 @@
 import copy
 from abc import ABC, abstractmethod
+
 from typing import Any, List, Tuple, Union
 
+
 import numpy as np
+from typing_extensions import Literal
 
 import opytimizer.utils.exception as e
 from opytimizer.core import Environment
@@ -89,10 +92,12 @@ class BaseCrossover(ABC):
 
 
 class ContinuousCrossover(BaseCrossover):
+
     """Abstract base class for continuous space CPU crossovers."""
 
     def __init__(self, rate: float, gene_rate: float = 0.5, n_offspring: int = 2):
         super().__init__(rate, n_offspring)
+
         self.gene_rate = gene_rate
 
     @property
@@ -100,11 +105,13 @@ class ContinuousCrossover(BaseCrossover):
         return self._gene_rate
 
     @gene_rate.setter
+
     def gene_rate(self, value: Union[float, int]) -> None:
         if not isinstance(value, (float, int)):
             raise e.TypeError("Gene rate should be a float or an int")
         if value < 0.0 or value > 1.0:
             raise e.ValueError("Gene rate should be in interval [0.0, 1.0]")
+
         self._gene_rate = value
 
 
@@ -124,6 +131,7 @@ class BaseMutation(ABC):
             raise e.TypeError("Mutation rate should be a float")
         if value < 0.0 or value > 1.0:
             raise e.ValueError("Mutation rate should be in interval [0.0, 1.0]")
+
         self._rate = value
 
     @abstractmethod
@@ -137,6 +145,7 @@ class BaseMutation(ABC):
 class ArithmeticCrossover(ContinuousCrossover):
     """Arithmetic crossover for real-valued vectors operating on Agents (CPU)."""
 
+
     def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, n_offspring: int = 2):
         super().__init__(rate, gene_rate, n_offspring)
 
@@ -147,6 +156,7 @@ class ArithmeticCrossover(ContinuousCrossover):
         C2 = np.where(active, alpha * P2 + (1.0 - alpha) * P1, P2)
         return C1, C2
 
+
     def __call__(
         self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]
     ) -> Union[Agent, List[Agent]]:
@@ -155,6 +165,7 @@ class ArithmeticCrossover(ContinuousCrossover):
         p1_list = parent1 if is_batch else [parent1]
         p2_list = parent2 if is_batch else [parent2]
         pop = len(p1_list)
+
 
         children1 = [copy.copy(p) for p in p1_list]
         children2 = [copy.copy(p) for p in p2_list]
@@ -197,6 +208,7 @@ class GaussianMutation(BaseMutation):
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
         is_batch = isinstance(agent, list)
 
+
         agents = agent if is_batch else [agent]
 
         X = np.stack([a.position.ravel() for a in agents])
@@ -212,6 +224,7 @@ class GaussianMutation(BaseMutation):
 
         mutant = copy.copy(agents[0])
         mutant.position = X_new[0].reshape(agents[0].position.shape)
+
         return mutant
 
 
@@ -357,6 +370,7 @@ class BitFlipMutation(BaseMutation):
     """Bit flip mutation for binary vectors operating on Agents (CPU)."""
 
     def __init__(self, rate: float = 0.025):
+
         super().__init__(rate)
 
     def _bitflip_positions(self, X):
@@ -385,6 +399,7 @@ class PolynomialMutation(BaseMutation):
     """Polynomial mutation for real-valued vectors operating on Agents (CPU)."""
 
     def __init__(self, eta: int = 20, rate: float = 1 / 30):
+
         super().__init__(rate)
         self.eta = eta
 
@@ -686,3 +701,4 @@ class PolynomialMutationTensor:
         X_new = xp.clip(X + deltaq * (ub - lb), lb, ub)
 
         return xp.where(active, X_new, X)
+
