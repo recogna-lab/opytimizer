@@ -24,20 +24,12 @@ class Function:
 
         logger.info("Creating class: Function.")
 
-        if isinstance(pointer, list):
-            for f in pointer:
-                if not callable(f):
-                    raise e.TypeError("All elements in the list must be callable")
-            self.pointer = lambda x: [f(x) for f in pointer]
-            self.n_objectives = len(pointer)
-            self.name = "MultiObjectiveFunction"
+        self.pointer = pointer
+
+        if hasattr(pointer, "__name__"):
+            self.name = pointer.__name__
         else:
-            self.pointer = pointer
-            self.n_objectives = 1
-            if hasattr(pointer, "__name__"):
-                self.name = pointer.__name__
-            else:
-                self.name = pointer.__class__.__name__
+            self.name = pointer.__class__.__name__
 
         self.n_calls = 0
         self.budget = budget  # None = ilimited
@@ -58,12 +50,11 @@ class Function:
             (np.ndarray): Function fitness value(s).
 
         """
-        if self.budget is not None and self.n_calls >= self.budget:
-            raise e.BudgetExhausted(
-                f"Evaluation budget of {self.budget} calls exhausted"
-            )
-
-        self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
+        if hasattr(x, "ndim"):
+            self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
+        else:
+            # If it is a tree, count as 1 evaluation
+            self.n_calls += 1
 
         if xp is None:
             xp = np
@@ -100,21 +91,6 @@ class Function:
             raise e.ArgumentError("`pointer` should only have 1 argument")
 
         self._pointer = pointer
-
-    @property
-    def n_objectives(self) -> int:
-        """int: Number of objectives."""
-
-        return self._n_objectives
-
-    @n_objectives.setter
-    def n_objectives(self, n_objectives: int) -> None:
-        if not isinstance(n_objectives, int):
-            raise e.TypeError("`n_objectives` should be an integer")
-        if n_objectives <= 0:
-            raise e.ValueError("`n_objectives` should be > 0")
-
-        self._n_objectives = n_objectives
 
     @property
     def name(self) -> str:
