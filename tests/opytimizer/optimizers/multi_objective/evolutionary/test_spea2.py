@@ -1,16 +1,21 @@
 import numpy as np
 import pytest
+
 from opytimizer.core.agent import Agent
 from opytimizer.core.space import _MultiObjectiveSpace
-from opytimizer.optimizers.multi_objective.evolutionary  import SPEA2
+from opytimizer.optimizers.multi_objective.evolutionary import SPEA2
 
 
 @pytest.fixture
 def dummy_space():
     """Creates a dummy multi-objective space with agents for testing."""
     space = _MultiObjectiveSpace(
-        n_agents=4, n_variables=2, n_dimensions=1, n_objectives=2,
-        lower_bound=[0.] * 2, upper_bound=[1.] * 2
+        n_agents=4,
+        n_variables=2,
+        n_dimensions=1,
+        n_objectives=2,
+        lower_bound=[0.0] * 2,
+        upper_bound=[1.0] * 2,
     )
 
     space.build()
@@ -82,7 +87,13 @@ def test_environmental_selection_truncation():
     agents = []
     # Create 3 non-dominated agents close to each other
     for fit_val in [[1.0, 5.0], [1.1, 4.9], [10.0, 1.0]]:
-        a = Agent(n_variables=2, n_dimensions=1, n_objectives=2, lower_bound=[0.] * 2, upper_bound=[1.] * 2)
+        a = Agent(
+            n_variables=2,
+            n_dimensions=1,
+            n_objectives=2,
+            lower_bound=[0.0] * 2,
+            upper_bound=[1.0] * 2,
+        )
         a.fit = np.array(fit_val)
         agents.append(a)
 
@@ -98,7 +109,7 @@ def test_update_cycle(dummy_space):
     def dummy_func(x):
         return np.array([np.sum(x), np.sum(x**2)])
 
-    opt.update(dummy_space, dummy_func)
+    opt.update(dummy_space)
 
     # Check if the archive was updated according to archive_size
     assert len(opt.archive) == 2
