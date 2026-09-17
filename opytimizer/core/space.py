@@ -286,16 +286,6 @@ class _MultiObjectiveSpace(_Space):
             for _ in range(self.n_agents)
         ]
 
-        self.best_agent = Agent(
-            n_variables=self.n_variables,
-            n_dimensions=self.n_dimensions,
-            n_objectives=self.n_objectives,
-            lower_bound=self.lb,
-            upper_bound=self.ub,
-            mapping=self.mapping,
-            env=self.env,
-        )
-
     def update_pareto_front(self, **kwargs) -> None:
         if not self.agents:
             self.pareto_front = []
