@@ -24,6 +24,7 @@ _MAPPING: dict[str, str] = {
     "convergence": (
         "opytimizer.visualization._core._plots" ".single_objective.plot_convergence"
     ),
+    "graph": "opytimizer.visualization._core._plots.graphs.plot_graph",
 }
 
 FieldsParam = Optional[Union[Set[str], FrozenSet[str]]]
@@ -203,3 +204,17 @@ def _load_plot(name, result, *args, **kwargs):
     module = importlib.import_module(_MAPPING[name])
     data = module.extract_data(result, *args, **kwargs)
     return module.draw_mpl, module.draw_ply, data
+
+
+def plot_graph(
+    result, backend: str | None = None, title: str = "Graph Representation", **kwargs
+) -> PlotResult:
+    """Plots a 2D network representation of a Tree or Graph.
+
+    Args:
+        result: Tree, Graph or GraphAgent instance.
+        backend: Visualization backend ('matplotlib' or 'plotly').
+        title: Plot title.
+        **kwargs: Additional plotting parameters.
+    """
+    return _call_plot("graph", result, backend, title=title, **kwargs)
