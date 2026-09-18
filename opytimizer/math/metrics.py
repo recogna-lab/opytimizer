@@ -6,7 +6,7 @@ from typing import Any, List, Union
 import numpy as np
 
 
-class BaseMetric(ABC):
+class _BaseMetric(ABC):
     @property
     def pareto_front(self) -> Any:
         return self._pareto_front
@@ -73,7 +73,7 @@ class BaseMetric(ABC):
         return type(self).__name__
 
 
-class IGD(BaseMetric):
+class IGD(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -100,7 +100,7 @@ class IGD(BaseMetric):
         return np.mean(distances)
 
 
-class GD(BaseMetric):
+class GD(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -127,7 +127,7 @@ class GD(BaseMetric):
         return np.mean(distances)
 
 
-class Spread(BaseMetric):
+class Spread(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -158,7 +158,7 @@ class Spread(BaseMetric):
         return delta
 
 
-class ErrorRatio(BaseMetric):
+class ErrorRatio(_BaseMetric):
     def __init__(self, pareto_optimal, tol=1e-6):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         self.tol = tol
@@ -187,7 +187,7 @@ class ErrorRatio(BaseMetric):
         return errors / len(pf)
 
 
-class R2(BaseMetric):
+class R2(_BaseMetric):
     def __init__(self, weight_vectors, ideal_point=None, nadir_point=None):
         self.weight_vectors = np.atleast_2d(weight_vectors)
         norms = np.linalg.norm(self.weight_vectors, axis=1, keepdims=True)
@@ -223,7 +223,7 @@ class R2(BaseMetric):
         return np.mean(r2_values)
 
 
-class MaximumSpread(BaseMetric):
+class MaximumSpread(_BaseMetric):
     def __call__(self, pareto_front):
         self.pareto_front = pareto_front
         if self.pareto_front.shape[0] < 2:
@@ -234,7 +234,7 @@ class MaximumSpread(BaseMetric):
         return np.max(dists)
 
 
-class HV(BaseMetric):
+class HV(_BaseMetric):
     def __init__(self, reference_point=[1.01, 1.01]):
         self.reference_point = np.asarray(reference_point)
 
@@ -385,7 +385,7 @@ def _check_dominance_worker(samples_chunk, pareto_front):
     return np.sum(is_dominated)
 
 
-class MonteCarloHV(BaseMetric):
+class MonteCarloHV(_BaseMetric):
     def __init__(
         self,
         n_samples: int = 10**6,

@@ -23,7 +23,7 @@ from opytimizer.core.space import (
     _SingleObjectiveTensorSpace,
 )
 from opytimizer.core.stopping import MaxIterations, _StoppingCriterion, _StoppingVessel
-from opytimizer.math.metrics import BaseMetric
+from opytimizer.math.metrics import _BaseMetric
 from opytimizer.utils import logging
 from opytimizer.utils.callback import Callback, CallbackVessel
 from opytimizer.utils.exception import BudgetExhausted
@@ -154,15 +154,15 @@ class _BaseRunner:
         return [getattr(self, v) for v in args]
 
     @property
-    def metrics(self) -> Optional[Union[List[BaseMetric], BaseMetric]]:
+    def metrics(self) -> Optional[Union[List[_BaseMetric], _BaseMetric]]:
         return self._metrics
 
     @metrics.setter
-    def metrics(self, m: Optional[Union[List[BaseMetric], BaseMetric]]) -> None:
-        if isinstance(m, BaseMetric):
+    def metrics(self, m: Optional[Union[List[_BaseMetric], _BaseMetric]]) -> None:
+        if isinstance(m, _BaseMetric):
             self._metrics = [m]
         elif isinstance(m, List):
-            if all(isinstance(m_i, BaseMetric) for m_i in m):
+            if all(isinstance(m_i, _BaseMetric) for m_i in m):
                 self._metrics = m
         elif m is None:
             self._metrics = None
@@ -234,7 +234,7 @@ class _BaseRunner:
         self,
         stopping_criteria=None,
         callbacks: Optional[List[Callback]] = None,
-        metrics: Optional[Union[List[BaseMetric], BaseMetric]] = None,
+        metrics: Optional[Union[List[_BaseMetric], _BaseMetric]] = None,
     ) -> None:
         """Start the optimization task."""
 

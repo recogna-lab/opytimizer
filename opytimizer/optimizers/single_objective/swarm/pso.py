@@ -243,10 +243,10 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
 
     All particle state -- current position, velocity, personal best
     (local) position/fitness, and the running global best -- lives on the
-    GPU as `xp` tensors for the entire run. There is NO host <-> device
+    GPU as `xp` tensors for the entire run. There is NO host `<->` device
     synchronization inside `evaluate`/`update`; `space.agents` is read
     exactly once, at `compile` time, to seed the initial positions. The
-    only place data is pulled back to the host is `sync_with_cpu`, meant
+    only place data is pulled back to the host is `sync`, meant
     to be called a single time, after the optimization loop has finished.
     """
 
