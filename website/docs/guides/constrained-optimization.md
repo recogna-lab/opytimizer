@@ -1,0 +1,50 @@
+---
+sidebar_position: 2
+title: Constrained Optimization
+---
+
+# Constrained Optimization
+
+Learn how to optimize problems subject to domain constraints using `ConstrainedFunction` and penalty factors.
+
+## Example Code
+
+```python
+import numpy as np
+from opytimark.markers.n_dimensional import Sphere
+
+from opytimizer import Opytimizer
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.functions import ConstrainedFunction
+from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.spaces import SearchSpace
+
+
+# Defines a constraint function that returns a boolean
+# whether the constraint is valid or not
+def c_1(x):
+    return x[0] + x[1] < 0
+
+
+# Random seed for experimental consistency
+np.random.seed(0)
+
+# Number of agents and decision variables
+n_agents = 20
+n_variables = 2
+n_objectives = 1
+
+# Lower and upper bounds (has to be the same size as `n_variables`)
+lower_bound = [-10, -10]
+upper_bound = [10, 10]
+
+# Creates the space, optimizer and function
+space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
+optimizer = PSO()
+function = ConstrainedFunction(Sphere(), [c_1], penalty=100.0)
+
+# Bundles every piece into Opytimizer class
+opt = Opytimizer(space, optimizer, function, save_agents=False)
+
+# Runs the optimization task
+opt.start(MaxIterations(1000))

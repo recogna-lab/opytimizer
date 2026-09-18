@@ -11,7 +11,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -89,7 +89,7 @@ class BSA(Optimizer):
 
         self._old_agents = old_agents
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -164,7 +164,7 @@ class BSA(Optimizer):
 
         if a < b:
             for i in range(n_agents):
-                r1 = r.generate_uniform_random_number()
+                r1 = r.generate_uniform_random_number()[0]
 
                 non_crosses = int(self.mix_rate * r1 * n_variables)
 
@@ -181,7 +181,7 @@ class BSA(Optimizer):
                 if cross_map[i][j]:
                     trial_agents[i].position[j] = copy.deepcopy(agents[i].position[j])
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Backtracking Search Optimization Algorithm over all agents and variables.
 
         Args:

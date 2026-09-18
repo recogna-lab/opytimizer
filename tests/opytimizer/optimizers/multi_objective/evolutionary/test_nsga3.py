@@ -5,8 +5,6 @@ from opytimizer.optimizers.multi_objective.evolutionary import nsga3
 from opytimizer.spaces.search import SearchSpace
 
 
-
-
 def test_nsga3_compile():
     search_space = SearchSpace(
         n_agents=13,
@@ -27,7 +25,6 @@ def test_nsga3_compile():
     assert new_nsga3.rank == np.array([1])
 
 
-
 def test_nsga3_crossover():
     search_space = SearchSpace(
         n_agents=10,
@@ -40,11 +37,10 @@ def test_nsga3_crossover():
     new_nsga3 = nsga3.NSGA3()
 
     children = new_nsga3._crossover(search_space.agents[0], search_space.agents[1])
-
-    alpha = children[0]
+    alpha = children[0][0]
     assert type(alpha).__name__ == "Agent"
     if len(children) == 2:
-        beta = children[1]
+        beta = children[1][0]
         assert type(beta).__name__ == "Agent"
 
 
@@ -85,7 +81,6 @@ def test_nsga3_fast_non_dominated_sort():
     assert isinstance(fronts, list)
     assert len(fronts) > 0
     assert 0 in fronts[0] or 1 in fronts[0]
-
 
 
 def test_nsga3_tournament_selection():
@@ -130,6 +125,7 @@ def test_nsga3_evaluate():
     new_nsga3.evaluate(search_space, multi_square)
 
     assert isinstance(search_space.pareto_front, list)
+    search_space.update_pareto_front()
     assert len(search_space.pareto_front) > 0
 
 
@@ -166,8 +162,6 @@ def test_nsga3_conflict_number_reference_points():
         new_nsga3 = nsga3.NSGA3()
         new_nsga3.compile(search_space)
     except:
-       assert len(new_nsga3.reference_points) == 13
-       search_space.n_agents = 13
-       new_nsga3.compile(search_space)
-    
- 
+        assert len(new_nsga3.reference_points) == 13
+        search_space.n_agents = 13
+        new_nsga3.compile(search_space)

@@ -11,7 +11,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -129,7 +129,11 @@ class AO(Optimizer):
         self._w = w
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Aquila Optimizer over all agents and variables.
 
@@ -146,10 +150,10 @@ class AO(Optimizer):
         for agent in space.agents:
             a = copy.deepcopy(agent)
 
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
 
             if iteration <= ((2 / 3) * n_iterations):
-                r2 = r.generate_uniform_random_number()
+                r2 = r.generate_uniform_random_number().item()
 
                 if r1 <= 0.5:
                     # Updates temporary agent's position (eq. 3)
@@ -182,7 +186,7 @@ class AO(Optimizer):
                         + (y - x) * r2
                     )
             else:
-                r2 = r.generate_uniform_random_number()
+                r2 = r.generate_uniform_random_number().item()
                 if r2 <= 0.5:
                     lb = np.expand_dims(agent.lb, -1)
                     ub = np.expand_dims(agent.ub, -1)

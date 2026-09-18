@@ -1,24 +1,27 @@
 import numpy as np
-from opytimizer.core import Function
-from opytimizer.spaces import SearchSpace
-from opytimizer.optimizers.single_objective.evolutionary import DE
-from opytimizer.optimizers.single_objective.swarm import PSO
-from opytimizer.optimizers.single_objective.population import GWO
-from opytimizer.visualization import convergence
-from opytimizer import Opytimizer
 from opytimark.markers.n_dimensional import Sphere
+
+from opytimizer import Opytimizer
+from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.optimizers.single_objective.evolutionary import DE
+from opytimizer.optimizers.single_objective.population import GWO
+from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.spaces import SearchSpace
+from opytimizer.visualization import plot_convergence
+
 
 def test_convergence_plot():
     np.random.seed(0)
-    N_AGENTS, N_GENERATIONS = 10, 10
+    N_AGENTS = 10
     n_variables, n_objectives = 2, 1
     lb, ub = [-10, -10], [10, 10]
     func = Function(Sphere())
 
     def run_opt(opt_algo):
         space = SearchSpace(N_AGENTS, n_variables, n_objectives, lb, ub)
-        opt = Opytimizer(space, opt_algo, func, save_agents=False)
-        opt.start(N_GENERATIONS)
+        opt = Opytimizer(space, opt_algo, func, save_agents=False, save_history=True)
+        opt.start(MaxIterations(5))
         return opt.history.best_agent
 
     h_de = run_opt(DE())
@@ -26,6 +29,8 @@ def test_convergence_plot():
     h_gwo = run_opt(GWO())
 
     try:
-        convergence(h_de, h_pso, h_gwo, labels=['DE', 'PSO', 'GWO'], backend='matplotlib')
+        plot_convergence(
+            h_de, h_pso, h_gwo, labels=["DE", "PSO", "GWO"], backend="matplotlib"
+        )
     except:
-        convergence(h_de, h_pso, h_gwo, backend='matplotlib')
+        plot_convergence(h_de, h_pso, h_gwo, backend="matplotlib")

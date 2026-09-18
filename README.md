@@ -42,7 +42,7 @@ If you use Opytimizer to fulfill any of your needs, please cite us:
 ```BibTex
 @misc{rosa2019opytimizer,
     title={Opytimizer: A Nature-Inspired Python Optimizer},
-    author={Gustavo H. de Rosa, Douglas Rodrigues and João P. Papa},
+    author={Gustavo H. de Rosa and Douglas Rodrigues and João P. Papa},
     year={2019},
     eprint={1912.13002},
     archivePrefix={arXiv},
@@ -66,11 +66,13 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - agent
         - block
         - cell
+        - environment
         - function
         - hyperheuristic
         - node
         - optimizer
         - space
+        - stopping
     - functions
         - constrained
         - multi_objective
@@ -87,6 +89,7 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - adaptation_mechanism
         - selection_strategy
     - math
+        - aggregation
         - distribution
         - general
         - hyper
@@ -108,18 +111,16 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - graph
         - grid
         - hyper_complex
-        - pareto
         - search
         - tree
     - utils
         - callback
         - constant
-        - decomposition
         - exception
         - history
         - logging
         - operators
-        - weights_vector
+        - reference_vectors
     - visualization
         - convergence
         - multi_objective
@@ -205,6 +206,7 @@ from opytimizer import Opytimizer
 from opytimizer.core import Function
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
+from opytimizer.core.stopping import MaxIterations
 
 def sphere(x):
     return np.sum(x ** 2)
@@ -220,7 +222,10 @@ optimizer = PSO()
 function = Function(sphere)
 
 opt = Opytimizer(space, optimizer, function)
-opt.start(n_iterations=1000)
+
+stopping = MaxIterations(1000)
+
+opt.start(stopping_criteria=stopping)
 ```
 
 ## How-To-Use: Minimal Multi-Objective Example
@@ -234,6 +239,7 @@ from opytimizer.core import Function
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
+from opytimizer.core.stopping import MaxIterations
 
 def zdt1(x):
     f1 = x[0]
@@ -254,13 +260,17 @@ space = SearchSpace(
 )
 
 optimizer = NSGA2(
-    crossover_operator=SBXCrossover(rate=1.0, eta=20, return_mode='both'),
+    crossover_operator=SBXCrossover(rate=1.0, eta=20, n_offspring=2),
     mutation_operator=PolynomialMutation(rate=1/30, eta=20)
 )
 function = Function(zdt1)
 
+
 opt = Opytimizer(space, optimizer, function)
-opt.start(n_iterations=250)
+
+stopping = MaxIterations(100)
+
+opt.start(stopping_criteria=stopping)
 ```
 
 The optimization process will generate a Pareto front, which can be visualized as follows:
@@ -269,6 +279,53 @@ The optimization process will generate a Pareto front, which can be visualized a
 <div align="center"> <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/pareto_front_evolution.png" width="400"> <p>Pareto Front Evolution</p> </div>
 
 ---
+
+## How-To-Use: GPU-based Optimization Example
+```Python
+import cupy as cp
+
+from opytimizer import Opytimizer
+from opytimizer.core import Function
+from opytimizer.core import Environment
+from opytimizer.optimizers.single_objective.swarm import PSOCuda
+from opytimizer.spaces import SearchSpace
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.visualization import plot_convergence
+
+cp.random.seed(42)
+
+
+def sphere(x):
+    # x shape = (n_agents, n_variables, n_dims) = (60, 10, 1)
+    return cp.sum(x ** 2, axis=(1, 2))
+
+
+n_agents = 60
+n_variables = 10
+n_objectives = 1
+lower_bound = [-10] * n_variables
+upper_bound = [10] * n_variables
+
+gpu_environment = Environment().set_backend('cupy').set_dtype('float32')
+
+space = SearchSpace(n_agents, n_variables, n_objectives,
+                    lower_bound, upper_bound, env=gpu_environment, tensorized=True)
+
+optimizer = PSOCuda()
+function = Function(sphere)
+
+opt = Opytimizer(space, optimizer, function, save_history=True)
+
+stopping = MaxIterations(1000)
+
+opt.start(stopping_criteria=stopping)
+
+plot_convergence(opt.history.best_agent,
+                title='PSO (CuPy) convergence',
+                labels=['PSO (CuPy - Raw Kernels)']
+                ).show()
+```
+
 
 ## Support
 

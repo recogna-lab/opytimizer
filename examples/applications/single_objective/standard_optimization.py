@@ -3,6 +3,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -27,7 +28,7 @@ function = Function(Sphere())
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start(n_iterations=1000)
+opt.start(MaxIterations(1000))
 
 # Prints out information about the best agent that has been found
 print(

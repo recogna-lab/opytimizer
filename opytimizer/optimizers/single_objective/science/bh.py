@@ -9,7 +9,7 @@ import opytimizer.math.random as r
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import constant, logging
 
 logger = logging.get_logger(__name__)
@@ -96,7 +96,7 @@ class BH(Optimizer):
             if distance < radius:
                 agent.fill_with_uniform()
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Black Hole over all agents and variables.
 
         Args:

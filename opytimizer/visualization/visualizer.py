@@ -1,45 +1,75 @@
-from typing import Any, List
 import importlib
+from typing import FrozenSet, List, Optional, Set, Union
 
 from opytimizer.core import Agent
-from opytimizer.visualization._core.router import PlotRouter, MatplotlibRenderer
 from opytimizer.visualization._core.result import PlotResult
+from opytimizer.visualization._core.router import MatplotlibRenderer, PlotRouter
 
-def _call_plot(name: str, result, backend: str | None = None, *args, **kwargs) -> PlotResult:
-   
-    b = backend or _router.default_backend
-    renderer = _router._resolve_backend(b)
-    
+_router = PlotRouter(default_backend="matplotlib")
+
+_MAPPING: dict[str, str] = {
+    "agents": ("opytimizer.visualization._core._plots" ".multi_objective.plot_agents"),
+    "pareto_front_evolution": (
+        "opytimizer.visualization._core._plots"
+        ".multi_objective.plot_pareto_front_evolution"
+    ),
+    "pareto_front_comparison": (
+        "opytimizer.visualization._core._plots"
+        ".multi_objective.plot_pareto_front_comparison"
+    ),
+    "population_distribution_histogram": (
+        "opytimizer.visualization._core._plots"
+        ".plot_population_distribution_histogram"
+    ),
+    "convergence": (
+        "opytimizer.visualization._core._plots" ".single_objective.plot_convergence"
+    ),
+    "graph": "opytimizer.visualization._core._plots.graphs.plot_graph",
+}
+
+FieldsParam = Optional[Union[Set[str], FrozenSet[str]]]
+
+
+def _call_plot(name, result, backend=None, *args, **kwargs) -> PlotResult:
+
+    resolved_backend = backend or _router.default_backend
+    renderer = _router._resolve_backend(resolved_backend)
+
     draw_mpl, draw_ply, data = _load_plot(name, result, *args, **kwargs)
-    
+
     target_fn = draw_mpl if isinstance(renderer, MatplotlibRenderer) else draw_ply
     return PlotResult(renderer.render(target_fn, data), renderer)
 
+
 # Public API Functions
 
-def pareto_front(
-    result, 
-    backend: str | None = None, 
-    title: str = "Pareto Front",
+
+def plot_agents(
+    result,
+    backend: str | None = None,
+    title: str = "Agents",
     color: str = "#2ca02c",
     labels: List[str] | None = None,
     **kwargs
 ) -> PlotResult:
-    """Plots a 2D or 3D Pareto Front from a list of agents.
+    """Plots a 2D or 3D Agents from a list of agents.
 
     Args:
-        result: List of agents representing the Pareto Front.
+        result: List of agents.
         backend: Visualization backend ('matplotlib' or 'plotly').
         title: Plot title.
         color: Hex color string for the scatter points.
         labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front", result, backend, title=title, color=color, labels=labels, **kwargs)
+    return _call_plot(
+        "agents", result, backend, title=title, color=color, labels=labels, **kwargs
+    )
 
-def pareto_front_evolution(
-    result: List[List[Agent]], 
-    backend: str | None = None, 
+
+def plot_pareto_front_evolution(
+    result: List[List[Agent]],
+    backend: str | None = None,
     title: str = "Pareto Front Evolution",
     cmap: str = "viridis",
     labels: List[str] | None = None,
@@ -57,12 +87,22 @@ def pareto_front_evolution(
         iterations: Specific iteration indices to be plotted.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front_evolution", result, backend, title=title, cmap=cmap, labels=labels, iterations=iterations, **kwargs)
+    return _call_plot(
+        "pareto_front_evolution",
+        result,
+        backend,
+        title=title,
+        cmap=cmap,
+        labels=labels,
+        iterations=iterations,
+        **kwargs
+    )
 
-def pareto_front_comparision(
-    *args, 
-    backend: str | None = None, 
-    title: str = "Pareto Front Comparision",
+
+def plot_pareto_front_comparison(
+    *args,
+    backend: str | None = None,
+    title: str = "Pareto Front Comparison",
     labels: List[str] | None = None,
     obj_labels: List[str] | None = None,
     **kwargs
@@ -77,14 +117,21 @@ def pareto_front_comparision(
         obj_labels: List of labels for the objective axes.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("pareto_front_comparision", None, backend, *args, title=title, labels=labels, obj_labels=obj_labels, **kwargs)
+    return _call_plot(
+        "pareto_front_comparison",
+        None,
+        backend,
+        *args,
+        title=title,
+        labels=labels,
+        obj_labels=obj_labels,
+        **kwargs
+    )
 
 
-
-
-def population_distribution_histogram(
-    result, 
-    backend: str | None = None, 
+def plot_population_distribution_histogram(
+    result,
+    backend: str | None = None,
     target: int = 0,
     title: str = None,
     color: str = "#2ca02c",
@@ -102,12 +149,22 @@ def population_distribution_histogram(
         label: Label for the data series.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("population_distribution_histogram", result, backend, target=target, title=title, color=color, label=label, **kwargs)
-    
-def convergence(
-    *args, 
-    backend: str | None = None, 
-    title: str | None = "Convergence Comparision",
+    return _call_plot(
+        "population_distribution_histogram",
+        result,
+        backend,
+        target=target,
+        title=title,
+        color=color,
+        label=label,
+        **kwargs
+    )
+
+
+def plot_convergence(
+    *args,
+    backend: str | None = None,
+    title: str | None = "Convergence Comparison",
     labels: List[str] | None = None,
     x_axis: str | None = None,
     xlabel: str | None = None,
@@ -128,19 +185,36 @@ def convergence(
         iterations: Specific iteration indices to be plotted.
         **kwargs: Additional plotting parameters.
     """
-    return _call_plot("convergence", None, backend, *args, title=title, labels=labels, x_axis=x_axis, xlabel=xlabel, ylabel=ylabel, iterations=iterations,**kwargs)
-    
+    return _call_plot(
+        "convergence",
+        None,
+        backend,
+        *args,
+        title=title,
+        labels=labels,
+        x_axis=x_axis,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        iterations=iterations,
+        **kwargs
+    )
 
-_router = PlotRouter(default_backend="matplotlib")
-    
-def _load_plot(name: str, result: Any, *args, **kwargs):
-    # Mapping to internal implementation modules
-    mapping = {
-        "pareto_front": "opytimizer.visualization._core._plots.multi_objective.pareto_front",
-        "pareto_front_evolution": "opytimizer.visualization._core._plots.multi_objective.pareto_front_evolution",
-        "population_distribution_histogram": "opytimizer.visualization._core._plots.population_distribution_histogram",
-        "convergence": "opytimizer.visualization._core._plots.single_objective.convergence",
-        "pareto_front_comparision": "opytimizer.visualization._core._plots.multi_objective.pareto_front_comparision",
-    }
-    module = importlib.import_module(mapping[name])
-    return module.draw_mpl, module.draw_ply, module.extract_data(result, *args, **kwargs)
+
+def _load_plot(name, result, *args, **kwargs):
+    module = importlib.import_module(_MAPPING[name])
+    data = module.extract_data(result, *args, **kwargs)
+    return module.draw_mpl, module.draw_ply, data
+
+
+def plot_graph(
+    result, backend: str | None = None, title: str = "Graph Representation", **kwargs
+) -> PlotResult:
+    """Plots a 2D network representation of a Tree or Graph.
+
+    Args:
+        result: Tree, Graph or GraphAgent instance.
+        backend: Visualization backend ('matplotlib' or 'plotly').
+        title: Plot title.
+        **kwargs: Additional plotting parameters.
+    """
+    return _call_plot("graph", result, backend, title=title, **kwargs)

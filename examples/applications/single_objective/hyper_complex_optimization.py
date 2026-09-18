@@ -4,6 +4,7 @@ from opytimark.markers.n_dimensional import Sphere
 import opytimizer.math.hyper as h
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import HyperComplexSpace
 
@@ -37,4 +38,4 @@ function = Function(wrapper)
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start(n_iterations=1000)
+opt.start(MaxIterations(1000))

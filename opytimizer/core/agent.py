@@ -2,13 +2,13 @@
 """
 
 import time
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 import opytimizer.math.random as r
-import opytimizer.utils.constant as c
 import opytimizer.utils.exception as e
+from opytimizer.core.environment import Environment
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -25,6 +25,7 @@ class Agent:
         lower_bound: List[Union[int, float]],
         upper_bound: List[Union[int, float]],
         mapping: Optional[List[str]] = None,
+        env: Environment = None,
     ) -> None:
         """Initialization method.
 
@@ -34,21 +35,30 @@ class Agent:
             n_objectives: Number of objective functions.
             lower_bound: Minimum possible values.
             upper_bound: Maximum possible values.
-            mapping: String-based identifiers for mapping variables' names.
+            mapping: String-based identifiers for mapping variables' names.`
+            env: Environment class object.
 
         """
+        if env is None:
+            env = Environment("numpy", "float32")
+
+        self.env = env
+        self.xp = env.xp
 
         self.n_variables = n_variables
         self.n_dimensions = n_dimensions
         self.n_objectives = n_objectives
 
-        self.lb = np.asarray(lower_bound)
-        self.ub = np.asarray(upper_bound)
+        self.lb = self.xp.asarray(lower_bound)
+        self.ub = self.xp.asarray(upper_bound)
 
-        self.position = np.zeros((n_variables, n_dimensions))
-        self._fit = np.array([c.FLOAT_MAX] * n_objectives)
+        self.position = self.xp.zeros((n_variables, n_dimensions), dtype=self.env.dtype)
+        self._fit = self.xp.full(
+            (n_objectives,), self.xp.finfo(self.xp.float64).max, dtype=self.xp.float64
+        ).squeeze()
 
         self.mapping = mapping
+
         self.ts = int(time.time())
 
     @property
@@ -79,6 +89,9 @@ class Agent:
 
         self._n_dimensions = n_dimensions
 
+    def _is_ndarray(self, attr) -> bool:
+        return attr.__class__.__name__ == "ndarray"
+
     @property
     def position(self) -> np.ndarray:
         """N-dimensional array of positions."""
@@ -86,10 +99,9 @@ class Agent:
         return self._position
 
     @position.setter
-    def position(self, position: np.ndarray) -> None:
-        if not isinstance(position, np.ndarray):
-            raise e.TypeError("`position` should be a numpy array")
-
+    def position(self, position: Union[np.ndarray, Any]) -> None:
+        if not self._is_ndarray(position):
+            raise e.TypeError("`position` should be a ndarray")
         self._position = position
 
     @property
@@ -107,28 +119,17 @@ class Agent:
         self._n_objectives = n_objectives
 
     @property
-    def fit(self) -> Union[float, np.ndarray]:
+    def fit(self) -> Union[float, Any]:
         """Fitness value(s).
 
         Returns:
-            Union[float, np.ndarray]: Single value for mono-objective or array for multi-objective.
+            Union[float, Any]: Single value for single-objective or n-dimensional array for multi-objective.
         """
-        if not isinstance(self._fit, np.ndarray):
-            self._fit = np.array([c.FLOAT_MAX] * self.n_objectives)
-        elif self._fit.ndim == 0:
-            self._fit = np.array([self._fit] * self.n_objectives)
-        if self._fit.size == 1:
-            return float(self._fit[0])
         return self._fit
 
     @fit.setter
-    def fit(self, fit: Union[int, float, np.ndarray]) -> None:
-        if isinstance(fit, (float, int)):
-            self._fit = np.array([fit] * self.n_objectives)
-        else:
-            if len(fit) != self.n_objectives:
-                raise e.SizeError("`fit` should have the same size as `n_objectives`")
-            self._fit = np.array(fit)
+    def fit(self, fit: Union[int, float, Any]) -> None:
+        self._fit = fit
 
     @property
     def lb(self) -> np.ndarray:
@@ -136,11 +137,9 @@ class Agent:
         return self._lb
 
     @lb.setter
-    def lb(self, lb: np.ndarray) -> None:
-        if not isinstance(lb, np.ndarray):
-            raise e.TypeError("`lb` should be a numpy array")
+    def lb(self, lb: Union[np.ndarray, Any]) -> None:
         if not lb.shape:
-            lb = np.expand_dims(lb, -1)
+            lb = self.xp.expand_dims(lb, -1)
         if lb.shape[0] != self.n_variables:
             raise e.SizeError("`lb` should be the same size as `n_variables`")
 
@@ -152,11 +151,10 @@ class Agent:
         return self._ub
 
     @ub.setter
-    def ub(self, ub: np.ndarray) -> None:
-        if not isinstance(ub, np.ndarray):
-            raise e.TypeError("`ub` should be a numpy array")
+    def ub(self, ub: Union[np.ndarray, Any]) -> None:
+
         if not ub.shape:
-            ub = np.expand_dims(ub, -1)
+            ub = self.xp.expand_dims(ub, -1)
         if ub.shape[0] != self.n_variables:
             raise e.SizeError("`ub` should be the same size as `n_variables`")
 
@@ -193,6 +191,16 @@ class Agent:
             self._mapping = [f"x{i}" for i in range(self.n_variables)]
 
     @property
+    def env(self) -> Environment:
+        return self._env
+
+    @env.setter
+    def env(self, env_instance) -> None:
+        if not isinstance(env_instance, Environment):
+            raise e.TypeError("Error: please, pass a valiable environment.")
+        self._env = env_instance
+
+    @property
     def mapped_position(self) -> Dict[str, np.ndarray]:
         """Dictionary mapping variables names and array of positions."""
 
@@ -201,32 +209,35 @@ class Agent:
     def clip_by_bound(self) -> None:
         """Clips the agent's decision variables to the bounds limits."""
 
-        for j, (lb, ub) in enumerate(zip(self.lb, self.ub)):
-            self.position[j] = np.clip(self.position[j], lb, ub)
+        self.position = self.xp.clip(
+            self.position, self.lb[:, self.xp.newaxis], self.ub[:, self.xp.newaxis]
+        )
 
     def fill_with_binary(self) -> None:
         """Fills the agent's decision variables with a binary distribution."""
 
-        for j in range(self.n_variables):
-            self.position[j] = r.generate_binary_random_number(self.n_dimensions)
+        self.position = r.generate_binary_random_number(
+            size=(self.n_variables, self.n_dimensions), xp=self.xp
+        )
 
     def fill_with_static(self, values: np.ndarray) -> None:
         """Fills the agent's decision variables with static values. Note that this
         method ignore the agent's bounds, so use it carefully.
 
         Args:
-            values: Values to be filled.
+            values: Values to be filled (expected shape (n_variables,)).
 
         """
 
-        values = np.asarray(values)
-        if not values.shape:
-            values = np.expand_dims(values, -1)
+        values = self.xp.asarray(values)
+
+        if values.ndim == 1:
+            values = values[:, self.xp.newaxis]
+
         if values.shape[0] != self.n_variables:
             raise e.SizeError("`values` should be the same size as `n_variables`")
 
-        for j, value in enumerate(values):
-            self.position[j] = value
+        self.position = self.xp.broadcast_to(values, self.position.shape).copy()
 
     def fill_with_uniform(self) -> None:
         """Fills the agent's decision variables with a uniform distribution
@@ -234,10 +245,12 @@ class Agent:
 
         """
 
-        for j, (lb, ub) in enumerate(zip(self.lb, self.ub)):
-            self.position[j] = r.generate_uniform_random_number(
-                lb, ub, self.n_dimensions
-            )
+        self.position = r.generate_uniform_random_number(
+            low=self.lb[:, self.xp.newaxis],
+            high=self.ub[:, self.xp.newaxis],
+            size=(self.n_variables, self.n_dimensions),
+            xp=self.xp,
+        )
 
     def dominates(self, other: "Agent") -> bool:
         """Checks if this agent dominates another agent.
@@ -250,4 +263,6 @@ class Agent:
 
         """
 
-        return np.all(self._fit <= other._fit) and np.any(self._fit < other._fit)
+        return self.xp.all(self._fit <= other._fit) and self.xp.any(
+            self._fit < other._fit
+        )

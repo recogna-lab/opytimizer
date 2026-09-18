@@ -2,6 +2,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
 from opytimizer.hyperheuristics.selection_strategy import ChoiceFunction
 from opytimizer.optimizers.single_objective.swarm import ABC, PSO
@@ -47,7 +48,7 @@ space = SearchSpace(
 opt = Opytimizer(space, h, function)
 
 # Runs the hyperheuristic optimization
-opt.start(n_iterations=100)
+opt.start(MaxIterations(100))
 
 # Prints out the best agent found
 print(f"Best agent position: {opt.space.best_agent.position}")

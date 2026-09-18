@@ -1,10 +1,11 @@
 import numpy as np
-from opytimizer.spaces import search
+
 from opytimizer.optimizers.single_objective.evolutionary import ce
+from opytimizer.spaces import search
 
 
 def sphere(x):
-    return float(np.sum(x ** 2))
+    return float(np.sum(x**2))
 
 
 def test_ce_params():
@@ -75,7 +76,7 @@ def test_ce_gauss():
 def test_ce_henon():
     opt = ce.CE()
     opt.y_henon = np.random.random((5, 10))
-    x = np.random.random((5,10))
+    x = np.random.random((5, 10))
     x_old = x.copy()
     for i in range(5):
         out = opt._henon(x=x[i], i=i)
@@ -90,7 +91,7 @@ def test_ce_compile():
         n_variables=5,
         n_objectives=1,
         lower_bound=[-100] * 5,
-        upper_bound=[ 100] * 5,
+        upper_bound=[100] * 5,
     )
     opt.compile(space)
     assert opt.D.shape == (10, 5)
@@ -107,7 +108,7 @@ def test_ce_update():
         n_variables=5,
         n_objectives=1,
         lower_bound=[-100] * 5,
-        upper_bound=[ 100] * 5,
+        upper_bound=[100] * 5,
     )
     opt.compile(space)
     for ag in space.agents:
@@ -116,4 +117,4 @@ def test_ce_update():
     assert len(space.agents) == 10
     for ag in space.agents:
         assert np.all(ag.position >= -100)
-        assert np.all(ag.position <=  100)
+        assert np.all(ag.position <= 100)

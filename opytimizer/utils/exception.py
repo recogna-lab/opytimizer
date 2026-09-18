@@ -95,3 +95,7 @@ class ValueError(Error):
         """
 
         super(ValueError, self).__init__("ValueError", error)
+
+
+class BudgetExhausted(Exception):
+    """Raised when the function evaluation budget is exhausted"""

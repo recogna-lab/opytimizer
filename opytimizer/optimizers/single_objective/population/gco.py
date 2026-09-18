@@ -13,7 +13,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -104,7 +104,7 @@ class GCO(Optimizer):
 
         self._counter = counter
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -188,7 +188,7 @@ class GCO(Optimizer):
             life_fit = (agent.fit - max_fit) / (min_fit - max_fit + c.EPSILON)
             self.life[i] += 10 * life_fit
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Germinal Center Optimization over all agents and variables.
 
         Args:

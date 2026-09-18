@@ -9,6 +9,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.hyperheuristics.selection import SelectionHyperHeuristic
 from opytimizer.hyperheuristics.selection_strategy import ChoiceFunction
 from opytimizer.optimizers.single_objective.swarm import ABC, PSO
@@ -59,7 +60,7 @@ opt = Opytimizer(space, h, function)
 print("Starting optimization with PerformanceTrackingCallback...")
 start_time = time.time()
 
-opt.start(n_iterations=50, callbacks=[performance_callback])
+opt.start(MaxIterations(50), callbacks=[performance_callback])
 
 total_time = time.time() - start_time
 

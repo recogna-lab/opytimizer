@@ -1,5 +1,6 @@
 import opytimizer
 from opytimizer.core import function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import pso
 from opytimizer.spaces import search
 from opytimizer.utils import callback, history
@@ -12,7 +13,7 @@ def test_opytimizer_space():
 
     new_opytimizer = opytimizer.Opytimizer(space, optimizer, func)
 
-    assert type(new_opytimizer.space).__name__ == "SearchSpace"
+    assert type(new_opytimizer.space).__name__ == "_SingleObjectiveSearchSpace"
 
 
 def test_opytimizer_space_setter():
@@ -29,7 +30,7 @@ def test_opytimizer_space_setter():
         space.built = True
         new_opytimizer.space = space
 
-    assert type(new_opytimizer.space).__name__ == "SearchSpace"
+    assert type(new_opytimizer.space).__name__ == "_SingleObjectiveSearchSpace"
 
 
 def test_opytimizer_optimizer():
@@ -225,7 +226,7 @@ def test_opytimizer_start():
 
     new_opytimizer = opytimizer.Opytimizer(space, optimizer, func)
 
-    new_opytimizer.start(n_iterations=1)
+    new_opytimizer.start(MaxIterations(1))
 
 
 def test_opytimizer_save():
@@ -241,4 +242,4 @@ def test_opytimizer_save():
 def test_opytimizer_load():
     new_opytimizer = opytimizer.Opytimizer.load("out.pkl")
 
-    assert type(new_opytimizer).__name__ == "Opytimizer"
+    assert type(new_opytimizer).__name__ == "_SingleObjectiveRunner"

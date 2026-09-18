@@ -1,17 +1,25 @@
 import numpy as np
-from opytimizer.core import Function
-from opytimizer.spaces import SearchSpace
-from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
-from opytimizer.visualization import pareto_front_evolution
+
 from opytimizer import Opytimizer
+from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
+from opytimizer.spaces import SearchSpace
+from opytimizer.visualization import plot_pareto_front_evolution
+
 
 def test_pareto_evolution_plot():
-    func = Function(lambda x: np.array([x[0][0], 1-x[0][0]]))
-    space = SearchSpace(10, 2, 2, [0.]*2, [1.]*2)
-    opt = Opytimizer(space, NSGA2(), func)
-    opt.start(10)
+    func = Function(lambda x: np.array([x[0][0], 1 - x[0][0]]))
+    space = SearchSpace(10, 2, 2, [0.0] * 2, [1.0] * 2)
+    opt = Opytimizer(space, NSGA2(), func, save_history=True)
+    opt.start(MaxIterations(10))
 
     try:
-        pareto_front_evolution(opt.history.pareto_front, iterations=[1, 5, 10], labels=['F1', 'F2'], backend="matplotlib")
+        plot_pareto_front_evolution(
+            opt.history.pareto_front,
+            iterations=[1, 5, 10],
+            labels=["F1", "F2"],
+            backend="matplotlib",
+        )
     except:
-        pareto_front_evolution(opt.history.pareto_front, backend="matplotlib")
+        plot_pareto_front_evolution(opt.history.pareto_front, backend="matplotlib")

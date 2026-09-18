@@ -11,7 +11,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -199,7 +199,7 @@ class HGSO(Optimizer):
 
         self._constant = constant
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -236,7 +236,7 @@ class HGSO(Optimizer):
         gamma = self.beta * np.exp(-(best_agent.fit + 0.05) / (agent.fit + 0.05))
         flag = np.sign(r.generate_uniform_random_number(-1, 1))
 
-        r1 = r.generate_uniform_random_number()
+        r1 = r.generate_uniform_random_number().item()
 
         new_position = (
             agent.position
@@ -250,7 +250,11 @@ class HGSO(Optimizer):
         return new_position
 
     def update(
-        self, space: Space, function: Function, iteration: int, n_iterations: int
+        self,
+        space: _SingleObjectiveSpace,
+        function: Function,
+        iteration: int,
+        n_iterations: int,
     ) -> None:
         """Wraps Henry Gas Solubility Optimization over all agents and variables.
 
@@ -288,7 +292,7 @@ class HGSO(Optimizer):
         space.agents.sort(key=lambda x: x.fit)
 
         # Calculates the number of worst agents (eq. 11)
-        r1 = r.generate_uniform_random_number()
+        r1 = r.generate_uniform_random_number().item()
         N = int(len(space.agents) * (r1 * (0.2 - 0.1) + 0.1))
 
         for agent in space.agents[-N:]:

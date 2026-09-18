@@ -1,0 +1,38 @@
+{
+  "name": "opytimizer",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">     <img src=\"https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/logo.png\" width=\"300\"> </div>",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "generate-api": "python scripts/generate_api_docs.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/recogna-lab/opytimizer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/recogna-lab/opytimizer/issues"
+  },
+  "homepage": "https://github.com/recogna-lab/opytimizer#readme",
+  "dependencies": {
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
+  }
+}

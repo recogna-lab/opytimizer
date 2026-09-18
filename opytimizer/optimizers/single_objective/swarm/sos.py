@@ -10,7 +10,7 @@ import opytimizer.math.random as r
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -130,7 +130,7 @@ class SOS(Optimizer):
             agent_j.position = copy.deepcopy(p.position)
             agent_j.fit = copy.deepcopy(p.fit)
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Symbiotic Organisms Search over all agents and variables.
 
         Args:

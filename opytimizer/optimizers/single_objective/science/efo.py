@@ -10,7 +10,7 @@ import opytimizer.math.random as r
 import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -156,24 +156,24 @@ class EFO(Optimizer):
         """
 
         positive_index = int(
-            r.generate_uniform_random_number(0, n_agents * self.positive_field)
+            r.generate_uniform_random_number(0, n_agents * self.positive_field).item()
         )
 
         negative_index = int(
             r.generate_uniform_random_number(
                 n_agents * (1 - self.negative_field), n_agents
-            )
+            ).item()
         )
 
         neutral_index = int(
             r.generate_uniform_random_number(
                 n_agents * self.positive_field, n_agents * (1 - self.negative_field)
-            )
+            ).item()
         )
 
         return positive_index, negative_index, neutral_index
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Electromagnetic Field Optimization over all agents and variables (eq. 1-4).
 
         Args:
@@ -191,7 +191,7 @@ class EFO(Optimizer):
         for j in range(agent.n_variables):
             pos, neg, neu = self._calculate_indexes(n_agents)
 
-            r1 = r.generate_uniform_random_number()
+            r1 = r.generate_uniform_random_number().item()
             if r1 < self.ps_ratio:
                 agent.position[j] = space.agents[pos].position[j]
             else:
@@ -205,7 +205,7 @@ class EFO(Optimizer):
                 )
         agent.clip_by_bound()
 
-        r2 = r.generate_uniform_random_number()
+        r2 = r.generate_uniform_random_number().item()
         if r2 < self.r_ratio:
             agent.position[self.RI] = r.generate_uniform_random_number(
                 agent.lb[self.RI], agent.ub[self.RI]

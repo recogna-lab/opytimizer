@@ -9,7 +9,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -138,7 +138,7 @@ class BWO(Optimizer):
 
         return alpha
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Black Widow Optimization over all agents and variables.
 
         Args:
@@ -185,7 +185,7 @@ class BWO(Optimizer):
             agents2.extend(new_agents[:n_cannibals])
 
         for _ in range(0, n_mutate):
-            idx = int(r.generate_uniform_random_number(0, n_reproduct))
+            idx = int(r.generate_uniform_random_number(0, n_reproduct).item())
 
             alpha = self._mutation(agents1[idx])
             alpha.clip_by_bound()

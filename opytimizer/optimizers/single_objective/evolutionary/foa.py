@@ -9,7 +9,7 @@ import opytimizer.utils.exception as e
 from opytimizer.core import Optimizer
 from opytimizer.core.agent import Agent
 from opytimizer.core.function import Function
-from opytimizer.core.space import Space
+from opytimizer.core.space import _SingleObjectiveSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -137,7 +137,7 @@ class FOA(Optimizer):
 
         self._age = age
 
-    def compile(self, space: Space) -> None:
+    def compile(self, space: _SingleObjectiveSpace) -> None:
         """Compiles additional information that is used by this optimizer.
 
         Args:
@@ -147,7 +147,7 @@ class FOA(Optimizer):
 
         self.age = [0] * space.n_agents
 
-    def _local_seeding(self, space: Space, function: Function) -> None:
+    def _local_seeding(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Performs the local seeding on zero-aged trees.
 
         Args:
@@ -178,7 +178,7 @@ class FOA(Optimizer):
 
         self.age += [0] * len(new_agents)
 
-    def _population_limiting(self, space: Space) -> List[Agent]:
+    def _population_limiting(self, space: _SingleObjectiveSpace) -> List[Agent]:
         """Limits the population by removing old trees.
 
         Args:
@@ -211,7 +211,7 @@ class FOA(Optimizer):
         return candidate
 
     def _global_seeding(
-        self, space: Space, function: Function, candidate: List[Agent]
+        self, space: _SingleObjectiveSpace, function: Function, candidate: List[Agent]
     ) -> None:
         """Performs the global seeding.
 
@@ -242,7 +242,7 @@ class FOA(Optimizer):
 
         self.age += [0] * len(new_agents)
 
-    def update(self, space: Space, function: Function) -> None:
+    def update(self, space: _SingleObjectiveSpace, function: Function) -> None:
         """Wraps Forest Optimization Algorithm over all agents and variables.
 
         Args:

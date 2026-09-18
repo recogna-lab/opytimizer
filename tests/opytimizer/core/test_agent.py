@@ -218,7 +218,7 @@ def test_agent_fill_with_static():
     new_agent = agent.Agent(1, 1, 1, 0, 1)
 
     try:
-        new_agent.fill_with_static([20, 20])
+        new_agent.fill_with_static([20])
     except:
         new_agent.fill_with_static(20)
 

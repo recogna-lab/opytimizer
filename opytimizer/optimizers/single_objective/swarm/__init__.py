@@ -4,6 +4,7 @@ It contains implementations of swarm-based optimizers.
 
 from opytimizer.optimizers.single_objective.swarm.abc import ABC
 from opytimizer.optimizers.single_objective.swarm.abo import ABO
+from opytimizer.optimizers.single_objective.swarm.aco import ACO, TSPACO
 from opytimizer.optimizers.single_objective.swarm.af import AF
 from opytimizer.optimizers.single_objective.swarm.ba import BA
 from opytimizer.optimizers.single_objective.swarm.boa import BOA
@@ -27,6 +28,8 @@ from opytimizer.optimizers.single_objective.swarm.pso import (
     RPSO,
     SAVPSO,
     VPSO,
+    PSOCuda,
+    PSOTensor,
 )
 from opytimizer.optimizers.single_objective.swarm.sbo import SBO
 from opytimizer.optimizers.single_objective.swarm.sca import SCA

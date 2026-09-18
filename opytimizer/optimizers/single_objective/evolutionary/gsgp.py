@@ -1,17 +1,20 @@
-"""Geometric Semantic Genetic Programming.
+"""Geometric Semantic Genetic Programming (Strongly-Typed).
 """
 
-import copy
+import operator
+import random
 from hashlib import sha1
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 import numpy as np
 
 import opytimizer.math.general as g
 import opytimizer.math.random as r
-from opytimizer.core.node import Node
+import opytimizer.utils.exception as e
+from opytimizer.core.graph.node import GraphNode
+from opytimizer.core.graph.space import _SingleObjectiveSpace
+from opytimizer.core.graph.tree import Tree
 from opytimizer.optimizers.single_objective.evolutionary.gp import GP
-from opytimizer.spaces.tree import TreeSpace
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -20,8 +23,6 @@ logger = logging.get_logger(__name__)
 class GSGP(GP):
     """A GSGP class, inherited from GP.
 
-    This is the designed class to define GSGP-related
-    variables and methods.
 
     References:
         A. Moraglio, K. Krawiec, and C. G. Johnson.
@@ -46,9 +47,111 @@ class GSGP(GP):
 
         super(GSGP, self).__init__(params)
 
+        self.ms = 0.1
+
         logger.info("Class overrided.")
 
-    def _mutation(self, space: TreeSpace) -> None:
+    @property
+    def ms(self) -> float:
+        """Mutation step -- scales the `(TR1 - TR2)` random perturbation."""
+
+        return self._ms
+
+    @ms.setter
+    def ms(self, ms: float) -> None:
+        if not isinstance(ms, (float, int)):
+            raise e.TypeError("`ms` should be a float or integer")
+        if ms < 0:
+            raise e.ValueError("`ms` should be >= 0")
+
+        self._ms = ms
+
+    def _hashed_name(self) -> str:
+        """Builds a short, collision-unlikely name for an ad-hoc terminal,
+        mirroring the original implementation's `sha1`-based naming."""
+
+        value = r.generate_uniform_random_number().item()
+        return sha1(repr(value).encode("ascii")).hexdigest()[:4]
+
+    def _random_terminal_value(self, output_type: Type) -> Any:
+        """Draws a fresh numeric value of `output_type`, passed through one
+        of three bounding nonlinearities.
+
+        Args:
+            output_type: Type the returned value must be usable as (assumed
+                numeric: `float`, `int`, or a numpy array).
+
+        """
+
+        value = r.generate_uniform_random_number().item()
+
+        operator_id = r.generate_integer_random_number(0, 3)
+        if operator_id == 0:
+            value = np.exp(value)
+        elif operator_id == 1:
+            value = np.fabs(np.sin(value))
+        elif operator_id == 2:
+            value = np.cos(np.sin(value))
+
+        if output_type is int:
+            return int(value)
+        if output_type is float:
+            return float(value)
+
+        return value
+
+    def _mutate(self, tree: Tree) -> Tree:
+        """Performs geometric semantic mutation on a single tree: replaces a randomly chosen node `T` with
+        `SUM(T, MUL(ms, SUB(TR1, TR2)))`, where `TR1`/`TR2` are fresh
+        random terminals of `T`'s own type.
+
+        Args:
+            tree: A `Tree` instance to be mutated.
+
+        Returns:
+            (Tree): A new, mutated tree (the input is left untouched).
+
+        """
+
+        mutated = tree.copy()
+        target = random.choice(mutated.nodes)
+        output_type = target.output_type
+
+        terminal_1 = GraphNode(
+            self._hashed_name(),
+            value=self._random_terminal_value(output_type),
+            output_type=output_type,
+        )
+        terminal_2 = GraphNode(
+            self._hashed_name(),
+            value=self._random_terminal_value(output_type),
+            output_type=output_type,
+        )
+
+        sub_node = GraphNode(
+            "SUB", value=operator.sub, output_type=output_type, is_terminal=False
+        )
+        sub_node.add_child(terminal_1)
+        sub_node.add_child(terminal_2)
+
+        ms_node = GraphNode("ms", value=self.ms, output_type=output_type)
+        mul_node = GraphNode(
+            "MUL", value=operator.mul, output_type=output_type, is_terminal=False
+        )
+        mul_node.add_child(ms_node)
+        mul_node.add_child(sub_node)
+
+        sum_node = GraphNode(
+            "SUM", value=operator.add, output_type=output_type, is_terminal=False
+        )
+        sum_node.add_child(target.copy())
+        sum_node.add_child(mul_node)
+
+        mutated.replace_subtree(target, sum_node)
+
+        return mutated
+
+    def _mutation(self, space: _SingleObjectiveSpace) -> None:
         """Mutates a number of individuals pre-selected through a tournament procedure.
 
         Args:
@@ -57,71 +160,70 @@ class GSGP(GP):
         """
 
         fitness = [agent.fit for agent in space.agents]
-
         n_individuals = int(space.n_agents * self.p_mutation)
-        if n_individuals % 2 != 0:
-            n_individuals += 1
 
         selected = g.tournament_selection(fitness, n_individuals)
         for s in selected:
-            n_nodes = space.trees[s].n_nodes
-            if n_nodes > 1:
-                max_nodes = self._prune_nodes(n_nodes)
-                space.trees[s] = self._mutate(
-                    space.trees[s], space.n_variables, max_nodes
-                )
+            space.agents[s].position = self._mutate(space.agents[s].position)
 
-    def _mutate(self, tree: Node, n_variables: int, max_nodes: int) -> Node:
-        """Actually performs the mutation on a single tree.
+    def _cross(self, father: Tree, mother: Tree) -> Tree:
+        """Performs geometric semantic crossover: builds
+        `SUM(MUL(TR, T1), MUL(1 - TR, T2))`, where `TR` is a fresh random
+        gate value in `[0, 1]` and `T1`/`T2` are same-typed nodes picked
+        from `father`/`mother`.
 
         Args:
-            tree: A Node instance to be mutated.
-            n_variables: Number of variables.
-            max_nodes: Maximum number of nodes to be searched.
+            father: A father's tree to be crossed.
+            mother: A mother's tree to be crossed.
 
         Returns:
-            (Node): A mutated tree.
+            (Tree): A single offspring (a new tree; parents are untouched).
 
         """
 
-        mutated_tree = copy.deepcopy(tree)
-        mutation_point = int(r.generate_uniform_random_number(2, max_nodes))
-        sub_tree, _ = mutated_tree.find_node(mutation_point)
+        father_offspring = father.copy()
+        mother_offspring = mother.copy()
 
-        # If the mutation point's parent is not a root (this may happen when the mutation point is a function),
-        # and find_node() stops at a terminal node whose father is a root
-        if sub_tree:
-            position = r.generate_uniform_random_number(size=n_variables)
-            position_hash = sha1(repr(position).encode("ascii")).hexdigest()[:4]
+        father_types = {n.output_type for n in father_offspring.nodes}
+        mother_types = {n.output_type for n in mother_offspring.nodes}
+        common_types = father_types & mother_types
+        if not common_types:
+            return father_offspring
 
-            terminal = Node(position_hash, "TERMINAL", position)
+        output_type = random.choice(list(common_types))
+        sub_father = random.choice(father_offspring.nodes_of_type(output_type))
+        sub_mother = random.choice(mother_offspring.nodes_of_type(output_type))
 
-            operator_id = r.generate_integer_random_number(0, 3)
-            if operator_id == 0:
-                terminal.value = np.exp(terminal.value)
-            elif operator_id == 1:
-                terminal.value = np.fabs(np.sin(terminal.value))
-            elif operator_id == 2:
-                terminal.value = np.cos(np.sin(terminal.value))
+        gate_value = r.generate_uniform_random_number().item()  # already in [0, 1]
 
-            if r.generate_uniform_random_number() <= 0.5:
-                root = Node("SUM", "FUNCTION")
-            else:
-                root = Node("MUL", "FUNCTION")
+        gate_node = GraphNode(
+            self._hashed_name(), value=gate_value, output_type=output_type
+        )
+        not_gate_node = GraphNode("~", value=1 - gate_value, output_type=output_type)
 
-            root.parent = None
-            root.left = sub_tree
-            root.right = terminal
+        left = GraphNode(
+            "MUL", value=operator.mul, output_type=output_type, is_terminal=False
+        )
+        left.add_child(gate_node)
+        left.add_child(sub_father.copy())
 
-            sub_tree.parent = root
-            terminal.parent = root
-            terminal.flag = False
+        right = GraphNode(
+            "MUL", value=operator.mul, output_type=output_type, is_terminal=False
+        )
+        right.add_child(not_gate_node)
+        right.add_child(sub_mother.copy())
 
-            return root
+        root = GraphNode(
+            "SUM", value=operator.add, output_type=output_type, is_terminal=False
+        )
+        root.add_child(left)
+        root.add_child(right)
 
-        return mutated_tree
+        father_offspring.replace_subtree(sub_father, root)
 
-    def _crossover(self, space: TreeSpace) -> None:
+        return father_offspring
+
+    def _crossover(self, space: _SingleObjectiveSpace) -> None:
         """Crossover a number of individuals pre-selected through a tournament procedure.
 
         Args:
@@ -137,83 +239,9 @@ class GSGP(GP):
 
         selected = g.tournament_selection(fitness, n_individuals)
         for s in g.n_wise(selected):
-            father_nodes = space.trees[s[0]].n_nodes
-            mother_nodes = space.trees[s[1]].n_nodes
+            if s[0] == s[1]:
+                continue
 
-            if (father_nodes > 1) and (mother_nodes > 1):
-                max_f_nodes = self._prune_nodes(father_nodes)
-                max_m_nodes = self._prune_nodes(mother_nodes)
-
-                space.trees[s[0]] = self._cross(
-                    space.trees[s[0]],
-                    space.trees[s[1]],
-                    space.n_variables,
-                    max_f_nodes,
-                    max_m_nodes,
-                )
-
-    def _cross(
-        self,
-        father: Node,
-        mother: Node,
-        n_variables: int,
-        max_father: int,
-        max_mother: int,
-    ) -> Node:
-        """Actually performs the crossover over a father and mother nodes.
-
-        Args:
-            father: A father's node to be crossed.
-            mother: A mother's node to be crossed.
-            n_variables: Number of variables.
-            max_father: Maximum of nodes from father to be used.
-            max_mother: Maximum of nodes from mother to be used.
-
-        Returns:
-            (Node): Single offspring based on the crossover operator.
-
-        """
-
-        father_offspring = copy.deepcopy(father)
-        father_point = int(r.generate_uniform_random_number(2, max_father))
-        sub_father, _ = father_offspring.find_node(father_point)
-
-        mother_offspring = copy.deepcopy(mother)
-        mother_point = int(r.generate_uniform_random_number(2, max_mother))
-        sub_mother, _ = mother_offspring.find_node(mother_point)
-
-        if sub_father and sub_mother:
-            position = r.generate_uniform_random_number(size=n_variables)
-            position_hash = sha1(repr(position).encode("ascii")).hexdigest()[:4]
-
-            terminal = Node(position_hash, "TERMINAL", position)
-            not_terminal = Node("~" + position_hash, "TERMINAL", 1 - terminal.value)
-
-            root = Node("SUM", "FUNCTION")
-            left_node = Node("MUL", "FUNCTION")
-            right_node = Node("MUL", "FUNCTION")
-
-            root.parent = None
-            root.left = left_node
-            root.right = right_node
-
-            sub_father.parent = left_node
-            sub_mother.parent = right_node
-            sub_mother.flag = False
-
-            left_node.parent = root
-            left_node.left = sub_father
-            left_node.right = terminal
-
-            not_terminal.parent = right_node
-            terminal.parent = left_node
-            terminal.flag = False
-
-            right_node.parent = root
-            right_node.left = not_terminal
-            right_node.right = sub_mother
-            right_node.flag = False
-
-            return root
-
-        return father_offspring
+            space.agents[s[0]].position = self._cross(
+                space.agents[s[0]].position, space.agents[s[1]].position
+            )

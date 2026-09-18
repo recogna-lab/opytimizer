@@ -3,6 +3,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -29,6 +30,6 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 # Runs the optimization task
 # Every call on `start` will the continue the optimization for `n_iterations`
 # Note that the following lines achieves the same results as a 100-iteration running
-opt.start(n_iterations=50)
-opt.start(n_iterations=25)
-opt.start(n_iterations=25)
+opt.start(MaxIterations(50))
+opt.start(MaxIterations(25))
+opt.start(MaxIterations(25))

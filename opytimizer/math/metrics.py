@@ -1,27 +1,69 @@
-from abc import ABC, abstractmethod
-from typing import Union, List
-import numpy as np
-from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
+from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, List, Union
 
-class BaseMetric(ABC):
-    
+import numpy as np
+
+
+class _BaseMetric(ABC):
     @property
-    def pareto_front(self) -> np.ndarray:
+    def pareto_front(self) -> Any:
         return self._pareto_front
-    
+
     @pareto_front.setter
     def pareto_front(self, value) -> None:
-        if hasattr(value, 'pareto_front'):
-            points = np.array([agent.fit for agent in value.pareto_front])
-        # agents list
-        elif isinstance(value, list) and len(value) > 0 and hasattr(value[0], 'fit'):
-            points = np.array([agent.fit for agent in value])
+        if value is None:
+            return
+
+        # wrapper object
+        if hasattr(value, "pareto_front"):
+            value = value.pareto_front
+
+        # Tuple (positions, fits)
+
+        if (
+            isinstance(value, tuple)
+            and len(value) == 2
+            and isinstance(value[1], np.ndarray)
+            and value[1].ndim == 2
+        ):
+            points = value[1]
+
+        # numpy array
+        elif isinstance(value, np.ndarray) and value.dtype.kind in "fiu":
+            points = value
+
+        # 1 element tuple, where fit is a scalar or 1d numpy array
+        elif (
+            isinstance(value, tuple)
+            and len(value) == 2
+            and not isinstance(value[1], (tuple, list))
+        ):
+            points = np.atleast_2d(value[1])
+
+        # Elements collections
+        elif isinstance(value, (list, tuple, np.ndarray)) and len(value) > 0:
+            first = value[0]
+            # Has .fit atributes
+            if hasattr(first, "fit"):
+                points = np.array([agent.fit for agent in value])
+
+            #  Tuple list [(pos, fit), (pos, fit), ...]
+            elif isinstance(first, (tuple, list, np.ndarray)) and len(first) == 2:
+                points = np.array([item[1] for item in value])
+
+            # Fitness array (e.g, [[f1, f2], [f1, f2]])
+            else:
+                points = np.array(value)
+
+        # Fallback
         else:
-             points = np.atleast_2d(value) 
-             
-        self._pareto_front = points
-        
+            points = np.atleast_2d(value)
+
+        # Ensure (N_points, N_objs) shape
+        self._pareto_front = np.atleast_2d(points).astype(float)
+
     @abstractmethod
     def __call__(self, pareto_front):
         pass
@@ -30,7 +72,8 @@ class BaseMetric(ABC):
     def name(self):
         return type(self).__name__
 
-class IGDMetric(BaseMetric):
+
+class IGD(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -40,7 +83,9 @@ class IGDMetric(BaseMetric):
         else:
             self.min_vals = np.min(self.pareto_optimal, axis=0)
             self.max_vals = np.max(self.pareto_optimal, axis=0)
-            self.denom = np.where(self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals)
+            self.denom = np.where(
+                self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals
+            )
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
@@ -54,7 +99,8 @@ class IGDMetric(BaseMetric):
             distances.append(np.min(d))
         return np.mean(distances)
 
-class GDMetric(BaseMetric):
+
+class GD(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -64,7 +110,9 @@ class GDMetric(BaseMetric):
         else:
             self.min_vals = np.min(self.pareto_optimal, axis=0)
             self.max_vals = np.max(self.pareto_optimal, axis=0)
-            self.denom = np.where(self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals)
+            self.denom = np.where(
+                self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals
+            )
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
@@ -79,7 +127,7 @@ class GDMetric(BaseMetric):
         return np.mean(distances)
 
 
-class SpreadMetric(BaseMetric):
+class Spread(_BaseMetric):
     def __init__(self, pareto_optimal):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         if self.pareto_optimal.size == 0:
@@ -89,7 +137,9 @@ class SpreadMetric(BaseMetric):
         else:
             self.min_vals = np.min(self.pareto_optimal, axis=0)
             self.max_vals = np.max(self.pareto_optimal, axis=0)
-            self.denom = np.where(self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals)
+            self.denom = np.where(
+                self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals
+            )
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
@@ -107,7 +157,8 @@ class SpreadMetric(BaseMetric):
         )
         return delta
 
-class ErrorRatioMetric(BaseMetric):
+
+class ErrorRatio(_BaseMetric):
     def __init__(self, pareto_optimal, tol=1e-6):
         self.pareto_optimal = np.atleast_2d(pareto_optimal)
         self.tol = tol
@@ -118,7 +169,9 @@ class ErrorRatioMetric(BaseMetric):
         else:
             self.min_vals = np.min(self.pareto_optimal, axis=0)
             self.max_vals = np.max(self.pareto_optimal, axis=0)
-            self.denom = np.where(self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals)
+            self.denom = np.where(
+                self.max_vals - self.min_vals == 0, 1.0, self.max_vals - self.min_vals
+            )
             self.normalized_optimal = (self.pareto_optimal - self.min_vals) / self.denom
 
     def __call__(self, pareto_front):
@@ -133,7 +186,8 @@ class ErrorRatioMetric(BaseMetric):
                 errors += 1
         return errors / len(pf)
 
-class R2Metric(BaseMetric):
+
+class R2(_BaseMetric):
     def __init__(self, weight_vectors, ideal_point=None, nadir_point=None):
         self.weight_vectors = np.atleast_2d(weight_vectors)
         norms = np.linalg.norm(self.weight_vectors, axis=1, keepdims=True)
@@ -143,13 +197,23 @@ class R2Metric(BaseMetric):
         self.nadir_point = nadir_point
 
     def __call__(self, pareto_front):
-        
+
         self.pareto_front = pareto_front
         if self.pareto_front.size == 0:
             return 0.0
-        current_ideal = self.ideal_point if self.ideal_point is not None else np.min(self.pareto_front, axis=0)
-        current_nadir = self.nadir_point if self.nadir_point is not None else np.max(self.pareto_front, axis=0)
-        denom = np.where(current_nadir - current_ideal == 0, 1.0, current_nadir - current_ideal)
+        current_ideal = (
+            self.ideal_point
+            if self.ideal_point is not None
+            else np.min(self.pareto_front, axis=0)
+        )
+        current_nadir = (
+            self.nadir_point
+            if self.nadir_point is not None
+            else np.max(self.pareto_front, axis=0)
+        )
+        denom = np.where(
+            current_nadir - current_ideal == 0, 1.0, current_nadir - current_ideal
+        )
         normalized_pf = (self.pareto_front - current_ideal) / denom
         r2_values = []
         for w in self.weight_vectors:
@@ -158,7 +222,8 @@ class R2Metric(BaseMetric):
             r2_values.append(np.min(tchebycheff))
         return np.mean(r2_values)
 
-class MaximumSpreadMetric(BaseMetric):
+
+class MaximumSpread(_BaseMetric):
     def __call__(self, pareto_front):
         self.pareto_front = pareto_front
         if self.pareto_front.shape[0] < 2:
@@ -169,28 +234,31 @@ class MaximumSpreadMetric(BaseMetric):
         return np.max(dists)
 
 
-class HypervolumeMetric(BaseMetric):
+class HV(_BaseMetric):
     def __init__(self, reference_point=[1.01, 1.01]):
         self.reference_point = np.asarray(reference_point)
 
     def __call__(self, pareto_front):
-        
+
         self.pareto_front = pareto_front
-       
+
+        if self.pareto_front.ndim > 2:
+            self.pareto_front = self.pareto_front.squeeze()
+
+        self.pareto_front = np.atleast_2d(self.pareto_front)
+
         # Validation and filtering
         if self.pareto_front.size == 0:
             return 0.0
-            
+
         n_points, n_dims = self.pareto_front.shape
-        
-       
+
         if n_points <= 1:
             return 0.0
         # remove points worse than reference point
         is_worse = np.any(self.pareto_front > self.reference_point, axis=1)
-        self.pareto_front= self.pareto_front[~is_worse]
-        
-        
+        self.pareto_front = self.pareto_front[~is_worse]
+
         if self.pareto_front.shape[0] < 1:
             return 0.0
 
@@ -200,7 +268,7 @@ class HypervolumeMetric(BaseMetric):
         elif n_dims == 3:
             return self._calculate_hv3d(self.pareto_front)
         else:
-            return 0.0 # >3D requires more complex algorithms 
+            return 0.0  # >3D requires more complex algorithms
 
     def _calculate_hv2d(self, front):
         """Calculates HV for 2D using sorting."""
@@ -216,7 +284,7 @@ class HypervolumeMetric(BaseMetric):
                 # Only add if better Y than the last added point
                 if point[1] < non_dominated[-1][1]:
                     non_dominated.append(point)
-        
+
         sorted_front = np.array(non_dominated)
 
         hv = 0.0
@@ -227,12 +295,12 @@ class HypervolumeMetric(BaseMetric):
         for point in reversed(sorted_front):
             width = prev_x - point[0]
             height = ref_y - point[1]
-            
+
             if width > 0 and height > 0:
                 hv += width * height
-            
+
             prev_x = point[0]
-            
+
         return hv
 
     def _calculate_hv3d(self, front):
@@ -240,33 +308,33 @@ class HypervolumeMetric(BaseMetric):
         # Sort by Z axis
         sorted_indices = np.argsort(front[:, 2])
         sorted_front = front[sorted_indices]
-        
+
         volume = 0.0
-        
+
         #  Iterate through Z slices
         for i in range(len(sorted_front)):
             z_curr = sorted_front[i, 2]
-            
+
             # Determine Z height for this slice
             if i < len(sorted_front) - 1:
-                z_next = sorted_front[i+1, 2]
+                z_next = sorted_front[i + 1, 2]
             else:
-                z_next = self.reference_point[2] 
-            
+                z_next = self.reference_point[2]
+
             height = z_next - z_curr
-            
+
             if height <= 0:
                 continue
-                
-           # Project accumulated points (0 to i) onto 2D plane (X, Y)
-            points_2d = sorted_front[0 : i+1, 0 : 2]
-            
+
+            # Project accumulated points (0 to i) onto 2D plane (X, Y)
+            points_2d = sorted_front[0 : i + 1, 0:2]
+
             # Calculate Area of the union of these 2D rectangles
             area = self._calculate_hv2d_projection(points_2d, self.reference_point[:2])
-            
+
             # Add slice volume
             volume += area * height
-            
+
         return volume
 
     def _calculate_hv2d_projection(self, points, ref_point):
@@ -282,13 +350,13 @@ class HypervolumeMetric(BaseMetric):
             for point in sorted_front[1:]:
                 if point[1] < non_dominated[-1][1]:
                     non_dominated.append(point)
-        
+
         sorted_front = np.array(non_dominated)
-        
+
         area = 0.0
         prev_x = ref_point[0]
         ref_y = ref_point[1]
-        
+
         # Calculate area
         for point in reversed(sorted_front):
             width = prev_x - point[0]
@@ -296,72 +364,75 @@ class HypervolumeMetric(BaseMetric):
             if width > 0 and height > 0:
                 area += width * height
             prev_x = point[0]
-            
+
         return area
-    
-    
-    
+
+
 def _check_dominance_worker(samples_chunk, pareto_front):
-  
+
     is_dominated = np.zeros(len(samples_chunk), dtype=bool)
-    
+
     for pareto_point in pareto_front:
-       
+
         remaining = ~is_dominated
         if not np.any(remaining):
             break
-            
+
         diff = pareto_point - samples_chunk[remaining]
         domination_mask = np.all(diff <= 0, axis=1) & np.any(diff < 0, axis=1)
         is_dominated[remaining] = domination_mask
-        
+
     return np.sum(is_dominated)
-    
-class MonteCarloHypervolumeMetric(BaseMetric):
-    def __init__(self, n_samples: int = 10**6, 
-                 lower_bound: Union[float, List[float]] = 0.0, 
-                 upper_bound: Union[float, List[float]] = 1.0, 
-                 parallel: bool = False, 
-                 diff: float = 0.01):
-        
+
+
+class MonteCarloHV(_BaseMetric):
+    def __init__(
+        self,
+        n_samples: int = 10**6,
+        lower_bound: Union[float, List[float]] = 0.0,
+        upper_bound: Union[float, List[float]] = 1.0,
+        parallel: bool = False,
+        diff: float = 0.01,
+    ):
+
         self.lower_bound = np.array(lower_bound)
         self.upper_bound = np.array(upper_bound)
         self.n_vars = len(self.lower_bound) if self.lower_bound.ndim > 0 else 1
         self.n_samples = int(n_samples)
         self.diff = diff
-        
+
         self.samples = np.random.uniform(
-            low=self.lower_bound, 
-            high=self.upper_bound, 
-            size=(self.n_samples, self.n_vars)
+            low=self.lower_bound,
+            high=self.upper_bound,
+            size=(self.n_samples, self.n_vars),
         )
-        
+
         self._exec = self._process_parallel if parallel else self._process_serial
-        
-        
+
     def _calculate_final_hv(self, count):
         rate = count / self.n_samples
-        total_volume = np.prod((self.upper_bound + self.diff) - (self.lower_bound - self.diff))
+        total_volume = np.prod(
+            (self.upper_bound + self.diff) - (self.lower_bound - self.diff)
+        )
         return rate * total_volume
-    
+
     def _process_serial(self, pareto_front):
         count = _check_dominance_worker(self.samples, pareto_front)
         return self._calculate_final_hv(count)
-        
-        
-                
-    
+
     def _process_parallel(self, pareto_front):
         n_cores = multiprocessing.cpu_count()
         chunks = np.array_split(self.samples, n_cores)
-        
+
         with ThreadPoolExecutor(max_workers=n_cores) as executor:
-            futures = [executor.submit(_check_dominance_worker, chunk, pareto_front) for chunk in chunks]
+            futures = [
+                executor.submit(_check_dominance_worker, chunk, pareto_front)
+                for chunk in chunks
+            ]
             total_count = sum(f.result() for f in futures)
-            
+
         return self._calculate_final_hv(total_count)
-    
+
     def __call__(self, pareto_front):
-       self.pareto_front = pareto_front
-       return self._exec(self.pareto_front) 
-   
+        self.pareto_front = pareto_front
+        return self._exec(self.pareto_front)

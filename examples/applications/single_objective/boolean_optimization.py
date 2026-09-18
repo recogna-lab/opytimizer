@@ -4,6 +4,7 @@ from opytimark.markers.boolean import Knapsack
 import opytimizer.math.random as r
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.boolean import BPSO
 from opytimizer.spaces import BooleanSpace
 
@@ -32,4 +33,4 @@ function = Function(
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-opt.start(n_iterations=1000)
+opt.start(MaxIterations(1000))

@@ -123,3 +123,9 @@ ENV/
 
 # folder for under development features
 dev/
+
+node_modules/
+build/
+.docusaurus/
+
+.pytest_cache

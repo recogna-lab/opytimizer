@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.hyperheuristic import HyperHeuristic
-from opytimizer.core.space import Space
+from opytimizer.core.space import _Space
 from opytimizer.hyperheuristics.selection_strategy import (
     ChoiceFunction,
     SelectionStrategy,
@@ -72,7 +72,7 @@ class SelectionHyperHeuristic(HyperHeuristic):
             raise e.ValueError("`selection_interval` should be >= 1")
         self._selection_interval = selection_interval
 
-    def select_optimizer(self, space: Space, function: Function) -> Any:
+    def select_optimizer(self, space: _Space, function: Function) -> Any:
         """Select optimizer using the configured selection strategy.
 
         Args:
@@ -105,7 +105,7 @@ class SelectionHyperHeuristic(HyperHeuristic):
         # Return current optimizer if not time to select
         return self.current_optimizer
 
-    def update(self, space: Space, function: Function = None) -> None:
+    def update(self, space: _Space, function: Function = None) -> None:
         """Update the search space and potentially select a new optimizer.
 
         Args:

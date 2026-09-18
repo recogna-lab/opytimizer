@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.hyperheuristic import HyperHeuristic
-from opytimizer.core.space import Space
+from opytimizer.core.space import _Space
 from opytimizer.hyperheuristics.adaptation_mechanism import (
     AdaptationMechanism,
     ParameterAdaptation,
@@ -109,7 +109,7 @@ class AdaptiveHyperHeuristic(HyperHeuristic):
                 }
             )
 
-    def update(self, space: Space, function: Function = None) -> None:
+    def update(self, space: _Space, function: Function = None) -> None:
         """Update the search space and potentially adapt optimizer parameters.
 
         Args:

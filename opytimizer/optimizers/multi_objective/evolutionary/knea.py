@@ -2,21 +2,28 @@
     Knee Point Driven Evolutionary Algorithm (KnEA)
 """
 
-import numpy as np
-from scipy.spatial.distance import cdist
 from typing import List
 
-from opytimizer.core import Agent, Function, MultiObjectiveOptimizer
-from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
+import numpy as np
+from scipy.spatial.distance import cdist
+
 import opytimizer.math.random as opt_r
 import opytimizer.utils.exception as e
+from opytimizer.core import (
+    Agent,
+    Function,
+    MultiObjectiveOptimizer,
+    _MultiObjectiveSpace,
+)
+from opytimizer.utils.operators import PolynomialMutation, SBXCrossover
+
 
 class KnEA(MultiObjectiveOptimizer):
     """
-        Reference:
-            Zhang, X., Tian, Y., & Jin, Y. (2014).
-            A knee point-driven evolutionary algorithm for many-objective optimization.
-            IEEE Transactions on Evolutionary Computation, 19(6), 761-776.
+    Reference:
+        Zhang, X., Tian, Y., & Jin, Y. (2014).
+        A knee point-driven evolutionary algorithm for many-objective optimization.
+        IEEE Transactions on Evolutionary Computation, 19(6), 761-776.
     """
 
     def __init__(
@@ -28,14 +35,13 @@ class KnEA(MultiObjectiveOptimizer):
         T: float = 0.5,
     ):
         super().__init__()
-        self.is_first_generation = True
         self.r = None
         self.t = None
         self.knn_num = k
         self.K = None
         self.T = T
 
-        self.crossover_operator = crossover_operator or SBXCrossover(return_mode="both")
+        self.crossover_operator = crossover_operator or SBXCrossover(n_offspring=2)
         self.mutation_operator = mutation_operator or PolynomialMutation(rate=1 / 30)
 
         self._obj_matrix = None  # (2N, M) fitness matrix
@@ -50,9 +56,9 @@ class KnEA(MultiObjectiveOptimizer):
     @knn_num.setter
     def knn_num(self, value: int) -> None:
         if not isinstance(value, int):
-            raise e.TypeError('`k` should be an integer.')
+            raise e.TypeError("`k` should be an integer.")
         if value <= 0:
-            raise e.ValueError('`k` should be higher than 0.')
+            raise e.ValueError("`k` should be higher than 0.")
         self._knn_num = value
 
     @property
@@ -62,12 +68,12 @@ class KnEA(MultiObjectiveOptimizer):
     @T.setter
     def T(self, value) -> None:
         if not isinstance(value, (int, float)):
-            raise e.TypeError('`T` should be a float.')
-        if value <= 0. or value > 1.0:
-            raise e.ValueError('`T` should be within (0, 1] interval.')
+            raise e.TypeError("`T` should be a float.")
+        if value <= 0.0 or value > 1.0:
+            raise e.ValueError("`T` should be within (0, 1] interval.")
         self._T = float(value)
 
-    def compile(self, space):
+    def compile(self, **kwargs):
         # Paper: t_0 = 0, r_0 = 1  (Section III-C)
         self.r = {}  # front_index -> float  (ratio of neighbourhood size)
         self.t = {}  # front_index -> float  (ratio of knee points)
@@ -110,7 +116,9 @@ class KnEA(MultiObjectiveOptimizer):
                     elif dw_b > dw_a:
                         Q.append(b)
                     else:
-                        Q.append(a if opt_r.generate_uniform_random_number() < 0.5 else b)
+                        Q.append(
+                            a if opt_r.generate_uniform_random_number() < 0.5 else b
+                        )
 
         return Q
 
@@ -151,15 +159,21 @@ class KnEA(MultiObjectiveOptimizer):
         offsprings_list: List[Agent] = []
 
         for p1_idx, p2_idx in parents_indices:
-            offsprings = self.crossover_operator(
-                parent1=mating[p1_idx], parent2=mating[p2_idx]
+            offsprings = list(
+                self.crossover_operator(parent1=mating[p1_idx], parent2=mating[p2_idx])
             )
             for i in range(len(offsprings)):
-                offsprings[i] = self.mutation_operator(offsprings[i])
-                offsprings[i].fit = function(offsprings[i].position)
+                mutated = self.mutation_operator(offsprings[i])
+
+                if isinstance(mutated, (list, tuple)):
+                    mutated = mutated[0]
+
+                mutated.fit = function(mutated.position)
+                offsprings[i] = mutated
+
             offsprings_list.extend(offsprings)
 
-        return offsprings_list[:N]  # trim to exactly N
+        return offsprings_list
 
     def _fast_non_dominated_sort(self, agents: List[Agent]) -> List[List[int]]:
         fits = np.array([a.fit for a in agents], dtype=float)  # (N, M)
@@ -201,9 +215,7 @@ class KnEA(MultiObjectiveOptimizer):
     # ------------------------------------------------------------------
     # Algorithm 3 – Finding Knee Points
     # ------------------------------------------------------------------
-    def _finding_knee_point(
-        self, current_population: List[Agent], F: List[List[int]]
-    ):
+    def _finding_knee_point(self, current_population: List[Agent], F: List[List[int]]):
         pop_objs = np.array([ind.fit for ind in current_population], dtype=float)
         M = pop_objs.shape[1]
 
@@ -224,12 +236,11 @@ class KnEA(MultiObjectiveOptimizer):
             n_points = len(front_indices)
 
             # Extreme solutions
-            local_extreme_idxs  = np.argmax(front_values, axis=0)
+            local_extreme_idxs = np.argmax(front_values, axis=0)
             unique_extreme_local_idxs = np.unique(local_extreme_idxs)
-            extreme_points  = front_values[unique_extreme_local_idxs]
+            extreme_points = front_values[unique_extreme_local_idxs]
 
-           
-            # Paper initialises t=0, r=1 for a front that has never been seen.
+            # Paper initializes t=0, r=1 for a front that has never been seen.
             t_prev = self.t.get(fi_idx, 0.0)  # t_{g-1}; 0 on first visit
             r_prev = self.r.get(fi_idx, 1.0)  # r_{g-1}; 1 on first visit
 
@@ -272,7 +283,7 @@ class KnEA(MultiObjectiveOptimizer):
             global_sorted_front = front_indices[sorted_local_idx]
 
             # Greedy knee sweep (Algorithm 3, lines 12-16)
-            size_fi   = n_points
+            size_fi = n_points
             remaining = np.ones(n_points, dtype=bool)
             knee_local: List[int] = []
 
@@ -280,7 +291,7 @@ class KnEA(MultiObjectiveOptimizer):
                 if not remaining[p_local]:
                     continue
                 knee_local.append(p_local)
-                diff  = np.abs(front_values - front_values[p_local])
+                diff = np.abs(front_values - front_values[p_local])
                 in_nb = np.all(diff <= R, axis=1)
                 remaining[in_nb] = False
 
@@ -331,11 +342,15 @@ class KnEA(MultiObjectiveOptimizer):
                 Q.append(current_population[idx])
             return Q
 
-        knee_global_idxs  = set(int(i) for i in K[ki])
+        knee_global_idxs = set(int(i) for i in K[ki])
         sorted_front_idxs = list(sorted_fronts[ki])
 
-        knee_idxs_ordered = [idx for idx in sorted_front_idxs if idx in knee_global_idxs]
-        non_knee_idxs_ordered = [idx for idx in sorted_front_idxs if idx not in knee_global_idxs]
+        knee_idxs_ordered = [
+            idx for idx in sorted_front_idxs if idx in knee_global_idxs
+        ]
+        non_knee_idxs_ordered = [
+            idx for idx in sorted_front_idxs if idx not in knee_global_idxs
+        ]
 
         remaining_slots = N - len(Q)
         n_knees = len(knee_idxs_ordered)
@@ -344,7 +359,10 @@ class KnEA(MultiObjectiveOptimizer):
             # All knees fit; fill remainder with non-knees having largest distance
             Q.extend(current_population[idx] for idx in knee_idxs_ordered)
             remaining_slots -= n_knees
-            Q.extend(current_population[idx] for idx in non_knee_idxs_ordered[:remaining_slots])
+            Q.extend(
+                current_population[idx]
+                for idx in non_knee_idxs_ordered[:remaining_slots]
+            )
         else:
             kept = 0
             for idx in sorted_front_idxs:
@@ -356,14 +374,7 @@ class KnEA(MultiObjectiveOptimizer):
 
         return Q
 
-    def evaluate(self, space, function):
-        if self.is_first_generation:
-            super().evaluate(space, function)
-            self.is_first_generation = False
-        else:
-            space.update_pareto_front(space.agents)
-
-    def update(self, space, function):
+    def update(self, space: _MultiObjectiveSpace, function):
         current_population = space.agents.copy()
 
         mating = self._mating_selection(P=space.agents, K=self.K, N=space.n_agents)
@@ -377,11 +388,15 @@ class KnEA(MultiObjectiveOptimizer):
         )
 
         space.agents = self._environmental_selection(
-            current_population, fronts, knee_indices, sorted_fronts, front_map,
+            current_population,
+            fronts,
+            knee_indices,
+            sorted_fronts,
+            front_map,
             space.n_agents,
         )
 
-        surviving_ids  = set(id(a) for a in space.agents)
+        surviving_ids = set(id(a) for a in space.agents)
         flat_knee_idxs = [int(idx) for front in knee_indices for idx in front]
         self.K = [
             current_population[idx]
