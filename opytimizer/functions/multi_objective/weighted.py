@@ -26,7 +26,7 @@ class WeightedFunction(Function):
 
         logger.info("Overriding class: Function -> WeightedFunction.")
 
-        super(WeightedFunction, self).__init__(functions)
+        super(WeightedFunction, self).__init__(self.__call__)
 
         self.functions = functions
 
