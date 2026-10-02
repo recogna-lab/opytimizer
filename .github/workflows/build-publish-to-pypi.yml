@@ -3,7 +3,7 @@ name: Python PyPI Builder and Publisher
 on:
   release:
     types: [published]
-  
+
   workflow_dispatch:
 
 jobs:

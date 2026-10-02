@@ -109,7 +109,7 @@ def test_function_multi_objective_name():
 
     new_function = function.Function(funcs)
 
-    assert new_function.name == "MultiObjectiveFunction"
+    assert new_function.name == "list"
 
 
 def test_function_multi_objective_pointer_is_callable():
@@ -119,11 +119,10 @@ def test_function_multi_objective_pointer_is_callable():
     def f2(x):
         return np.sum(x)
 
-    funcs = [f1, f2]
-
-    new_function = function.Function(funcs)
+    new_function = function.Function([f1, f2])
 
     assert callable(new_function.pointer)
+    assert new_function.pointer.functions == [f1, f2]
 
 
 def test_function_multi_objective_built():
@@ -156,20 +155,6 @@ def test_function_multi_objective_call():
     new_function = function.Function(funcs)
 
     np.testing.assert_array_equal(new_function(x), np.array(results))
-
-
-def test_function_multi_objective_n_objectives():
-    def f1(x):
-        return np.sum(x**2)
-
-    def f2(x):
-        return np.sum(x)
-
-    funcs = [f1, f2]
-
-    new_function = function.Function(funcs)
-
-    assert new_function.n_objectives == 2
 
 
 def test_function_multi_objective_pointer_call():

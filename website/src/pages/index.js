@@ -10,7 +10,7 @@ const FeatureList = [
     Svg: require('@site/static/img/feature_dna.svg').default,
     description: (
       <>
-        Access dozens of optimization algorithms based on swarms, genetic 
+        Access dozens of optimization algorithms based on swarms, genetic
         evolution, and physical phenomena, ready to be used out-of-the-box.
       </>
     ),
@@ -20,7 +20,7 @@ const FeatureList = [
     Svg: require('@site/static/img/feature_layers.svg').default,
     description: (
       <>
-        Built in Python with a clean architecture. Easily create and 
+        Built in Python with a clean architecture. Easily create and
         experiment with your own algorithms by extending our base classes.
       </>
     ),
@@ -30,7 +30,7 @@ const FeatureList = [
     Svg: require('@site/static/img/feature_cpu.svg').default,
     description: (
       <>
-        Designed for scalability. Optimize complex functions quickly using 
+        Designed for scalability. Optimize complex functions quickly using
         parallel processing and advanced multi-objective algorithms.
       </>
     ),

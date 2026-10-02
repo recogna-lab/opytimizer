@@ -1,8 +1,8 @@
 """Single-objective functions.
 """
 
-from inspect import signature
-from typing import Any
+import inspect
+from typing import Any, Callable, List, Union
 
 import numpy as np
 
@@ -63,6 +63,19 @@ class Function:
         result = xp.asarray(result)
         return result
 
+    def _accepts_one_arg(self, fn: Callable) -> bool:
+        try:
+            sig = inspect.signature(fn)
+        except (e.ValueError, e.TypeError):
+            return False
+
+        try:
+            sig.bind(None)  # accepts 1 positional argument
+        except e.TypeError:
+            return False
+
+        return True
+
     @property
     def budget(self):
         return self._budget
@@ -84,13 +97,27 @@ class Function:
         return self._pointer
 
     @pointer.setter
-    def pointer(self, pointer: callable) -> None:
-        if not callable(pointer):
-            raise e.TypeError("`pointer` should be a callable")
-        if len(signature(pointer).parameters) > 1:
-            raise e.ArgumentError("`pointer` should only have 1 argument")
+    def pointer(self, pointer: Union[Callable, List[Callable]]) -> None:
+        items = pointer if isinstance(pointer, list) else [pointer]
 
-        self._pointer = pointer
+        if not items or not all(callable(p) for p in items):
+            raise e.TypeError("`pointer` should be a callable or a list of callables")
+
+        if not all(self._accepts_one_arg(p) for p in items):
+            raise e.TypeError("`pointer` callables should receive exactly one argument")
+
+        if isinstance(pointer, list):
+            funcs = list(pointer)
+
+            def multi_objective(x):
+                return np.array([f(x) for f in funcs])
+
+            multi_objective.functions = funcs
+            multi_objective.__name__ = ", ".join(f.__name__ for f in funcs)
+
+            self._pointer = multi_objective
+        else:
+            self._pointer = pointer
 
     @property
     def name(self) -> str:

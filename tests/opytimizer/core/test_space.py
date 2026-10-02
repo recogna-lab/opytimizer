@@ -242,7 +242,7 @@ def test_single_objective_tensor_space_create_agents():
     )
     new_space._create_agents()
 
-    assert new_space.X.shape == (2, 3)
+    assert new_space.X.shape == (2, 3, 1)
     assert new_space.F.shape == (2,)
     assert len(new_space.agents) == 2
 
@@ -252,11 +252,11 @@ def test_single_objective_tensor_space_clip_by_bound():
         n_agents=2, n_variables=2, lower_bound=[0.0] * 2, upper_bound=[1.0] * 2
     )
     new_space.build()
-    new_space.X[0] = np.array([-1.0, 2.0])
+    new_space.X[0] = np.array([[-1.0], [2.0]])
     new_space.clip_by_bound()
 
-    assert new_space.X[0, 0] == 0.0
-    assert new_space.X[0, 1] == 1.0
+    assert new_space.X[0, 0, 0] == 0.0
+    assert new_space.X[0, 1, 0] == 1.0
 
 
 def test_multi_objective_tensor_space_create_agents():
@@ -269,7 +269,7 @@ def test_multi_objective_tensor_space_create_agents():
     )
     new_space._create_agents()
 
-    assert new_space.X.shape == (2, 3)
+    assert new_space.X.shape == (2, 3, 1)
     assert new_space.F.shape == (2, 2)
 
 

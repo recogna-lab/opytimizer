@@ -23,6 +23,6 @@ Where:
 
 ## Meta-Heuristics
 
-In complex non-convex search spaces, traditional derivative-based methods (such as Gradient Descent) often get trapped in local optima or fail due to non-differentiability. 
+In complex non-convex search spaces, traditional derivative-based methods (such as Gradient Descent) often get trapped in local optima or fail due to non-differentiability.
 
 Meta-heuristics provide stochastic optimization techniques capable of exploring large spaces efficiently without requiring gradient information.

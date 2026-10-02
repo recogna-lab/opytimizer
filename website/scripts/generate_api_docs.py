@@ -38,7 +38,6 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Iterator, Optional
 
-
 # ==============================================================================
 # Configuration
 # ==============================================================================
@@ -515,11 +514,7 @@ def parse_parameter_descriptions(
             continue
 
         # Detect another section heading.
-        if (
-            stripped
-            and not line.startswith((" ", "\t"))
-            and stripped.endswith(":")
-        ):
+        if stripped and not line.startswith((" ", "\t")) and stripped.endswith(":"):
             in_section = False
             current_name = None
             continue
@@ -542,10 +537,7 @@ def parse_parameter_descriptions(
         )
 
         if match:
-            names = [
-                name.strip().lstrip("*")
-                for name in match.group(1).split(",")
-            ]
+            names = [name.strip().lstrip("*") for name in match.group(1).split(",")]
 
             description = match.group(2).strip()
 
@@ -664,25 +656,13 @@ def generate_parameter_table(
     for parameter in parameters:
         name = f"`{parameter.name}`"
 
-        annotation = (
-            f"`{parameter.annotation}`"
-            if parameter.annotation
-            else ""
-        )
+        annotation = f"`{parameter.annotation}`" if parameter.annotation else ""
 
-        default = (
-            f"`{parameter.default}`"
-            if parameter.default
-            else ""
-        )
+        default = f"`{parameter.default}`" if parameter.default else ""
 
-        description = escape_markdown(
-            parameter.description or "—"
-        )
+        description = escape_markdown(parameter.description or "—")
 
-        lines.append(
-            f"| {name} | {annotation} | {default} | {description} |"
-        )
+        lines.append(f"| {name} | {annotation} | {default} | {description} |")
 
     lines.append("")
 
@@ -759,9 +739,7 @@ def generate_class_markdown(
 
     _, class_description_lines = find_parameter_section(doc)
 
-    class_description = "\n".join(
-        class_description_lines
-    ).strip()
+    class_description = "\n".join(class_description_lines).strip()
 
     module_name = cls.__module__
 
@@ -783,7 +761,7 @@ def generate_class_markdown(
 
     # ==============================================================================
     # Class
-   # ==============================================================================
+    # ==============================================================================
 
     lines.extend(
         [
@@ -817,11 +795,7 @@ def generate_class_markdown(
         ]
     )
 
-    lines.extend(
-        generate_parameter_table(
-            constructor_parameters
-        )
-    )
+    lines.extend(generate_parameter_table(constructor_parameters))
 
     # ==============================================================================
     # Methods
@@ -848,10 +822,7 @@ def generate_class_markdown(
                 f"### `{documentation.name}`",
                 "",
                 "```python",
-                (
-                    f"{documentation.name}"
-                    f"{documentation.signature}"
-                ),
+                (f"{documentation.name}" f"{documentation.signature}"),
                 "```",
                 "",
             ]
@@ -865,20 +836,14 @@ def generate_class_markdown(
                 ]
             )
 
-        lines.extend(
-            generate_parameter_table(
-                documentation.parameters
-            )
-        )
+        lines.extend(generate_parameter_table(documentation.parameters))
 
     return "\n".join(lines).rstrip() + "\n"
-
 
 
 # ==============================================================================
 # File generation
 # ==============================================================================
-
 
 
 def prepare_output_directory() -> None:
@@ -940,26 +905,17 @@ def generate_api_documentation() -> int:
     """
 
     if not PACKAGE_DIR.exists():
-        raise FileNotFoundError(
-            f"Could not find package directory: {PACKAGE_DIR}"
-        )
+        raise FileNotFoundError(f"Could not find package directory: {PACKAGE_DIR}")
 
-    print(
-        f"Generating API documentation for "
-        f"{PACKAGE_NAME}..."
-    )
+    print(f"Generating API documentation for " f"{PACKAGE_NAME}...")
 
     prepare_output_directory()
 
     generated_files = 0
 
-    modules = list(
-        iter_python_modules(PACKAGE_DIR)
-    )
+    modules = list(iter_python_modules(PACKAGE_DIR))
 
-    print(
-        f"Discovered {len(modules)} Python modules."
-    )
+    print(f"Discovered {len(modules)} Python modules.")
 
     for module_name in modules:
         print(f"Inspecting {module_name}")
@@ -972,20 +928,14 @@ def generate_api_documentation() -> int:
         classes = discover_classes(module)
 
         for cls in classes:
-            output_file = write_class_documentation(
-                cls
-            )
+            output_file = write_class_documentation(cls)
 
-            print(
-                f"  Generated: {output_file.relative_to(PROJECT_ROOT)}"
-            )
+            print(f"  Generated: {output_file.relative_to(PROJECT_ROOT)}")
 
             generated_files += 1
 
     print()
-    print(
-        f"Generated {generated_files} API documentation pages."
-    )
+    print(f"Generated {generated_files} API documentation pages.")
 
     return generated_files
 

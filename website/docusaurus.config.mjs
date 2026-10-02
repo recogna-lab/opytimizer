@@ -41,17 +41,17 @@ const config = {
       title: 'Opytimizer',
       logo: {
         alt: 'Opytimizer Logo',
-        src: 'img/logo.png', 
+        src: 'img/logo.png',
       },
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'docsSidebar', 
+          sidebarId: 'docsSidebar',
           position: 'left',
-          label: 'Documentation', 
+          label: 'Documentation',
         },
         {
-          href: 'https://github.com/recogna-lab/opytimizer', 
+          href: 'https://github.com/recogna-lab/opytimizer',
           label: 'GitHub',
           position: 'right',
         },

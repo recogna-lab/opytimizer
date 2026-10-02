@@ -1,8 +1,6 @@
 import copy
 from abc import ABC, abstractmethod
-
 from typing import Any, List, Tuple, Union
-
 
 import numpy as np
 from typing_extensions import Literal
@@ -105,7 +103,6 @@ class ContinuousCrossover(BaseCrossover):
         return self._gene_rate
 
     @gene_rate.setter
-
     def gene_rate(self, value: Union[float, int]) -> None:
         if not isinstance(value, (float, int)):
             raise e.TypeError("Gene rate should be a float or an int")
@@ -145,7 +142,6 @@ class BaseMutation(ABC):
 class ArithmeticCrossover(ContinuousCrossover):
     """Arithmetic crossover for real-valued vectors operating on Agents (CPU)."""
 
-
     def __init__(self, rate: float = 1.0, gene_rate: float = 1.0, n_offspring: int = 2):
         super().__init__(rate, gene_rate, n_offspring)
 
@@ -156,7 +152,6 @@ class ArithmeticCrossover(ContinuousCrossover):
         C2 = np.where(active, alpha * P2 + (1.0 - alpha) * P1, P2)
         return C1, C2
 
-
     def __call__(
         self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]
     ) -> Union[Agent, List[Agent]]:
@@ -165,7 +160,6 @@ class ArithmeticCrossover(ContinuousCrossover):
         p1_list = parent1 if is_batch else [parent1]
         p2_list = parent2 if is_batch else [parent2]
         pop = len(p1_list)
-
 
         children1 = [copy.copy(p) for p in p1_list]
         children2 = [copy.copy(p) for p in p2_list]
@@ -207,7 +201,6 @@ class GaussianMutation(BaseMutation):
 
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
         is_batch = isinstance(agent, list)
-
 
         agents = agent if is_batch else [agent]
 
@@ -701,4 +694,3 @@ class PolynomialMutationTensor:
         X_new = xp.clip(X + deltaq * (ub - lb), lb, ub)
 
         return xp.where(active, X_new, X)
-
