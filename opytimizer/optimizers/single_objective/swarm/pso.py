@@ -2,6 +2,7 @@
 """
 
 import copy
+import functools
 import time
 from typing import Any, Dict, List, Optional
 
@@ -420,9 +421,46 @@ class PSOCuda(Optimizer, TensorizedOptimizer):
         space.X += self.velocity
 
 
+@functools.lru_cache(maxsize=None)
+def _get_pso_fused_step(xp):
+    """Returns (and memoizes, per array module) a single CUDA kernel that performs
+    the whole PSO move.
+
+
+    Broadcasting is done by CuPy's elementwise machinery, so no explicit copies
+    are needed:
+        lbest, vel, x : (n_agents, n_variables, n_dimensions)
+        gbest: (n_variables, n_dimensions) -> broadcast over agents
+        r1, r2: (n_agents, 1, 1) -> broadcast over variables
+
+    `vel` and `x` are OUTPUT parameters that are also read, i.e. both are
+    updated in place. Per element this is the exact PSO rule:
+        vel <- w * vel + c1 * r1 * (lbest - x) + c2 * r2 * (gbest - x)
+        x   <- x + vel
+    Bound clipping is intentionally NOT fused: the runner applies
+    `space.clip_by_bound()` after `update`.
+    """
+
+    return xp.ElementwiseKernel(
+        "T lbest, T gbest, T r1, T r2, T w, T c1, T c2",
+        "T vel, T x",
+        """
+        T v = w * vel + c1 * r1 * (lbest - x) + c2 * r2 * (gbest - x);
+        vel = v;
+        x = x + v;
+        """,
+        "pso_tensor_fused_step",
+    )
+
+
 class PSOTensor(Optimizer, TensorizedOptimizer):
     """
     GPU/CPU-agnostic, fully tensorized implementation of PSO (single-objective),
+
+    On CUDA (CuPy) the position/velocity update runs as one fused kernel and the
+    random coefficients are drawn directly in the population dtype; on NumPy (or
+    if the fused kernel cannot be built) it falls back to the portable
+    buffer-based implementation.
     """
 
     def __init__(self, params: Optional[Dict[str, Any]] = None, **kwargs) -> None:
@@ -445,6 +483,11 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         self._tmp_social = None
         self._r1 = None
         self._r2 = None
+
+        # Populated in `compile`.
+        self._xp = None  # concrete array module (numpy / cupy), NOT the proxy
+        self._use_fused = False  # True -> fused CUDA kernel, False -> portable path
+        self._scalar_type = None  # numpy scalar type matching the population dtype
 
         self.build(params)
 
@@ -521,6 +564,11 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
 
         self._dtype = dtype
 
+        # Resolve the concrete module once. 
+        self._xp = xp.__wrapped__
+        self._scalar_type = np.dtype(dtype).type
+        self._use_fused = bool(space.env.use_cuda)
+
         self._tmp_cognitive = xp.empty((n_a, n_v, n_d), dtype=dtype)
         self._tmp_social = xp.empty((n_a, n_v, n_d), dtype=dtype)
         self._r1 = xp.empty((n_a, 1, 1), dtype=dtype)
@@ -577,8 +625,35 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         dummy_X += dummy_velocity
         xp.clip(dummy_X, self._lb, self._ub, out=dummy_X)
 
+        if self._use_fused:
+            # Compile/load the fused kernel now so the first real iteration is
+            # not slower than the rest. If it cannot be built or launched on this
+            # CuPy/CUDA setup, degrade to the portable path instead of failing
+            # the whole optimization.
+            try:
+                r = xp.random.random_sample((2, n_a, 1, 1), dtype=dtype)
+                scalar = self._scalar_type
+                _get_pso_fused_step(self._xp)(
+                    dummy_local_position,
+                    dummy_gbest_pos,
+                    r[0],
+                    r[1],
+                    scalar(self.w),
+                    scalar(self.c1),
+                    scalar(self.c2),
+                    dummy_velocity,
+                    dummy_X,
+                )
+            except Exception as exc:  # pragma: no cover - depends on CUDA runtime
+                logger.warning(
+                    "PSOTensor: fused CUDA kernel unavailable (%s). "
+                    "Falling back to the portable implementation.",
+                    exc,
+                )
+                self._use_fused = False
+
     def evaluate(self, space: _SingleObjectiveTensorSpace, function: Function) -> None:
-        xp = space.env.xp
+        xp = self._xp
 
         space.F = function(space.X, xp)
         improved_mask = space.F < self.local_fit
@@ -605,8 +680,28 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
         space.best_agent.ts = int(time.time())
 
     def update(self, space: _SingleObjectiveTensorSpace) -> None:
-        xp = space.env.xp
+        xp = self._xp
 
+        if self._use_fused:
+            # CUDA fast path: 1 RNG launch + 1 fused kernel per iteration.
+            # It also keeps honouring `cupy.random.seed`, so seeded experiments stay
+            # reproducible. r1 and r2 come from one draw (two views).
+            r = xp.random.random_sample((2, space.n_agents, 1, 1), dtype=self._dtype)
+            scalar = self._scalar_type
+            _get_pso_fused_step(xp)(
+                self.local_position,
+                self.global_best_position,  # (n_v, n_d): broadcast over agents
+                r[0],
+                r[1],
+                scalar(self.w),
+                scalar(self.c1),
+                scalar(self.c2),
+                self.velocity,
+                space.X,
+            )
+            return
+
+        # Portable path (NumPy, or CuPy without the fused kernel).
         # Fill pre-allocated random buffers in-place
         xp.copyto(
             self._r1, xp.random.uniform(0.0, 1.0, self._r1.shape).astype(self._dtype)

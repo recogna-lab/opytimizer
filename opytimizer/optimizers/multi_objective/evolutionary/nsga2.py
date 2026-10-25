@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from typing import Any, Dict, List
 
 import numpy as np
@@ -23,6 +24,41 @@ from opytimizer.utils.operators import (
 )
 
 logger = logging.get_logger(__name__)
+
+# Upper bound on the number of booleans held by each temporary of the blocked
+# dominance computation
+_DOMINANCE_BLOCK_ELEMENTS = 1 << 26
+
+# Number of non-dominated fronts peeled between two device -> host emptiness checks.
+_PEEL_BATCH_CUDA = 4
+
+
+@functools.lru_cache(maxsize=None)
+def _get_dominance_kernel(xp):
+    """Fused CUDA kernel computing the full (N, N) Pareto-dominance matrix.
+
+    out[a, b] is True iff F[a] dominates F[b] (no worse in every objective and
+    strictly better in at least one). Each thread scans the M objectives of one
+    pair and exits as soon as it finds an objective where `a` is worse, so no
+    (N, N, M) intermediate is ever written to memory.
+    """
+
+    return xp.ElementwiseKernel(
+        "int32 ia, int32 ib, raw T F, int32 M",
+        "bool dom",
+        """
+        bool no_worse = true;
+        bool better = false;
+        for (int k = 0; k < M; ++k) {
+            T va = F[ia * M + k];
+            T vb = F[ib * M + k];
+            if (va > vb) { no_worse = false; break; }
+            if (va < vb) { better = true; }
+        }
+        dom = no_worse && better;
+        """,
+        "nsga2_dominance",
+    )
 
 
 class NSGA2(MultiObjectiveOptimizer):
@@ -78,14 +114,25 @@ class NSGA2(MultiObjectiveOptimizer):
 
         aux_rank = 1
         while len(current_front) > 0:
-            next_front = []
-            for p in current_front:
-                dominated_by_p = np.where(dominance_matrix[p])[0]
-                for q in dominated_by_p:
-                    num_dominance[q] -= 1
-                    if num_dominance[q] == 0:
-                        next_front.append(q)
-                        local_rank[q] = aux_rank
+            # Vectorized "peeling" of the current front.
+            dominated_rows = dominance_matrix[current_front]  # (|front|, n)
+            removed = dominated_rows.sum(axis=0)
+            num_dominance = num_dominance - removed
+
+            # q joins the next front when its LAST dominator has been processed.
+            released = np.flatnonzero((removed > 0) & (num_dominance == 0))
+
+            
+            if released.size > 1:
+                last_dominator = (
+                    dominated_rows.shape[0]
+                    - 1
+                    - np.argmax(dominated_rows[::-1][:, released], axis=0)
+                )
+                released = released[np.lexsort((released, last_dominator))]
+
+            next_front = released.tolist()
+            local_rank[released] = aux_rank
 
             if len(next_front) > 0:
                 fronts.append(next_front)
@@ -255,6 +302,11 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.mutation_operator = mutation_operator or PolynomialMutationTensor(
             env=Environment("numpy", "float32")
         )
+        # Populated in `compile`.
+        self._xp = None  # concrete array module (numpy / cupy), NOT the proxy
+        self._use_dom_kernel = False  # fused CUDA dominance kernel available?
+        self._peel_batch = 1  # fronts peeled between two emptiness checks
+
         self.build(params)
 
         self.DTYPE = None
@@ -281,6 +333,11 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.DTYPE = space.env.dtype
         self.xp_module = xp
 
+        self._xp = xp.__wrapped__
+        self._use_dom_kernel = bool(space.env.use_cuda)
+        # The emptiness check of the peeling loop only costs a device sync on CUDA.
+        self._peel_batch = _PEEL_BATCH_CUDA if space.env.use_cuda else 1
+
         n = space.n_agents
         self.n_agents = n
 
@@ -304,13 +361,35 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self._UB = space.ub.reshape(1, self.n_variables, self.n_dimensions)
 
     def _dominance_matrix(self, F: Any, xp) -> Any:
-        Fi = F[:, xp.newaxis, :]
+        """Returns D with D[i, j] = True iff solution i dominates solution j.
+        """
+        N, M = F.shape
+
+        if self._use_dom_kernel:
+            try:
+                idx = xp.arange(N, dtype=xp.int32)
+                return _get_dominance_kernel(xp)(
+                    idx[:, xp.newaxis],
+                    idx[xp.newaxis, :],
+                    xp.ascontiguousarray(F),
+                    M,
+                )
+            except Exception as exc:  # pragma: no cover - depends on CUDA runtime
+                logger.warning(
+                    "NSGA2Tensor: fused dominance kernel unavailable (%s). "
+                    "Falling back to blocked array operations.",
+                    exc,
+                )
+                self._use_dom_kernel = False
+
+        D = xp.empty((N, N), dtype=bool)
+        chunk = max(1, _DOMINANCE_BLOCK_ELEMENTS // max(1, N * M))
         Fj = F[xp.newaxis, :, :]
+        for start in range(0, N, chunk):
+            Fi = F[start : start + chunk, xp.newaxis, :]
+            D[start : start + chunk] = xp.all(Fi <= Fj, axis=2) & xp.any(Fi < Fj, axis=2)
 
-        at_least_as_good = xp.all(Fi <= Fj, axis=2)
-        strictly_better = xp.any(Fi < Fj, axis=2)
-
-        return at_least_as_good & strictly_better
+        return D
 
     def _nondominated_sort(self, F: Any, xp) -> Any:
         N = F.shape[0]
@@ -318,19 +397,25 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         D = self._dominance_matrix(F, xp)
         c = D.sum(axis=0).astype(xp.int32)
 
+        Df = D.astype(F.dtype)
+
         r = xp.zeros(N, dtype=xp.int32)
         k = 0
         p = c == 0
 
-        while bool(xp.any(p)):
-            r = xp.where(p, k, r)
+        while True:
+            for _ in range(self._peel_batch):
+                r = xp.where(p, xp.int32(k), r)
 
-            p_int = p.astype(xp.int32)
-            dominated_by_front = p_int @ D
-            c = c - dominated_by_front - p_int
+                p_float = p.astype(F.dtype)
+                dominated_by_front = (p_float @ Df).astype(xp.int32)
+                c = c - dominated_by_front - p.astype(xp.int32)
 
-            k += 1
-            p = c == 0
+                k += 1
+                p = c == 0
+
+            if not bool(xp.any(p)):
+                break
 
         return r
 
@@ -374,15 +459,39 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         return crowding_distances
 
+    def _crowding_by_rank(self, F: Any, rank: Any, xp) -> Any:
+        """Crowding distance of every solution within its own front, in one shot.
+        """
+        N, M = F.shape
+        pos = xp.arange(N)
+        prev_pos = xp.maximum(pos - 1, 0)
+        next_pos = xp.minimum(pos + 1, N - 1)
+        rank_key = rank.astype(F.dtype)
+
+        dist = xp.zeros((N, M), dtype=F.dtype)
+        for m in range(M):
+            f = F[:, m]
+            order = xp.lexsort(xp.stack([f, rank_key]))  # last key is the primary one
+            r_sorted = rank[order]
+            f_sorted = f[order]
+
+            first = xp.searchsorted(r_sorted, r_sorted, side="left")
+            last = xp.searchsorted(r_sorted, r_sorted, side="right") - 1
+
+            value_range = f_sorted[last] - f_sorted[first]
+            value_range = xp.where(value_range == 0, 1e-9, value_range)
+
+            gap = (f_sorted[next_pos] - f_sorted[prev_pos]) / value_range
+            boundary = (pos == first) | (pos == last)
+            gap = xp.where(boundary, xp.inf, gap)
+
+            dist[order, m] = gap
+
+        return xp.sum(dist, axis=1)
+
     def _combined_rank_and_crowding(self, F: Any, xp):
         rank = self._nondominated_sort(F, xp)
-        crowding = xp.zeros(F.shape[0], dtype=F.dtype)
-
-        max_rank = int(xp.max(rank)) if F.shape[0] > 0 else 0
-        for k in range(max_rank + 1):
-            mask = rank == k
-            front_cd = self._compute_crowding_distance(F, xp, mask=mask)
-            crowding = xp.where(mask, front_cd, crowding)
+        crowding = self._crowding_by_rank(F, rank, xp)
 
         return rank, crowding
 
@@ -406,7 +515,7 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         return best_idx, rank, crowding
 
     def update(self, space: _MultiObjectiveTensorSpace, function) -> None:
-        xp = space.env.xp
+        xp = self._xp
         n = self.n_agents
 
         sel_idx = self._tournament_selection_indices(n, xp)
@@ -438,8 +547,8 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
             F_combined, xp, n
         )
 
-        self.P_tensor[:n] = self.P_tensor[best_idx].copy()
-        self.F_tensor[:n] = self.F_tensor[best_idx].copy()
+        self.P_tensor[:n] = self.P_tensor[best_idx]
+        self.F_tensor[:n] = self.F_tensor[best_idx]
 
         space.X[:n] = self.P_tensor[:n]
         space.F = self.F_tensor[:n]
@@ -448,7 +557,7 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.crowding_distance = crowding_combined[best_idx]
 
     def evaluate(self, space: _MultiObjectiveTensorSpace, function) -> None:
-        xp = space.env.xp
+        xp = self._xp
 
         F = function(self.P_tensor[: self.n_agents], xp=xp)
         self.F_tensor[: self.n_agents] = F

@@ -11,6 +11,61 @@ from opytimizer.utils import logging
 logger = logging.get_logger(__name__)
 
 
+def _cached_clip_bounds(space):
+    """Returns (lb, ub) shaped (1, n_variables, n_dimensions) in the population dtype.
+
+    `clip_by_bound` runs once per iteration. Bounds stored as float64 would make
+    `clip(X_float32, lb_float64, ub_float64, out=X)` compute in float64 and cast
+    back, so they are converted once here.
+    """
+    cache = getattr(space, "_clip_bounds_cache", None)
+    if cache is None or cache[0] is not space.lb or cache[1] is not space.ub:
+        xp = space.env.xp
+        shape = (1, space.n_variables, space.n_dimensions)
+        lb = xp.asarray(space.lb, dtype=space.env.dtype).reshape(shape)
+        ub = xp.asarray(space.ub, dtype=space.env.dtype).reshape(shape)
+        cache = (space.lb, space.ub, lb, ub)
+        space._clip_bounds_cache = cache
+
+    return cache[2], cache[3]
+
+
+def _nondominated_mask(costs, xp, max_elements: int = 1 << 26):
+    """Boolean mask of the rows of `costs` (n_agents, n_objectives) that are
+    non-dominated and not duplicates of an earlier row (minimization).
+
+    Equivalent to the dense N x N x M pairwise comparison, but the targets are
+    processed in row blocks so every temporary holds at most ~`max_elements`
+    booleans.
+    """
+    n_agents, n_objectives = costs.shape
+    if n_agents == 0:
+        return xp.zeros((0,), dtype=bool)
+
+    chunk = max(1, max_elements // max(1, n_agents * n_objectives))
+    index = xp.arange(n_agents)
+    opponents = costs[xp.newaxis, :, :]
+    blocks = []
+
+    for start in range(0, n_agents, chunk):
+        stop = min(start + chunk, n_agents)
+        targets = costs[start:stop, xp.newaxis, :]
+
+        # dominated[i]: some opponent j is no worse everywhere and better somewhere.
+        no_worse = xp.all(opponents <= targets, axis=-1)
+        better = xp.any(opponents < targets, axis=-1)
+        is_dominated = xp.any(no_worse & better, axis=1)
+
+        # duplicate[i]: an identical row with a LOWER index exists (keep the first).
+        identical = xp.all(opponents == targets, axis=-1)
+        earlier = index[xp.newaxis, :] < index[start:stop, xp.newaxis]
+        is_duplicate = xp.any(identical & earlier, axis=1)
+
+        blocks.append(~(is_dominated | is_duplicate))
+
+    return blocks[0] if len(blocks) == 1 else xp.concatenate(blocks)
+
+
 class _Space(ABC):
     def __init__(
         self,
@@ -293,16 +348,7 @@ class _MultiObjectiveSpace(_Space):
         xp = self.env.xp
         costs = xp.stack([xp.asarray(agent.fit).ravel() for agent in self.agents])
         n_agents = costs.shape[0]
-        targets = costs[:, xp.newaxis, :]
-        opponents = costs[xp.newaxis, :, :]
-        no_worse = xp.all(opponents <= targets, axis=-1)
-        better = xp.any(opponents < targets, axis=-1)
-        dominates = no_worse & better
-        is_dominated = xp.any(dominates, axis=1)
-        identical = xp.all(opponents == targets, axis=-1)
-        lower_tri = xp.tril(xp.ones((n_agents, n_agents), dtype=bool), k=-1)
-        is_duplicate = xp.any(identical & lower_tri, axis=1)
-        valid_mask = ~(is_dominated | is_duplicate)
+        valid_mask = _nondominated_mask(costs, xp)
         if hasattr(valid_mask, "get"):
             valid_mask = valid_mask.get()
         self.pareto_front = [self.agents[i] for i in range(n_agents) if valid_mask[i]]
@@ -373,10 +419,10 @@ class _SingleObjectiveTensorSpace(_SingleObjectiveSpace):
         )
 
     def clip_by_bound(self):
-        xp = self.env.xp
-        lb = self.lb.reshape(1, self.n_variables, self.n_dimensions)
-        ub = self.ub.reshape(1, self.n_variables, self.n_dimensions)
-        xp.clip(self.X, lb, ub, out=self.X)
+        # Bounds are cast/reshaped once and cached (see `_cached_clip_bounds`)
+        # instead of being rebuilt on every iteration.
+        lb, ub = _cached_clip_bounds(self)
+        self.env.xp.clip(self.X, lb, ub, out=self.X)
 
 
 class _MultiObjectiveTensorSpace(_MultiObjectiveSpace):
@@ -436,28 +482,19 @@ class _MultiObjectiveTensorSpace(_MultiObjectiveSpace):
             self.agents.append(agent)
 
     def clip_by_bound(self):
-        xp = self.env.xp
-        lb = self.lb.reshape(1, self.n_variables, self.n_dimensions)
-        ub = self.ub.reshape(1, self.n_variables, self.n_dimensions)
-        xp.clip(self.X, lb, ub, out=self.X)
+        # Bounds are cast/reshaped once and cached (see `_cached_clip_bounds`)
+        # instead of being rebuilt on every iteration.
+        lb, ub = _cached_clip_bounds(self)
+        self.env.xp.clip(self.X, lb, ub, out=self.X)
 
     def update_pareto_front(self, _xp=np) -> None:
+        # `_xp` is kept only for backwards compatibility with existing callers:
+        # X and F were allocated with `self.env.xp`.
         if self.X is None or self.F is None:
             self.pareto_front = []
             return
 
-        costs = self.F
-        n_agents = costs.shape[0]
-        targets = costs[:, _xp.newaxis, :]
-        opponents = costs[_xp.newaxis, :, :]
-        no_worse = _xp.all(opponents <= targets, axis=-1)
-        better = _xp.any(opponents < targets, axis=-1)
-        dominates = no_worse & better
-        is_dominated = _xp.any(dominates, axis=1)
-        identical = _xp.all(opponents == targets, axis=-1)
-        lower_tri = _xp.tril(_xp.ones((n_agents, n_agents), dtype=bool), k=-1)
-        is_duplicate = _xp.any(identical & lower_tri, axis=1)
-        valid_mask = ~(is_dominated | is_duplicate)
-        if hasattr(valid_mask, "get"):
-            valid_mask = valid_mask.get()
+        valid_mask = _nondominated_mask(self.F, self.env.xp)
+
+        # The mask stays on its original device.
         self.pareto_front = (self.X[valid_mask], self.F[valid_mask])

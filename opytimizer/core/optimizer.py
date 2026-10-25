@@ -5,6 +5,8 @@ import copy
 import time
 from typing import Any, Dict, Union
 
+import numpy as np
+
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
 from opytimizer.core.space import (
@@ -16,6 +18,11 @@ from opytimizer.core.space import (
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
+
+
+def _to_host(array: Any) -> np.ndarray:
+    """Returns `array` as a host numpy array"""
+    return array.get() if hasattr(array, "get") else np.asarray(array)
 
 
 class Optimizer:
@@ -194,25 +201,24 @@ class TensorizedOptimizer:
         Converts tensorized population to Opytimizer's default structure.
         """
         xp = space.env.xp
+        X_host = _to_host(space.X)
+        F_host = _to_host(space.F)
+
+        for i, agent in enumerate(space.agents):
+            agent.position[:] = X_host[i].reshape(agent.position.shape)
+            agent.fit = float(F_host[i])
+
+        best_position = _to_host(self.global_best_position).reshape(-1, 1)
 
         if xp.__name__ == "cupy":
-            for i, agent in enumerate(space.agents):
+            space.best_agent.position = best_position
 
-                agent.position[:] = space.X[i].reshape(-1, 1).get()
-
-                agent.fit = float(space.F[i])
-
-            space.best_agent.position = self.global_best_position.reshape(-1, 1).get()
-            space.best_agent.fit = space.best_agent.fit.get()
+            # `best_agent.fit` is a device scalar on the CuPy path.
+            fit = space.best_agent.fit
+            space.best_agent.fit = fit.get() if hasattr(fit, "get") else fit
 
         else:
-            for i, agent in enumerate(space.agents):
-
-                agent.position[:] = space.X[i].reshape(-1, 1)
-
-                agent.fit = float(space.F[i])
-
-            space.best_agent.position[:] = self.global_best_position.reshape(-1, 1)
+            space.best_agent.position[:] = best_position
 
 
 class TensorizedMultiObjectiveOptimizer:
@@ -220,14 +226,9 @@ class TensorizedMultiObjectiveOptimizer:
         """
         Converts tensorized population to Opytimizer's default structure.
         """
-        xp = space.env.xp
-        if xp.__name__ == "cupy":
-            for i, agent in enumerate(space.agents):
-                agent.position[:] = (
-                    xp.array(space.X[i]).reshape(agent.position.shape).get()
-                )
-                agent.fit[:] = space.F[i].get()
-        else:
-            for i, agent in enumerate(space.agents):
-                agent.position[:] = xp.array(space.X[i]).reshape(agent.position.shape)
-                agent.fit[:] = space.F[i]
+        X_host = _to_host(space.X)
+        F_host = _to_host(space.F)
+
+        for i, agent in enumerate(space.agents):
+            agent.position[:] = X_host[i].reshape(agent.position.shape)
+            agent.fit[:] = F_host[i]

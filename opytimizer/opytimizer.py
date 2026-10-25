@@ -4,9 +4,10 @@
 import time
 from abc import abstractmethod
 from inspect import signature
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import dill
+import numpy as np
 
 import opytimizer.utils.exception as e
 from opytimizer.core.function import Function
@@ -143,15 +144,30 @@ class _BaseRunner:
     def n_evals(self) -> int:
         return self.function.n_calls
 
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state.pop("_signature_cache", None)
+        return state
+
+    def _arg_names(self, method) -> Tuple[str, ...]:
+        """Parameter names of `method`, memoized.
+        """
+        cache = self.__dict__.setdefault("_signature_cache", {})
+        key = getattr(method, "__func__", method)
+        names = cache.get(key)
+        if names is None:
+            names = tuple(signature(method).parameters)
+            cache[key] = names
+
+        return names
+
     @property
     def evaluate_args(self) -> List[Any]:
-        args = signature(self.optimizer.evaluate).parameters
-        return [getattr(self, v) for v in args]
+        return [getattr(self, v) for v in self._arg_names(self.optimizer.evaluate)]
 
     @property
     def update_args(self) -> List[Any]:
-        args = signature(self.optimizer.update).parameters
-        return [getattr(self, v) for v in args]
+        return [getattr(self, v) for v in self._arg_names(self.optimizer.update)]
 
     @property
     def metrics(self) -> Optional[Union[List[_BaseMetric], _BaseMetric]]:
@@ -205,17 +221,32 @@ class _BaseRunner:
             raise TypeError(msg)
 
     def evaluate(self, callbacks: CallbackVessel) -> None:
-        callbacks.on_evaluate_before(*self.evaluate_args)
-        self.optimizer.evaluate(*self.evaluate_args)
-        callbacks.on_evaluate_after(*self.evaluate_args)
+        # Arguments are resolved once per phase (they used to be re-resolved for
+        # the before-hook, the call itself and the after-hook).
+        args = self.evaluate_args
+        callbacks.on_evaluate_before(*args)
+        self.optimizer.evaluate(*args)
+        callbacks.on_evaluate_after(*args)
 
     def update(self, callbacks: CallbackVessel) -> None:
-        callbacks.on_update_before(*self.update_args)
-        self.optimizer.update(*self.update_args)
-        callbacks.on_update_after(*self.update_args)
+        args = self.update_args
+        callbacks.on_update_before(*args)
+        self.optimizer.update(*args)
+        callbacks.on_update_after(*args)
         self.space.clip_by_bound()
 
-    def _compute_metrics(self) -> Dict:
+    def _synchronize_device(self) -> None:
+        """Blocks until all queued GPU work has finished (no-op on the CPU).
+        """
+        env = getattr(self.space, "env", None)
+        if env is not None and env.use_cuda:
+            env.xp.cuda.Device().synchronize()
+
+    def _compute_metrics(self) -> Optional[Dict]:
+        pass
+
+    def _finalize_after_loop(self) -> None:
+        """Hook executed once after the main loop ends normally."""
         pass
 
     @abstractmethod
@@ -235,8 +266,18 @@ class _BaseRunner:
         stopping_criteria=None,
         callbacks: Optional[List[Callback]] = None,
         metrics: Optional[Union[List[_BaseMetric], _BaseMetric]] = None,
+        metrics_every: int = 1,
     ) -> None:
-        """Start the optimization task."""
+        """Start the optimization task.
+
+        Args:
+            stopping_criteria: Stopping criterion or list of criteria.
+            callbacks: Optional callbacks.
+            metrics: Multi-objective metrics, computed on the Pareto front.
+            metrics_every: Refresh the Pareto front and the metrics only every
+                this many iterations (multi-objective runs). With `metrics_every=1`
+                behaviour is unchanged. The final front is always computed at the end.
+        """
 
         logger.info("Starting optimization task.")
         self.n_iterations = getattr(stopping_criteria, "n", None)
@@ -249,6 +290,7 @@ class _BaseRunner:
         stopping_vessel = _StoppingVessel(stopping_criteria)
         callbacks = CallbackVessel(callbacks)
         self.metrics = metrics
+        self.metrics_every = max(1, int(metrics_every))
         start = time.time()
         callbacks.on_task_begin(self)
         self.evaluate(callbacks)
@@ -271,6 +313,7 @@ class _BaseRunner:
                 callbacks.on_iteration_end(self.total_iterations, self)
 
             stopping_vessel.update_pbars(self)
+            self._finalize_after_loop()
 
         except BudgetExhausted:
             logger.info(
@@ -283,6 +326,8 @@ class _BaseRunner:
         finally:
             stopping_vessel.close_pbars()
 
+        # Drain the GPU queue BEFORE stopping the clock
+        self._synchronize_device()
         opt_time = time.time() - start
         self.sync_optimizer(self.space)
         callbacks.on_task_end(self)
@@ -312,11 +357,21 @@ class _SingleObjectiveRunner(_BaseRunner):
                 agents=self.space.agents,
                 best_agent=self.space.best_agent,
             )
-            # logger.to_file(f"Fitness: {self.space.best_agent.fit}")
-            # logger.to_file(f"Position: {self.space.best_agent.position}")
+
+    def _display_fitness(self) -> Any:
+        """Best fitness as a host float, for the progress bar only."""
+        fit = self.space.best_agent.fit
+        if hasattr(fit, "get"):
+            # CuPy scalar: this is a blocking device -> host copy.
+            fit = fit.get()
+
+        arr = np.asarray(fit)
+        return float(arr.reshape(-1)[0]) if arr.size == 1 else fit
 
     def _set_postfix(self, stopping_vessel: _StoppingVessel, **kwargs) -> None:
-        stopping_vessel.set_postfix(fitness=self.space.best_agent.fit)
+        # Passed as a callable: it is only evaluated when the postfix is really
+        # drawn (time-throttled), so a GPU run does not synchronize every iteration.
+        stopping_vessel.set_postfix(fitness=self._display_fitness)
 
     def _finalize_after_budget_exhaustion(self) -> None:
         # Nothing extra needed — history already has the latest state.
@@ -326,8 +381,22 @@ class _SingleObjectiveRunner(_BaseRunner):
 class _MultiObjectiveRunner(_BaseRunner):
     """Pipeline for problems with multiple objective functions."""
 
-    def _compute_metrics(self) -> Dict:
+    def _refresh_pareto_front(self) -> None:
         self.space.update_pareto_front(_xp=self.space.env.xp)
+        self._front_iteration = self.total_iterations
+
+    def _pareto_front_size(self) -> int:
+        front = self.space.pareto_front
+        # Tensorized spaces store the front as an (X, F) tuple, so `len(front)`
+        # would always be 2 there; the number of solutions is `len(X)`.
+        return len(front[0]) if isinstance(front, tuple) else len(front)
+
+    def _compute_metrics(self) -> Optional[Dict]:
+        needs_front = bool(self.metrics) or self.save_history
+        if not needs_front or self.total_iterations % self.metrics_every:
+            return None
+
+        self._refresh_pareto_front()
         if not self.metrics:
             return {}
 
@@ -336,7 +405,14 @@ class _MultiObjectiveRunner(_BaseRunner):
             for metric in self.metrics
         }
 
-    def _dump_history(self, metric_values: Dict, **kwargs) -> None:
+    def _finalize_after_loop(self) -> None:
+        if getattr(self, "_front_iteration", None) != self.total_iterations:
+            self._refresh_pareto_front()
+
+    def _dump_history(self, metric_values: Optional[Dict], **kwargs) -> None:
+        if metric_values is None:
+            # Front/metrics were not refreshed in this iteration.
+            return
 
         if self.save_history:
             self.history.dump(
@@ -344,7 +420,7 @@ class _MultiObjectiveRunner(_BaseRunner):
                 pareto_front=self.space.pareto_front,
                 **metric_values,
             )
-        logger.to_file(f"Pareto front size: {len(self.space.pareto_front)}")
+        logger.to_file(f"Pareto front size: {self._pareto_front_size()}")
 
         for name, value in metric_values.items():
             logger.to_file(f"{name}: {value}")
@@ -352,7 +428,7 @@ class _MultiObjectiveRunner(_BaseRunner):
     def _set_postfix(
         self, stopping_vessel: _StoppingVessel, metric_values: Dict, **kwargs
     ) -> None:
-        if metric_values is not None:
+        if metric_values:
             stopping_vessel.set_postfix(**metric_values)
 
     def _finalize_after_budget_exhaustion(self) -> None:

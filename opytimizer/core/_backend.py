@@ -14,6 +14,10 @@ logger = logging.get_logger(__name__)
 if TYPE_CHECKING:
     from opytimizer.core.environment import Environment
 
+# Process-wide cache: backend value ("numpy" / "cupy") -> imported module.
+# `ArrayBackendProxy.__getattr__` runs on EVERY `xp.<attr>` access
+_MODULE_CACHE: dict = {}
+
 
 class ArrayBackendProxy:
 
@@ -30,14 +34,14 @@ class ArrayBackendProxy:
         return getattr(mod, name)
 
     def _get_module(self) -> ModuleType:
-        from opytimizer.core.environment import Backend
-
         env = object.__getattribute__(self, "_env")
-        current = env.backend
-        if current is Backend.CUPY:
-            return importlib.import_module("cupy")
+        key = env.backend.value
+        module = _MODULE_CACHE.get(key)
+        if module is None:
+            module = importlib.import_module("cupy" if key == "cupy" else "numpy")
+            _MODULE_CACHE[key] = module
 
-        return importlib.import_module("numpy")
+        return module
 
     def __dir__(self) -> list[str]:
         return dir(self._get_module())

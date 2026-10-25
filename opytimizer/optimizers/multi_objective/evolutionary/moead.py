@@ -265,6 +265,14 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.weight_vectors = weight_vectors
         self.neighborhood_size = neighborhood_size
 
+        # Populated in `compile` (constants of the run, computed once).
+        self._xp = None  # concrete array module (numpy / cupy), NOT the proxy
+        self._targets = None  # (n_subproblems * T,) population index of each pair
+        self._src = None  # (n_subproblems * T,) offspring index of each pair
+        self._W_nb = None  # (n_subproblems * T, M) weights of each pair's target
+        self._T_mod = None  # (n_subproblems, T) neighborhood, wrapped to n_agents
+        self._rows = None  # (n_subproblems, 1) row indices for mating selection
+
         self.build(params)
 
         logger.info("Class overrided.")
@@ -321,21 +329,35 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
     def compile(self, space: _MultiObjectiveTensorSpace, **kwargs) -> None:
         """Compiles additional information that is used by this optimizer."""
+        # Concrete module, resolved once.
+        xp = space.env.xp.__wrapped__
+        dtype = space.env.dtype
+        self._xp = xp
+
         if self.n_subproblems is None:
             self.n_subproblems = space.n_agents
 
         if self.neighborhood_size is None:
-            self.neighborhood_size = max(
-                2, int(space.env.xp.ceil(self.n_subproblems * 0.2))
-            )
+            self.neighborhood_size = max(2, int(xp.ceil(self.n_subproblems * 0.2)))
 
-        self.weight_vectors = space.env.xp.array(self.weight_vectors)
+        self.weight_vectors = xp.asarray(self.weight_vectors)
         self.crossover_operator.env = space.env
         self.mutation_operator.env = space.env
 
-        self._build_neighborhood(space.env.xp)
+        self._build_neighborhood(xp)
 
-        self.z = space.env.xp.full(space.n_objectives, space.env.xp.inf)
+        self.weight_vectors = self.weight_vectors.astype(dtype)
+        self.z = xp.full(space.n_objectives, xp.inf, dtype=dtype)
+
+        # ---- Run constants of the replacement step 
+        n_agents = space.n_agents
+        n_neighbors = self.T.shape[1]
+        self._T_mod = self.T % n_agents
+        self._rows = xp.arange(self.n_subproblems)[:, xp.newaxis]
+        # Row-major flattening of `T`: pair k = (subproblem k // T, neighbor k % T).
+        self._targets = self.T.reshape(-1) % n_agents
+        self._src = xp.repeat(xp.arange(self.n_subproblems), n_neighbors)
+        self._W_nb = self.weight_vectors[self._targets]
 
     def _build_neighborhood(self, xp) -> None:
         diff = (
@@ -346,7 +368,7 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.T = xp.argsort(dist_matrix, axis=1)[:, : self.neighborhood_size]
 
     def evaluate(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
-        xp = space.env.xp
+        xp = self._xp
 
         space.F = function(space.X, xp=xp)
 
@@ -355,16 +377,15 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.evaluate = lambda: None
 
     def _mating_selection(self, space: _MultiObjectiveTensorSpace) -> Tuple:
-        xp = space.env.xp
+        xp = self._xp
 
         rand_idx = xp.random.randint(
-            0, self.neighborhood_size, size=(self.n_subproblems, 2)
+            0, self._T_mod.shape[1], size=(self.n_subproblems, 2)
         )
-        rows = xp.arange(self.n_subproblems)[:, xp.newaxis]
-        neighbors_idx = self.T[rows, rand_idx]
+        neighbors_idx = self._T_mod[self._rows, rand_idx]
 
-        parent1_indices = neighbors_idx[:, 0] % space.n_agents
-        parent2_indices = neighbors_idx[:, 1] % space.n_agents
+        parent1_indices = neighbors_idx[:, 0]
+        parent2_indices = neighbors_idx[:, 1]
 
         parents1_X = space.X[parent1_indices]
         parents2_X = space.X[parent2_indices]
@@ -372,13 +393,16 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         return parents1_X, parents2_X
 
     def update(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
-        xp = space.env.xp
+        xp = self._xp
 
         parents1_X, parents2_X = self._mating_selection(space)
 
         child1_X, child2_X = self.crossover_operator(
             parents1_X, parents2_X, space.lb, space.ub
         )
+        # Only the first child is used. SBX produces both children in one call, so
+        # the second is computed and thrown away;
+        # TODO: n_offspring = 1 
         del child2_X
         offspring_X = self.mutation_operator(child1_X, space.lb, space.ub)
 
@@ -388,36 +412,40 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         self.z = xp.minimum(self.z, xp.min(F2, axis=0))
 
-        targets = self.T.flatten() % space.n_agents
+        # ---- Replacement step -------------------------------------------------
+        #   _targets[k]: population index being challenged by pair k
+        #   _src[k] : offspring index that challenges it
+        #   _W_nb[k] : weight vector of the target (constant -> cached)
+        F_nb = space.F[self._targets]
+        F2_nb = F2[self._src]
 
-        O_exp = xp.repeat(O, self.neighborhood_size, axis=0)
-        F2_exp = xp.repeat(F2, self.neighborhood_size, axis=0)
-
-        F_nb = space.F[targets]
-        W_nb = self.weight_vectors[targets]
-
-        g_old = self.decomposition_method(F_nb, W_nb, xp, z=self.z)
-        g_new = self.decomposition_method(F2_exp, W_nb, xp, z=self.z)
+        g_old = self.decomposition_method(F_nb, self._W_nb, xp, z=self.z)
+        g_new = self.decomposition_method(F2_nb, self._W_nb, xp, z=self.z)
 
         mask = g_new <= g_old
 
-        valid_targets = targets[mask]
-        valid_O = O_exp[mask]
-        valid_F2 = F2_exp[mask]
-        valid_g_new = g_new[mask]
+        # A single `nonzero` instead of one boolean-mask indexing per array. Every
+        # boolean-mask index has a data-dependent output size
+        accepted = xp.nonzero(mask)[0]
 
+        valid_targets = self._targets[accepted]
+        valid_src = self._src[accepted]
+        valid_g_new = g_new[accepted]
+
+        # Several offspring can claim the same target: keep the one with the best
+        # (lowest) aggregated value. Sort by quality, then take the first
+        # occurrence of each target.
         sort_idx = xp.argsort(valid_g_new)
         valid_targets = valid_targets[sort_idx]
-        valid_O = valid_O[sort_idx]
-        valid_F2 = valid_F2[sort_idx]
+        valid_src = valid_src[sort_idx]
 
         _, unique_indices = xp.unique(valid_targets, return_index=True)
         final_targets = valid_targets[unique_indices]
-        final_O = valid_O[unique_indices]
-        final_F2 = valid_F2[unique_indices]
+        final_src = valid_src[unique_indices]
 
-        space.X[final_targets] = final_O
-        space.F[final_targets] = final_F2
+        space.X[final_targets] = O[final_src]
+        space.F[final_targets] = F2[final_src]
+
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

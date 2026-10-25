@@ -50,8 +50,16 @@ class Function:
             (np.ndarray): Function fitness value(s).
 
         """
+        
+        tensorized = xp is not None
+
         if hasattr(x, "ndim"):
-            self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
+            if tensorized and x.ndim == 3:
+                # Batched call: X has shape (n_agents, n_variables, n_dimensions)
+                # and holds one candidate solution per agent.
+                self.n_calls += x.shape[0]
+            else:
+                self.n_calls += (x.ndim > 1 and x.shape[1] > 1 and x.shape[0]) or 1
         else:
             # If it is a tree, count as 1 evaluation
             self.n_calls += 1
@@ -61,6 +69,17 @@ class Function:
 
         result = self.pointer(x)
         result = xp.asarray(result)
+
+        # Keep fitness in the same floating dtype as the population. 
+        if (
+            tensorized
+            and hasattr(x, "dtype")
+            and x.dtype.kind == "f"
+            and result.dtype.kind == "f"
+            and result.dtype != x.dtype
+        ):
+            result = result.astype(x.dtype, copy=False)
+
         return result
 
     def _accepts_one_arg(self, fn: Callable) -> bool:
