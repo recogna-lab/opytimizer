@@ -1,5 +1,6 @@
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -37,6 +38,10 @@ const config = {
     ],
   ],
   themeConfig: {
+    prism: {
+      theme: prismThemes.github,
+      darkTheme: prismThemes.palenight,
+    },
     navbar: {
       title: 'Opytimizer',
       logo: {

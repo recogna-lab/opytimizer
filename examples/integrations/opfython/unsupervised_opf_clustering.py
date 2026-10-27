@@ -5,6 +5,7 @@ from sklearn.datasets import load_digits
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -65,4 +66,4 @@ function = Function(unsupervised_opf_clustering)
 opt = Opytimizer(space, optimizer, function)
 
 # Runs the optimization task
-opt.start(n_iterations=3)
+opt.start(MaxIterations(3))

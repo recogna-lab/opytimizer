@@ -1,4 +1,4 @@
-"""Single-objective functions.
+"""Single- and Multi-objective functions.
 """
 
 import inspect
@@ -132,7 +132,10 @@ class Function:
                 return np.array([f(x) for f in funcs])
 
             multi_objective.functions = funcs
-            multi_objective.__name__ = ", ".join(f.__name__ for f in funcs)
+            # Callable instances (e.g., benchmark classes) do not have `__name__`
+            multi_objective.__name__ = ", ".join(
+                getattr(f, "__name__", f.__class__.__name__) for f in funcs
+            )
 
             self._pointer = multi_objective
         else:

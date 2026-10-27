@@ -91,7 +91,7 @@ for strategy_name, strategy in selection_strategies.items():
 
     # Prints out multi-objective optimization results
     print(f"Number of Pareto solutions: {len(opt.space.pareto_front)}")
-    print(f"Optimization time: {opt.history.time} seconds")
+    print(f"Optimization time: {opt.history.time[-1]} seconds")
     print(f"Final Hypervolume: {hv(opt.space.pareto_front)}")
 
     # Print selection statistics

@@ -3,6 +3,7 @@ from learnergy.models.bernoulli import RBM
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -57,4 +58,4 @@ function = Function(rbm)
 opt = Opytimizer(space, optimizer, function)
 
 # Runs the optimization task
-opt.start(n_iterations=10)
+opt.start(MaxIterations(10))

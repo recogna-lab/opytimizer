@@ -51,3 +51,4 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
 opt.start(MaxIterations(1000))
+```

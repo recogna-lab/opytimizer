@@ -28,8 +28,9 @@ function = Function(Sphere())
 opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
-# Every call on `start` will the continue the optimization for `n_iterations`
-# Note that the following lines achieves the same results as a 100-iteration running
+# Every call on `start` continues the optimization from where it stopped
+# Note that stopping criteria consider the total number of iterations,
+# so the following lines achieve the same results as a 100-iteration running
 opt.start(MaxIterations(50))
-opt.start(MaxIterations(25))
-opt.start(MaxIterations(25))
+opt.start(MaxIterations(75))
+opt.start(MaxIterations(100))

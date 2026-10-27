@@ -94,3 +94,4 @@ opt = Opytimizer(space=space, function=function, optimizer=optimizer)
 opt.start(MaxIterations(1000))
 
 print(opt.space.best_agent.position)
+```

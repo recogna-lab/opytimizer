@@ -78,3 +78,4 @@ opy = Opytimizer(
 stop_criterion = MaxIterations(MAX_GEN)
 
 opy.start(stopping_criteria=stop_criterion)
+```

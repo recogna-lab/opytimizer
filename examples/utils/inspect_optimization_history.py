@@ -3,6 +3,7 @@ from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -24,10 +25,12 @@ optimizer = PSO()
 function = Function(Sphere())
 
 # Bundles every piece into Opytimizer class
-opt = Opytimizer(space, optimizer, function, save_agents=True)
+# `save_history` stores the task's state at every iteration,
+# while `save_agents` also stores every agent (not only the best one)
+opt = Opytimizer(space, optimizer, function, save_agents=True, save_history=True)
 
 # Runs the optimization task
-opt.start(n_iterations=10)
+opt.start(MaxIterations(10))
 
 # Saves the optimization task
 opt.save("opt_task.pkl")

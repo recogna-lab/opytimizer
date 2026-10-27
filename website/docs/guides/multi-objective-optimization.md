@@ -39,13 +39,13 @@ def zdt3(x: np.ndarray) -> np.ndarray:
 np.random.seed(0)
 
 # Number of agents, decision variables and objectives
-n_agents = 20
-n_variables = 2
+n_agents = 100
+n_variables = 30
 n_objectives = 2
 
 # Lower and upper bounds (has to be the same size as `n_variables`)
-lower_bound = [-10, -10]
-upper_bound = [10, 10]
+lower_bound = [0] * n_variables
+upper_bound = [1] * n_variables
 
 # Creates the space, optimizer and function
 space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
@@ -57,3 +57,4 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 
 # Runs the optimization task
 opt.start(MaxIterations(1000))
+```

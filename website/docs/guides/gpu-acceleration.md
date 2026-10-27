@@ -49,3 +49,4 @@ my_pso = PSOCuda()
 opt = Opytimizer(space=my_search_space, optimizer=my_pso, function=my_func)
 
 opt.start(stopping_criteria=stopping_criteria)
+```

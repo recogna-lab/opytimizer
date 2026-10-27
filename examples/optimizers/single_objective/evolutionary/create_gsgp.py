@@ -1,4 +1,6 @@
-from opytimizer.optimizers.single_objective.evolutionary import GSGP
+# Note that GSGP is not exported by the `evolutionary` package,
+# so it has to be imported from its own module
+from opytimizer.optimizers.single_objective.evolutionary.gsgp import GSGP
 
 # One should declare a hyperparameters object based
 # on the desired algorithm that will be used

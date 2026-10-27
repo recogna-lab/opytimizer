@@ -6,6 +6,7 @@ from sklearn.datasets import load_digits
 import opytimizer.math.random as r
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.boolean import BPSO
 from opytimizer.spaces import BooleanSpace
 
@@ -66,4 +67,4 @@ function = Function(supervised_opf_feature_selection)
 opt = Opytimizer(space, optimizer, function)
 
 # Runs the optimization task
-opt.start(n_iterations=3)
+opt.start(MaxIterations(3))

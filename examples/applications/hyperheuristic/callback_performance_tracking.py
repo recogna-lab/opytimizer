@@ -18,9 +18,10 @@ from opytimizer.utils.callback import PerformanceTrackingCallback
 
 
 # Define a performance metric function
-def performance_metric(space):
+# Note that it receives the list of agents and returns a value to be minimized
+def performance_metric(agents):
     """Calculate performance based on best fitness value."""
-    return space.best_agent.fit
+    return min(agent.fit for agent in agents)
 
 
 # Create optimizers

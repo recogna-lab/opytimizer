@@ -31,10 +31,11 @@ opt = Opytimizer(space, optimizer, function, save_agents=False)
 # Runs the optimization task
 opt.start(MaxIterations(10), callbacks=[CheckpointCallback(frequency=10)])
 
-# Deletes the optimization objecs
+# Deletes the optimization object
 del opt
 
-# Loads the task from file and resumes it
-# Note that the following lines achieves the same results as a 35-iteration running
+# Loads the task from file and resumes it until the 35th iteration
+# Note that stopping criteria consider the total number of iterations,
+# so the following lines achieve the same results as a 35-iteration running
 opt = Opytimizer.load("iter_10_checkpoint.pkl")
-opt.start(MaxIterations(25))
+opt.start(MaxIterations(35))

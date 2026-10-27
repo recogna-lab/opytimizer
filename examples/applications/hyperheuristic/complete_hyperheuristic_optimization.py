@@ -10,9 +10,10 @@ from opytimizer.spaces import SearchSpace
 
 
 # Define a performance metric function
-def performance_metric(space):
+# Note that it receives the list of agents and returns a value to be minimized
+def performance_metric(agents):
     """Calculate performance based on best fitness value."""
-    return space.best_agent.fit
+    return min(agent.fit for agent in agents)
 
 
 # One should declare a list of optimizer instances to be used by the hyperheuristic
@@ -53,4 +54,4 @@ opt.start(MaxIterations(100))
 # Prints out the best agent found
 print(f"Best agent position: {opt.space.best_agent.position}")
 print(f"Best agent fitness: {opt.space.best_agent.fit}")
-print(f"Optimization time: {opt.history.time} seconds")
+print(f"Optimization time: {opt.history.time[-1]} seconds")

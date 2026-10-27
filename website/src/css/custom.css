@@ -22,16 +22,12 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
+/* Inline code only: code blocks are colored by the Prism theme */
 html[data-theme='light'] .heroCodeBlock,
-html[data-theme='light'] code {
+html[data-theme='light'] :not(pre) > code {
   background-color: var(--ifm-color-gray-200);
   color: var(--ifm-color-gray-900);
   border: 1px solid var(--ifm-color-gray-300);
-}
-
-[data-theme='light'] .prism-code {
-  background-color: #f6f8fa !important;
-  color: #24292e !important;
 }
 
 .hero-banner {

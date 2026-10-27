@@ -7,6 +7,7 @@ from torch.autograd import Variable
 
 from opytimizer import Opytimizer
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
 from opytimizer.spaces import SearchSpace
 
@@ -136,4 +137,4 @@ function = Function(neural_network)
 opt = Opytimizer(space, optimizer, function)
 
 # Runs the optimization task
-opt.start(n_iterations=100)
+opt.start(MaxIterations(100))

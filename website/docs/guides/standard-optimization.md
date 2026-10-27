@@ -46,3 +46,4 @@ opt.start(MaxIterations(1000))
 print(
     f"Best Agent: {opt.space.best_agent.mapped_position} | Fitness: {opt.space.best_agent.fit}"
 )
+```
