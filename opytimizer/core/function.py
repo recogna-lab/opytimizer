@@ -50,7 +50,7 @@ class Function:
             (np.ndarray): Function fitness value(s).
 
         """
-        
+
         tensorized = xp is not None
 
         if hasattr(x, "ndim"):
@@ -70,7 +70,7 @@ class Function:
         result = self.pointer(x)
         result = xp.asarray(result)
 
-        # Keep fitness in the same floating dtype as the population. 
+        # Keep fitness in the same floating dtype as the population.
         if (
             tensorized
             and hasattr(x, "dtype")

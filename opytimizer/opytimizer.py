@@ -150,8 +150,7 @@ class _BaseRunner:
         return state
 
     def _arg_names(self, method) -> Tuple[str, ...]:
-        """Parameter names of `method`, memoized.
-        """
+        """Parameter names of `method`, memoized."""
         cache = self.__dict__.setdefault("_signature_cache", {})
         key = getattr(method, "__func__", method)
         names = cache.get(key)
@@ -236,8 +235,7 @@ class _BaseRunner:
         self.space.clip_by_bound()
 
     def _synchronize_device(self) -> None:
-        """Blocks until all queued GPU work has finished (no-op on the CPU).
-        """
+        """Blocks until all queued GPU work has finished (no-op on the CPU)."""
         env = getattr(self.space, "env", None)
         if env is not None and env.use_cuda:
             env.xp.cuda.Device().synchronize()

@@ -18,8 +18,7 @@ logger = logging.get_logger(__name__)
 
 
 def _randn(xp, size, dtype):
-    """Standard-normal samples directly in `dtype`.
-    """
+    """Standard-normal samples directly in `dtype`."""
     if xp.__name__ == "cupy":
         return xp.random.standard_normal(size, dtype=dtype)
 
@@ -419,7 +418,9 @@ class CMAESTensor(Optimizer, TensorizedOptimizer):
         )
         h_sigma = (norm_p_sigma < h_limit).astype(self.dtype)
 
-        self.p_c = (1 - self.c_c) * self.p_c + h_sigma * self._sqrt_cc * delta_mean / self.sigma
+        self.p_c = (
+            1 - self.c_c
+        ) * self.p_c + h_sigma * self._sqrt_cc * delta_mean / self.sigma
 
         # Covariance update
         y = y_raw / self.sigma
@@ -541,7 +542,9 @@ class CMAESCuda(CMAESTensor):
 
         self._gen_kernel = None
         self._transform_c = None  # C-contiguous copy of `_transform` for the kernel
-        self._transform_src = None  # the `_transform` object `_transform_c` was built from
+        self._transform_src = (
+            None  # the `_transform` object `_transform_c` was built from
+        )
 
         logger.info("Class overrided.")
 

@@ -130,7 +130,7 @@ class RVEA(MultiObjectiveOptimizer):
         self._gammas = ref_angles.min(axis=1)
 
     def evaluate(self, space: _MultiObjectiveSpace, function: Function):
-        
+
         all_fits = []
         for agent in space.agents:
             agent.fit = function(agent.position).squeeze()
@@ -160,7 +160,6 @@ class RVEA(MultiObjectiveOptimizer):
 
     def update(self, space: _MultiObjectiveSpace, function: Function):
 
-        
         n_target = len(self.reference_vectors)
         n_cur = len(space.agents)
         num_pairs = (n_target + 1) // 2
@@ -237,12 +236,10 @@ class RVEA(MultiObjectiveOptimizer):
         new_agents = [current_population[i] for i in order[is_first]]
 
         space.agents = new_agents
-       
-        self._adapt_reference_vectors(space)
-            
-        self.currentGeneration += 1
 
-        
+        self._adapt_reference_vectors(space)
+
+        self.currentGeneration += 1
 
 
 class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
@@ -354,18 +351,18 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         xp.fill_diagonal(ang, xp.inf)
         self._gammas = ang.min(axis=1)
 
-    
     _DENSE_GROUPED_ARGMIN_LIMIT = 1 << 22
 
     def _grouped_argmin(self, apd_values: Any, assignments: Any, N_ref: int, xp) -> Any:
-        """For every reference vector, the index of its lowest-APD member (-1 if empty).
-        """
+        """For every reference vector, the index of its lowest-APD member (-1 if empty)."""
         if int(apd_values.shape[0]) * N_ref <= self._DENSE_GROUPED_ARGMIN_LIMIT:
             return self._grouped_argmin_dense(apd_values, assignments, N_ref, xp)
 
         return self._grouped_argmin_sorted(apd_values, assignments, N_ref, xp)
 
-    def _grouped_argmin_dense(self, apd_values: Any, assignments: Any, N_ref: int, xp) -> Any:
+    def _grouped_argmin_dense(
+        self, apd_values: Any, assignments: Any, N_ref: int, xp
+    ) -> Any:
         J = xp.arange(N_ref, dtype=xp.int32)
         member = assignments[:, None] == J[None, :]
 
@@ -375,7 +372,9 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         return xp.where(xp.isfinite(col_min), best_raw, -1)
 
-    def _grouped_argmin_sorted(self, apd_values: Any, assignments: Any, N_ref: int, xp) -> Any:
+    def _grouped_argmin_sorted(
+        self, apd_values: Any, assignments: Any, N_ref: int, xp
+    ) -> Any:
         """Sort by (assignment, apd): every group becomes a contiguous segment with its
         best member first."""
         order = xp.lexsort(xp.stack([apd_values, assignments.astype(apd_values.dtype)]))
@@ -415,7 +414,9 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         gamma_i = self._gammas[asgn]
 
         # M * (t / t_max) ** alpha only depends on host-side counters.
-        penalty_scale = M * ((self.currentGeneration / self.max_generations) ** self.alpha)
+        penalty_scale = M * (
+            (self.currentGeneration / self.max_generations) ** self.alpha
+        )
         apd = (1.0 + penalty_scale * (asgn_ang / (gamma_i + 1e-10))) * norms
 
         best_idx = self._grouped_argmin(apd, asgn, N_ref, xp)

@@ -122,7 +122,6 @@ class NSGA2(MultiObjectiveOptimizer):
             # q joins the next front when its LAST dominator has been processed.
             released = np.flatnonzero((removed > 0) & (num_dominance == 0))
 
-            
             if released.size > 1:
                 last_dominator = (
                     dominated_rows.shape[0]
@@ -361,8 +360,7 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self._UB = space.ub.reshape(1, self.n_variables, self.n_dimensions)
 
     def _dominance_matrix(self, F: Any, xp) -> Any:
-        """Returns D with D[i, j] = True iff solution i dominates solution j.
-        """
+        """Returns D with D[i, j] = True iff solution i dominates solution j."""
         N, M = F.shape
 
         if self._use_dom_kernel:
@@ -387,7 +385,9 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         Fj = F[xp.newaxis, :, :]
         for start in range(0, N, chunk):
             Fi = F[start : start + chunk, xp.newaxis, :]
-            D[start : start + chunk] = xp.all(Fi <= Fj, axis=2) & xp.any(Fi < Fj, axis=2)
+            D[start : start + chunk] = xp.all(Fi <= Fj, axis=2) & xp.any(
+                Fi < Fj, axis=2
+            )
 
         return D
 
@@ -460,8 +460,7 @@ class NSGA2Tensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         return crowding_distances
 
     def _crowding_by_rank(self, F: Any, rank: Any, xp) -> Any:
-        """Crowding distance of every solution within its own front, in one shot.
-        """
+        """Crowding distance of every solution within its own front, in one shot."""
         N, M = F.shape
         pos = xp.arange(N)
         prev_pos = xp.maximum(pos - 1, 0)

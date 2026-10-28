@@ -564,7 +564,7 @@ class PSOTensor(Optimizer, TensorizedOptimizer):
 
         self._dtype = dtype
 
-        # Resolve the concrete module once. 
+        # Resolve the concrete module once.
         self._xp = xp.__wrapped__
         self._scalar_type = np.dtype(dtype).type
         self._use_fused = bool(space.env.use_cuda)

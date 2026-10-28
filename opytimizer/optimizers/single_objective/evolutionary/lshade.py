@@ -31,7 +31,7 @@ class LSHADE(Optimizer):
         H: int = 6,
         p: float = 0.11,
         r_arc: float = 2.6,
-        N_min: int = 4
+        N_min: int = 4,
     ):
 
         logger.info("Overriding class: Optimizer -> L-SHADE (Default).")
@@ -187,7 +187,7 @@ class LSHADE(Optimizer):
         DELTA_F = np.abs(f_X[success_mask] - f_U[success_mask])
 
         X_old = X_pop
-        
+
         for i in np.flatnonzero(survival_mask):
             ag = space.agents[i]
             ag.position = U[i].reshape(ag.position.shape)
@@ -222,7 +222,12 @@ class LSHADE(Optimizer):
 
             self.k = (self.k + 1) % self.H
 
-        N_target = int(np.round(((self.N_min - self.N_init) / self.MAX_NFE) * function.n_calls + self.N_init))
+        N_target = int(
+            np.round(
+                ((self.N_min - self.N_init) / self.MAX_NFE) * function.n_calls
+                + self.N_init
+            )
+        )
         N_target = max(self.N_min, N_target)
 
         if N_target < self.N_G:
@@ -254,14 +259,14 @@ def _get_lshade_trial_kernel(xp):
     For every (agent, variable) element it gathers x, x_pbest, x_r1 and x_r2
     straight from the population / archive buffers, builds the mutant, repairs
     bound violations and applies the crossover, writing the trial vector `u`. This
-    replaces three row gathers, an archive concatenation, 
+    replaces three row gathers, an archive concatenation,
 
-        X: (N, nf) population 
+        X: (N, nf) population
         A : (cap + 1, nf) archive buffer
         ipb/ir1: (N, 1)  row of x_pbest / x_r1 in X
         ir2: (N, 1)  row of x_r2 in the union [X; A] (>= n_pop means archive)
         f, cr, jr: (N, 1)  per-agent F, CR and forced crossover column
-        lb, ub: (1, nf) bounds              
+        lb, ub: (1, nf) bounds
         rnd : (N, nf) uniform samples
     """
 
@@ -302,8 +307,7 @@ def _normal(xp, size, dtype):
 
 
 class LSHADETensor(Optimizer, TensorizedOptimizer):
-    """Agnostic Tensorized L-SHADE Implementation (NumPy/CuPy).
-    """
+    """Agnostic Tensorized L-SHADE Implementation (NumPy/CuPy)."""
 
     def __init__(
         self,
@@ -350,8 +354,7 @@ class LSHADETensor(Optimizer, TensorizedOptimizer):
 
     @property
     def A(self):
-        """Current members of the external archive, shape (|A|, *feature_shape)
-        """
+        """Current members of the external archive, shape (|A|, *feature_shape)"""
         if self._A_buf is None:
             return None
 
@@ -442,10 +445,11 @@ class LSHADETensor(Optimizer, TensorizedOptimizer):
         idx_r1 = xp.random.randint(0, N_G - 1, size=N_G)
         idx_r1 = xp.where(idx_r1 >= arange, idx_r1 + 1, idx_r1)
 
-        
         n_union = N_G + self._A_n
-        
-        idx_r2 = (_uniform(xp, N_G, dtype) * (n_union - 2).astype(dtype)).astype(xp.int32)
+
+        idx_r2 = (_uniform(xp, N_G, dtype) * (n_union - 2).astype(dtype)).astype(
+            xp.int32
+        )
         idx_r2 = xp.minimum(idx_r2, n_union - 3)
         exc1 = xp.minimum(arange, idx_r1)
         exc2 = xp.maximum(arange, idx_r1)
@@ -500,10 +504,8 @@ class LSHADETensor(Optimizer, TensorizedOptimizer):
         take_mutant = (rnd <= CR[:, xp.newaxis]) | (self._cols == j_rand[:, xp.newaxis])
         return xp.where(take_mutant, V, X2)
 
-    
     def _insert_into_archive(self, space, success):
-        """Adds the PARENTS of the successful trials to the external archive.
-        """
+        """Adds the PARENTS of the successful trials to the external archive."""
 
         xp = self._xp
         N_G = space.X.shape[0]
@@ -524,8 +526,7 @@ class LSHADETensor(Optimizer, TensorizedOptimizer):
         self._A_n = xp.minimum(self._A_n + n_success, cap).astype(xp.int32)
 
     def _update_memory(self, success, CR, F, f_old, f_new):
-        """Weighted Lehmer/arithmetic update of the historical memory slot `k`.
-        """
+        """Weighted Lehmer/arithmetic update of the historical memory slot `k`."""
 
         xp = self._xp
         H = self.H

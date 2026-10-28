@@ -349,7 +349,7 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.weight_vectors = self.weight_vectors.astype(dtype)
         self.z = xp.full(space.n_objectives, xp.inf, dtype=dtype)
 
-        # ---- Run constants of the replacement step 
+        # ---- Run constants of the replacement step
         n_agents = space.n_agents
         n_neighbors = self.T.shape[1]
         self._T_mod = self.T % n_agents
@@ -402,7 +402,7 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         )
         # Only the first child is used. SBX produces both children in one call, so
         # the second is computed and thrown away;
-        # TODO: n_offspring = 1 
+        # TODO: n_offspring = 1
         del child2_X
         offspring_X = self.mutation_operator(child1_X, space.lb, space.ub)
 
@@ -445,7 +445,6 @@ class MOEADTensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         space.X[final_targets] = O[final_src]
         space.F[final_targets] = F2[final_src]
-
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
