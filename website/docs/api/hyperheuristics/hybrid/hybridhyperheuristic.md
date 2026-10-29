@@ -22,12 +22,12 @@ HybridHyperHeuristic(optimizers: Optional[List[Any]] = None, selection_strategy:
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `optimizers` | `Optional[List[Any]]` | `None` | — |
-| `selection_strategy` | `Optional[opytimizer.hyperheuristics.selection_strategy.SelectionStrategy]` | `None` | — |
-| `adaptation_mechanism` | `Optional[opytimizer.hyperheuristics.adaptation_mechanism.AdaptationMechanism]` | `None` | — |
-| `performance_metric` |  | `None` | — |
-| `selection_interval` | `int` | `1` | — |
-| `adaptation_interval` | `int` | `5` | — |
+| `optimizers` | `Optional[List[Any]]` | `None` | List of low-level optimizers to be managed. |
+| `selection_strategy` | `Optional[opytimizer.hyperheuristics.selection_strategy.SelectionStrategy]` | `None` | Strategy for selecting optimizers. |
+| `adaptation_mechanism` | `Optional[opytimizer.hyperheuristics.adaptation_mechanism.AdaptationMechanism]` | `None` | Mechanism for adapting optimizer parameters. |
+| `performance_metric` |  | `None` | Function to evaluate optimizer performance. |
+| `selection_interval` | `int` | `1` | Interval between optimizer selections. |
+| `adaptation_interval` | `int` | `5` | Interval between parameter adaptations. |
 
 ## Methods
 

@@ -22,6 +22,16 @@ Opytimizer is designed around modular, decoupled blocks to ensure extensibility 
 * **`Callbacks`**: Hook into the optimization pipeline to checkpoint, discretize, or track the task.
 * **`History`**: Stores agents, best agents, Pareto fronts, and metric values across iterations.
 * **`Hyper-Heuristics`**: High-level optimizers that select, adapt, or generate low-level optimizers.
+* **`Benchmarks`**: Test problems from the literature (single-objective, CEC 2022, ZDT, DTLZ, WFG and ZCAT), with their known optima and true Pareto fronts.
+
+## Runner Options
+
+Besides the space, optimizer and function, `Opytimizer` accepts:
+
+* **`save_agents`**: Stores every agent in the history (not only the best one).
+* **`save_history`**: Dumps the task's state into the history at every iteration.
+* **`enable_logging`**: Whether the library logs to the console and to `opytimizer.log` while the runner is created and during `start()` (default `True`).
+* **`show_progress`**: Whether progress bars are drawn during `start()` (default `True`).
 
 ## Optimization Pipeline
 

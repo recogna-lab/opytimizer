@@ -23,13 +23,13 @@ MOEAD_DE(params: Optional[Dict[str, Any]] = None, CR: Union[float, int] = 1.0, n
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Contains key-value parameters to the meta-heuristics. |
 | `CR` | `Union[float, int]` | `1.0` | — |
 | `nr` | `int` | `2` | — |
 | `F` | `Union[float, int]` | `0.5` | — |
 | `neighborhood_prob` | `float` | `0.9` | — |
-| `mutation_operator` |  | `None` | — |
-| `weight_vectors` |  | `None` | — |
+| `mutation_operator` |  | `None` | Mutation operator to be used. |
+| `weight_vectors` |  | `None` | Weights vector to be used. |
 | `decomposition_function` | `opytimizer.math.aggregation._BaseAggregation` | `None` | — |
 
 ## Methods

@@ -19,7 +19,7 @@ SelfAdaptiveControl(learning_rate: float = 0.01) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `learning_rate` | `float` | `0.01` | — |
+| `learning_rate` | `float` | `0.01` | Learning rate for parameter adaptation. |
 
 ## Methods
 

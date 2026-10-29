@@ -24,11 +24,11 @@ ComponentBasedHyperHeuristic(components: Optional[Dict[str, List[Callable]]] = N
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `components` | `Optional[Dict[str, List[Callable]]]` | `None` | — |
-| `population_size` | `int` | `30` | — |
-| `crossover_rate` | `float` | `0.8` | — |
-| `mutation_rate` | `float` | `0.2` | — |
-| `performance_metric` |  | `None` | — |
+| `components` | `Optional[Dict[str, List[Callable]]]` | `None` | Dictionary of algorithm components. |
+| `population_size` | `int` | `30` | Size of the population. |
+| `crossover_rate` | `float` | `0.8` | Probability of crossover. |
+| `mutation_rate` | `float` | `0.2` | Probability of mutation. |
+| `performance_metric` |  | `None` | Function to evaluate performance. |
 
 ## Methods
 

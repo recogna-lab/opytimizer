@@ -30,7 +30,7 @@ MOCE(params: Optional[Dict[str, Any]] = None, DR: float = 0.7, CR: float = 0.7, 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Key-value parameters for the meta-heuristic. `DR`        : Direction factor rate. `CR`        : Crossover rate. `chaotic_system`: Chaotic map to use. Options: `'logistic'`, `'gauss'`, `'tent'`, `'henon'`. |
 | `DR` | `float` | `0.7` | — |
 | `CR` | `float` | `0.7` | — |
 | `chaotic_system` | `Literal['logistic', 'gauss', 'tent', 'henon']` | `'logistic'` | — |

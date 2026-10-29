@@ -9,6 +9,11 @@ description: API reference for PSOTensor.
 
 GPU/CPU-agnostic, fully tensorized implementation of PSO (single-objective),
 
+On CUDA (CuPy) the position/velocity update runs as one fused kernel and the
+random coefficients are drawn directly in the population dtype; on NumPy (or
+if the fused kernel cannot be built) it falls back to the portable
+buffer-based implementation.
+
 ## Constructor
 
 ```python

@@ -14,7 +14,7 @@ References:
 ## Constructor
 
 ```python
-LSHADE(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 100, p: 'float' = 0.11, f_arc: 'float' = 2.6)
+LSHADE(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 6, p: 'float' = 0.11, r_arc: 'float' = 2.6, N_min: 'int' = 4)
 ```
 
 ### Parameters
@@ -23,9 +23,10 @@ LSHADE(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 100, p: 'float' =
 | --- | --- | --- | --- |
 | `params` | `Dict` | `None` | — |
 | `MAX_NFE` | `int` | `100` | — |
-| `H` | `int` | `100` | — |
+| `H` | `int` | `6` | — |
 | `p` | `float` | `0.11` | — |
-| `f_arc` | `float` | `2.6` | — |
+| `r_arc` | `float` | `2.6` | — |
+| `N_min` | `int` | `4` | — |
 
 ## Methods
 

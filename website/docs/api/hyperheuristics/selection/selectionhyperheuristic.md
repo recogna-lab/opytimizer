@@ -24,10 +24,10 @@ SelectionHyperHeuristic(optimizers: Optional[List[Any]] = None, selection_strate
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `optimizers` | `Optional[List[Any]]` | `None` | — |
-| `selection_strategy` | `Optional[opytimizer.hyperheuristics.selection_strategy.SelectionStrategy]` | `None` | — |
-| `performance_metric` |  | `None` | — |
-| `selection_interval` | `int` | `1` | — |
+| `optimizers` | `Optional[List[Any]]` | `None` | List of low-level optimizers to be managed. |
+| `selection_strategy` | `Optional[opytimizer.hyperheuristics.selection_strategy.SelectionStrategy]` | `None` | Strategy for selecting optimizers. |
+| `performance_metric` |  | `None` | Function to evaluate optimizer performance. |
+| `selection_interval` | `int` | `1` | Interval between optimizer selections. |
 
 ## Methods
 

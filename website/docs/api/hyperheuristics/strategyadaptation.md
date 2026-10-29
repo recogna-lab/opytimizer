@@ -19,7 +19,7 @@ StrategyAdaptation(adaptation_threshold: float = 0.1) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `adaptation_threshold` | `float` | `0.1` | — |
+| `adaptation_threshold` | `float` | `0.1` | Threshold for strategy adaptation. |
 
 ## Methods
 

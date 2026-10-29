@@ -26,7 +26,7 @@ CE(params: Optional[Dict[str, Any]] = None, DR: float = 0.7, CR: float = 0.7, p:
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Contains key-value parameters to the meta-heuristics. `DR`: Direction rate. `CR`: Crossover rate. `jump`: Generation jump interval. `chaotic_system`: The chaotic system that will be adopted. The options are `'logistic'`, `'gauss'`, `'tent'` or `'henon'`. |
 | `DR` | `float` | `0.7` | — |
 | `CR` | `float` | `0.7` | — |
 | `p` | `Tuple[float, float]` | `(0.02, 0.1)` | — |

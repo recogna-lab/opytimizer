@@ -29,7 +29,7 @@ OBCE(params: Optional[Dict[str, Any]] = None, DR: float = 0.5, CR: float = 0.9, 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Key-value parameters for the meta-heuristic. `DR`          : Direction factor rate (paper default: 0.5). `CR`          : Crossover rate (paper default: 0.9). `chaotic_system`: Chaotic map. Options: `'logistic'`, `'gauss'`, `'tent'`, `'henon'`. Paper uses `'logistic'`. |
 | `DR` | `float` | `0.5` | — |
 | `CR` | `float` | `0.9` | — |
 | `chaotic_system` | `Literal['logistic', 'gauss', 'tent', 'henon']` | `'logistic'` | — |

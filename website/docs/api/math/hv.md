@@ -7,8 +7,11 @@ description: API reference for HV.
 
 **Module:** `opytimizer.math.metrics`
 
-Helper class that provides a standard way to create an ABC using
-inheritance.
+Exact hypervolume, for any number of objectives (minimization).
+
+The hypervolume is the volume of the objective space dominated by the front
+and bounded by `reference_point`. Points that are not strictly better than
+the reference point in every objective do not contribute to it.
 
 ## Constructor
 

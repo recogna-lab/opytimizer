@@ -7,10 +7,12 @@ description: API reference for Opytimizer.
 
 **Module:** `opytimizer.opytimizer`
 
+Factory that builds the runner matching the number of objectives.
+
 ## Constructor
 
 ```python
-Opytimizer(space: Union[opytimizer.core.space._SingleObjectiveSpace, opytimizer.core.space._MultiObjectiveSpace], optimizer: opytimizer.core.optimizer.Optimizer, function: opytimizer.core.function.Function, save_agents: bool = False, save_history: bool = False) -> opytimizer.opytimizer._BaseRunner
+Opytimizer(space: Union[opytimizer.core.space._SingleObjectiveSpace, opytimizer.core.space._MultiObjectiveSpace], optimizer: opytimizer.core.optimizer.Optimizer, function: opytimizer.core.function.Function, save_agents: bool = False, save_history: bool = False, enable_logging: bool = True, show_progress: bool = True) -> opytimizer.opytimizer._BaseRunner
 ```
 
 ### Parameters
@@ -22,3 +24,5 @@ Opytimizer(space: Union[opytimizer.core.space._SingleObjectiveSpace, opytimizer.
 | `function` | `opytimizer.core.function.Function` |  | — |
 | `save_agents` | `bool` | `False` | — |
 | `save_history` | `bool` | `False` | — |
+| `enable_logging` | `bool` | `True` | — |
+| `show_progress` | `bool` | `True` | — |

@@ -24,10 +24,10 @@ AdaptiveHyperHeuristic(optimizers: Optional[List[Any]] = None, adaptation_mechan
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `optimizers` | `Optional[List[Any]]` | `None` | — |
-| `adaptation_mechanism` | `Optional[opytimizer.hyperheuristics.adaptation_mechanism.AdaptationMechanism]` | `None` | — |
-| `performance_metric` |  | `None` | — |
-| `adaptation_interval` | `int` | `5` | — |
+| `optimizers` | `Optional[List[Any]]` | `None` | List of low-level optimizers to be managed. |
+| `adaptation_mechanism` | `Optional[opytimizer.hyperheuristics.adaptation_mechanism.AdaptationMechanism]` | `None` | Mechanism for adapting optimizer parameters. |
+| `performance_metric` |  | `None` | Function to evaluate optimizer performance. |
+| `adaptation_interval` | `int` | `5` | Interval between parameter adaptations. |
 
 ## Methods
 

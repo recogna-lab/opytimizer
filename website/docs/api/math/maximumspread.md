@@ -7,8 +7,10 @@ description: API reference for MaximumSpread.
 
 **Module:** `opytimizer.math.metrics`
 
-Helper class that provides a standard way to create an ABC using
-inheritance.
+Maximum spread: diagonal of the bounding box of the obtained front.
+
+MS = sqrt(sum_m (max f_m - min f_m)^2), as defined by Zitzler, Deb and
+Thiele (2000).
 
 ## Constructor
 

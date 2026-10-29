@@ -20,8 +20,8 @@ CheckpointCallback(file_path: str = None, frequency: int = 0) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `file_path` | `str` | `None` | — |
-| `frequency` | `int` | `0` | — |
+| `file_path` | `str` | `None` | Path of file to be saved. |
+| `frequency` | `int` | `0` | Interval between checkpoints. |
 
 ## Methods
 

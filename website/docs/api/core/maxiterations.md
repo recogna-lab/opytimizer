@@ -7,7 +7,7 @@ description: API reference for MaxIterations.
 
 **Module:** `opytimizer.core.stopping`
 
-Base Class.  `should_stop` must be implemented in each subclass
+Stops after `n` iterations of the optimization loop.
 
 ## Constructor
 

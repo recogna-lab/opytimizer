@@ -31,7 +31,8 @@ const FeatureList = [
     description: (
       <>
         Designed for scalability. Optimize complex functions quickly using
-        parallel processing and advanced multi-objective algorithms.
+        parallel processing and advanced multi-objective algorithms, and
+        evaluate them on built-in benchmarks: CEC 2022, ZDT, DTLZ, WFG and ZCAT.
       </>
     ),
   },

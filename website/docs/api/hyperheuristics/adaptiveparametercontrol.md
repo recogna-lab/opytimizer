@@ -19,7 +19,7 @@ AdaptiveParameterControl(adaptation_window: int = 10) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `adaptation_window` | `int` | `10` | — |
+| `adaptation_window` | `int` | `10` | Window size for performance analysis. |
 
 ## Methods
 

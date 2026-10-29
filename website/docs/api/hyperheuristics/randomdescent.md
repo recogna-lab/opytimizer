@@ -19,7 +19,7 @@ RandomDescent(acceptance_threshold: float = 0.1) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `acceptance_threshold` | `float` | `0.1` | — |
+| `acceptance_threshold` | `float` | `0.1` | Threshold for accepting worse performance. |
 
 ## Methods
 

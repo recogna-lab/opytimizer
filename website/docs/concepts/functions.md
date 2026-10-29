@@ -35,6 +35,19 @@ Where $\lambda$ is the `penalty` factor.
 
 * $f(x) = \sum_{i=1}^{M} w_i f_i(x)$
 
+## Benchmark Problems
+
+The `opytimizer.benchmarks` package provides ready-made objective functions from the literature (classic single-objective functions, CEC 2022, ZDT, DTLZ, WFG and ZCAT). They are callables, so they are wrapped by `Function` like any other function:
+
+```python
+from opytimizer.benchmarks import Rastrigin
+from opytimizer.core import Function
+
+function = Function(Rastrigin(n_variables=10))
+```
+
+See [Benchmark Problems](benchmarks.md) for details.
+
 ## Evaluation Counter
 
 Every `Function` counts its calls in `n_calls`, which is used by the `MaxEvaluations` stopping criterion.

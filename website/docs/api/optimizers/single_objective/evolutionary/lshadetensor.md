@@ -12,7 +12,7 @@ Agnostic Tensorized L-SHADE Implementation (NumPy/CuPy).
 ## Constructor
 
 ```python
-LSHADETensor(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 100, p: 'float' = 0.11, f_arc: 'float' = 2.6)
+LSHADETensor(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 6, p: 'float' = 0.11, r_arc: 'float' = 2.6, N_min: 'int' = 4)
 ```
 
 ### Parameters
@@ -21,9 +21,10 @@ LSHADETensor(params: 'Dict' = None, MAX_NFE: 'int' = 100, H: 'int' = 100, p: 'fl
 | --- | --- | --- | --- |
 | `params` | `Dict` | `None` | — |
 | `MAX_NFE` | `int` | `100` | — |
-| `H` | `int` | `100` | — |
+| `H` | `int` | `6` | — |
 | `p` | `float` | `0.11` | — |
-| `f_arc` | `float` | `2.6` | — |
+| `r_arc` | `float` | `2.6` | — |
+| `N_min` | `int` | `4` | — |
 
 ## Methods
 

@@ -388,11 +388,36 @@ def normalize_docstring(doc: str) -> str:
     lines = doc.splitlines()
 
     normalized = []
+    in_fence = False
 
     for line in lines:
-        normalized.append(line.rstrip())
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            normalized.append(line.rstrip())
+            continue
+
+        normalized.append(line.rstrip() if in_fence else escape_mdx(line.rstrip()))
 
     return "\n".join(normalized).strip()
+
+
+def escape_mdx(line: str) -> str:
+    """
+    Escape the MDX-sensitive characters of a docstring line, outside of inline code.
+
+    MDX parses ``{...}`` as a JavaScript expression and ``<`` as the start of a
+    JSX tag, so math written in a docstring (e.g., ``sum_{j<=i}``) would
+    otherwise break the build.
+    """
+
+    # Odd-indexed parts are the contents of inline code spans
+    parts = line.split("`")
+    for i in range(0, len(parts), 2):
+        parts[i] = (
+            parts[i].replace("{", "\\{").replace("}", "\\}").replace("<", "\\<")
+        )
+
+    return "`".join(parts)
 
 
 def find_parameter_section(
@@ -730,7 +755,13 @@ def generate_class_markdown(
 
     doc = normalize_docstring(clean_docstring(cls))
 
-    parameter_descriptions = parse_parameter_descriptions(doc)
+    # Constructor arguments are usually documented in `__init__` (possibly an
+    # inherited one); the class docstring takes precedence when both exist.
+    init_doc = normalize_docstring(clean_docstring(cls.__init__))
+    parameter_descriptions = {
+        **parse_parameter_descriptions(init_doc),
+        **parse_parameter_descriptions(doc),
+    }
 
     constructor_parameters = get_parameters(
         cls,

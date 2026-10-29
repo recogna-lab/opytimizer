@@ -19,8 +19,8 @@ SimulatedAnnealingSelection(initial_temperature: float = 100.0, cooling_rate: fl
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `initial_temperature` | `float` | `100.0` | — |
-| `cooling_rate` | `float` | `0.95` | — |
+| `initial_temperature` | `float` | `100.0` | Initial temperature for SA. |
+| `cooling_rate` | `float` | `0.95` | Rate at which temperature decreases. |
 
 ## Methods
 

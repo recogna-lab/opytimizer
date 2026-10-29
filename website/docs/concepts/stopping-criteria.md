@@ -21,6 +21,16 @@ If no criterion is provided, `MaxIterations(250)` is used by default.
 
 Note that `MaxEvaluations` is a soft check: since it is only verified at the end of each iteration, the final number of evaluations may slightly exceed `n`.
 
+## Progress Bars
+
+Each criterion draws its own progress bar during `start()`. They can be disabled with `show_progress=False` when creating the `Opytimizer`, which is convenient for long benchmark studies with many runs:
+
+```python
+opt = Opytimizer(space, optimizer, function, show_progress=False)
+```
+
+Without progress bars, the values shown in the bar (e.g., the best fitness) are never copied back from the GPU. On GPU runs, `NoImprovement(..., check_every=10)` also reduces how often the criterion reads its counter back to the host.
+
 ## Example Code
 
 ```python

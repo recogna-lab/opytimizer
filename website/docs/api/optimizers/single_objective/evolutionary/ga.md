@@ -25,9 +25,9 @@ GA(params: Optional[Dict[str, Any]] = None, crossover_operator=None, mutation_op
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
-| `crossover_operator` |  | `None` | — |
-| `mutation_operator` |  | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Contains key-value parameters to the meta-heuristics. |
+| `crossover_operator` |  | `None` | Crossover operator to be used. |
+| `mutation_operator` |  | `None` | Mutation operator to be used. |
 
 ## Methods
 

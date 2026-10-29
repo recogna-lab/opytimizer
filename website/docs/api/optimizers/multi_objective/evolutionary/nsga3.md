@@ -27,10 +27,10 @@ NSGA3(params: dict = None, crossover_operator=None, mutation_operator=None, refe
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `dict` | `None` | — |
-| `crossover_operator` |  | `None` | — |
-| `mutation_operator` |  | `None` | — |
-| `reference_points` | `numpy.ndarray` | `None` | — |
+| `params` | `dict` | `None` | Contains key-value parameters to the meta-heuristics. |
+| `crossover_operator` |  | `None` | Crossover operator to be used. |
+| `mutation_operator` |  | `None` | Mutation operator to be used. |
+| `reference_points` | `numpy.ndarray` | `None` | Pre-computed reference points of shape (H, M). If None, they are generated via Das and Dennis's approach using n_divisions (default set to 12). |
 
 ## Methods
 

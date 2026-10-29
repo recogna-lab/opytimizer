@@ -19,7 +19,7 @@ CallbackVessel(callbacks: List[opytimizer.utils.callback.Callback]) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `callbacks` | `List[opytimizer.utils.callback.Callback]` |  | — |
+| `callbacks` | `List[opytimizer.utils.callback.Callback]` |  | List of Callback-based childs. |
 
 ## Methods
 

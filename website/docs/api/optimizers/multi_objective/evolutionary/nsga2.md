@@ -9,6 +9,11 @@ description: API reference for NSGA2.
 
 NSGA2 class, inherited from MultiObjectiveOptimizer.
 
+References:
+    K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan, "A fast and elitist
+    multiobjective genetic algorithm: NSGA-II," IEEE Trans. Evol. Comput.,
+    vol. 6, no. 2, pp. 182-197, 2002.
+
 ## Constructor
 
 ```python
@@ -19,9 +24,9 @@ NSGA2(params: 'Dict' = None, crossover_operator=None, mutation_operator=None) ->
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Dict` | `None` | — |
-| `crossover_operator` |  | `None` | — |
-| `mutation_operator` |  | `None` | — |
+| `params` | `Dict` | `None` | Contains key-value parameters to the meta-heuristics. |
+| `crossover_operator` |  | `None` | Crossover operator applied to pairs of parents. |
+| `mutation_operator` |  | `None` | Mutation operator applied to every child. |
 
 ## Methods
 
@@ -33,14 +38,11 @@ compile(self, space: '_MultiObjectiveSpace') -> 'None'
 
 Compiles additional information that is used by this optimizer.
 
-This method is called before the optimization procedure and makes sure
-that the additional variable is available as a property.
-
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` | `_MultiObjectiveSpace` |  | — |
+| `space` | `_MultiObjectiveSpace` |  | A MultiObjectiveSpace object. |
 
 ### `evaluate`
 
@@ -48,14 +50,17 @@ that the additional variable is available as a property.
 evaluate(self, space, function)
 ```
 
-Evaluates the search space according to the objective function.
+Evaluates the initial population and computes its ranks and crowding.
+
+Offspring are evaluated inside `update`, so this method replaces itself
+with a no-op after its first call.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` |  |  | A Space object that will be evaluated. |
-| `function` |  |  | A Function object serving as an objective function. |
+| `space` |  |  | A MultiObjectiveSpace object. |
+| `function` |  |  | A Function object that will be used as the objective function. |
 
 ### `update`
 
@@ -63,14 +68,11 @@ Evaluates the search space according to the objective function.
 update(self, space: '_MultiObjectiveSpace', function) -> 'None'
 ```
 
-Updates the agents' position array.
-
-As each child has a different procedure of update, you will need
-to implement it directly on its class.
+Performs one generation: creates, evaluates and selects the offspring.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` | `_MultiObjectiveSpace` |  | — |
-| `function` |  |  | — |
+| `space` | `_MultiObjectiveSpace` |  | A MultiObjectiveSpace object. |
+| `function` |  |  | A Function object that will be used as the objective function. |

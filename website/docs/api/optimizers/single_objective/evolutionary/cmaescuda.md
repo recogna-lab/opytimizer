@@ -22,7 +22,7 @@ CMAESCuda(params: Optional[Dict[str, Any]] = None, **kwargs) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Contains key-value parameters to the meta-heuristics. |
 | `kwargs` |  |  | — |
 
 ## Methods
@@ -40,17 +40,3 @@ Compiles additional information that is used by this optimizer.
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `space` | `opytimizer.core.space._SingleObjectiveTensorSpace` |  | A TensorSpace object containing meta-information. |
-
-### `update`
-
-```python
-update(self, space: opytimizer.core.space._SingleObjectiveTensorSpace) -> None
-```
-
-Wraps CMA-ES over all agents and variables using CUDA Raw Kernels.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `space` | `opytimizer.core.space._SingleObjectiveTensorSpace` |  | Space containing agents and update-related information. |

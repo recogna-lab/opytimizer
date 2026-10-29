@@ -9,6 +9,9 @@ description: API reference for RVEACuda.
 
 GPU-friendly, fully tensorized implementation of RVEA.
 
+Identical to `RVEATensor` except for the grouped-argmin step, which can run
+as a single hand-written CUDA kernel.
+
 ## Constructor
 
 ```python
@@ -45,36 +48,3 @@ that the additional variable is available as a property.
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `space` | `opytimizer.core.space._MultiObjectiveSpace` |  | — |
-
-### `evaluate`
-
-```python
-evaluate(self, space: opytimizer.core.space._MultiObjectiveTensorSpace, function: opytimizer.core.function.Function) -> None
-```
-
-Evaluates the search space according to the objective function.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `space` | `opytimizer.core.space._MultiObjectiveTensorSpace` |  | A Space object that will be evaluated. |
-| `function` | `opytimizer.core.function.Function` |  | A Function object serving as an objective function. |
-
-### `update`
-
-```python
-update(self, space: opytimizer.core.space._MultiObjectiveTensorSpace, function: opytimizer.core.function.Function) -> None
-```
-
-Updates the agents' position array.
-
-As each child has a different procedure of update, you will need
-to implement it directly on its class.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `space` | `opytimizer.core.space._MultiObjectiveTensorSpace` |  | — |
-| `function` | `opytimizer.core.function.Function` |  | — |

@@ -27,6 +27,17 @@ Standard spaces store one `Agent` object per solution. Tensorized spaces (`tenso
 * Standard optimizers cannot process tensorized spaces, and vice versa.
 * Objective functions used with tensorized spaces receive the whole population, with shape `(n_agents, n_variables)`, and must return one value per agent.
 
+## Benchmark Problems
+
+The problems of `opytimizer.benchmarks` also receive an `env`, which defines where they are evaluated. CuPy is imported only when a CuPy environment is actually used, so the benchmarks work on machines without it:
+
+```python
+from opytimizer.benchmarks import DTLZ2
+from opytimizer.core import Environment
+
+problem = DTLZ2(n_objectives=3, env=Environment("cupy", "float32"))
+```
+
 ## Example Code
 
 ```python

@@ -19,7 +19,7 @@ MultiArmedBandit(exploration_constant: float = 2.0) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `exploration_constant` | `float` | `2.0` | — |
+| `exploration_constant` | `float` | `2.0` | Constant for UCB exploration (default: 2.0). |
 
 ## Methods
 

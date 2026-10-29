@@ -22,7 +22,7 @@ History(save_agents: bool = False) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `save_agents` | `bool` | `False` | — |
+| `save_agents` | `bool` | `False` | Saves all agents in the search space. |
 
 ## Methods
 

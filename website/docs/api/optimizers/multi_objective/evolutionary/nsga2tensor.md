@@ -23,9 +23,9 @@ NSGA2Tensor(params: 'dict' = None, crossover_operator=None, mutation_operator=No
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `dict` | `None` | — |
-| `crossover_operator` |  | `None` | — |
-| `mutation_operator` |  | `None` | — |
+| `params` | `dict` | `None` | Contains key-value parameters to the meta-heuristics. |
+| `crossover_operator` |  | `None` | Tensorized crossover operator applied to the parents. |
+| `mutation_operator` |  | `None` | Tensorized mutation operator applied to the children. |
 
 ## Methods
 
@@ -35,16 +35,16 @@ NSGA2Tensor(params: 'dict' = None, crossover_operator=None, mutation_operator=No
 compile(self, space: '_MultiObjectiveTensorSpace') -> 'None'
 ```
 
-Compiles additional information that is used by this optimizer.
+Allocates the population buffers and binds the optimizer to the backend.
 
-This method is called before the optimization procedure and makes sure
-that the additional variable is available as a property.
+`P_tensor` / `F_tensor` hold `2 * n_agents` rows: the current population in
+the first half and the offspring of the generation in the second one.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` | `_MultiObjectiveTensorSpace` |  | — |
+| `space` | `_MultiObjectiveTensorSpace` |  | A tensorized MultiObjectiveSpace object. |
 
 ### `evaluate`
 
@@ -52,14 +52,17 @@ that the additional variable is available as a property.
 evaluate(self, space: '_MultiObjectiveTensorSpace', function) -> 'None'
 ```
 
-Evaluates the search space according to the objective function.
+Evaluates the initial population and computes its ranks and crowding.
+
+Offspring are evaluated inside `update`, so this method replaces itself
+with a no-op after its first call.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` | `_MultiObjectiveTensorSpace` |  | A Space object that will be evaluated. |
-| `function` |  |  | A Function object serving as an objective function. |
+| `space` | `_MultiObjectiveTensorSpace` |  | A tensorized MultiObjectiveSpace object. |
+| `function` |  |  | A Function object that will be used as the objective function. |
 
 ### `update`
 
@@ -67,14 +70,11 @@ Evaluates the search space according to the objective function.
 update(self, space: '_MultiObjectiveTensorSpace', function) -> 'None'
 ```
 
-Updates the agents' position array.
-
-As each child has a different procedure of update, you will need
-to implement it directly on its class.
+Performs one generation: creates, evaluates and selects the offspring.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `space` | `_MultiObjectiveTensorSpace` |  | — |
-| `function` |  |  | — |
+| `space` | `_MultiObjectiveTensorSpace` |  | A tensorized MultiObjectiveSpace object. |
+| `function` |  |  | A Function object that will be used as the objective function. |

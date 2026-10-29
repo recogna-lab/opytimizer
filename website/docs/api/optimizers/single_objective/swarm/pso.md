@@ -26,7 +26,7 @@ PSO(params: Optional[Dict[str, Any]] = None, **kwargs) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `params` | `Optional[Dict[str, Any]]` | `None` | — |
+| `params` | `Optional[Dict[str, Any]]` | `None` | Contains key-value parameters to the meta-heuristics. |
 | `kwargs` |  |  | — |
 
 ## Methods

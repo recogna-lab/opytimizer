@@ -25,8 +25,8 @@ HyperHeuristic(optimizers: Optional[List[opytimizer.core.optimizer.Optimizer]] =
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `optimizers` | `Optional[List[opytimizer.core.optimizer.Optimizer]]` | `None` | — |
-| `performance_metric` | `Optional[Callable[[Any], float]]` | `None` | — |
+| `optimizers` | `Optional[List[opytimizer.core.optimizer.Optimizer]]` | `None` | List of low-level optimizers to be managed. |
+| `performance_metric` | `Optional[Callable[[Any], float]]` | `None` | Function to evaluate optimizer performance. |
 
 ## Methods
 

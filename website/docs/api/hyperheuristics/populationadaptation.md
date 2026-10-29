@@ -19,8 +19,8 @@ PopulationAdaptation(min_population: int = 10, max_population: int = 100) -> Non
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `min_population` | `int` | `10` | — |
-| `max_population` | `int` | `100` | — |
+| `min_population` | `int` | `10` | Minimum population size. |
+| `max_population` | `int` | `100` | Maximum population size. |
 
 ## Methods
 

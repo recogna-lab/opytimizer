@@ -19,13 +19,13 @@ Agent(n_variables: int, n_dimensions: int, n_objectives: int, lower_bound: List[
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `n_variables` | `int` |  | — |
-| `n_dimensions` | `int` |  | — |
-| `n_objectives` | `int` |  | — |
-| `lower_bound` | `List[Union[int, float]]` |  | — |
-| `upper_bound` | `List[Union[int, float]]` |  | — |
-| `mapping` | `Optional[List[str]]` | `None` | — |
-| `env` | `opytimizer.core.environment.Environment` | `None` | — |
+| `n_variables` | `int` |  | Number of decision variables. |
+| `n_dimensions` | `int` |  | Number of dimensions. |
+| `n_objectives` | `int` |  | Number of objective functions. |
+| `lower_bound` | `List[Union[int, float]]` |  | Minimum possible values. |
+| `upper_bound` | `List[Union[int, float]]` |  | Maximum possible values. |
+| `mapping` | `Optional[List[str]]` | `None` | String-based identifiers for mapping variables' names.` |
+| `env` | `opytimizer.core.environment.Environment` | `None` | Environment class object. |
 
 ## Methods
 

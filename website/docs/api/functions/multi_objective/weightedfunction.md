@@ -19,5 +19,5 @@ WeightedFunction(functions: List[<built-in function callable>], weights: List[fl
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `functions` | `List[<built-in function callable>]` |  | — |
-| `weights` | `List[float]` |  | — |
+| `functions` | `List[<built-in function callable>]` |  | Pointers to functions that will return the fitness value. |
+| `weights` | `List[float]` |  | Weights for weighted-sum strategy. |

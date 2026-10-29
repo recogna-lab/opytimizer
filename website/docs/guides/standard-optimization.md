@@ -11,9 +11,9 @@ This guide demonstrates how to set up and execute a standard single-objective op
 
 ```python
 import numpy as np
-from opytimark.markers.n_dimensional import Sphere
 
 from opytimizer import Opytimizer
+from opytimizer.benchmarks import Sphere
 from opytimizer.core import Function
 from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import PSO
@@ -34,7 +34,7 @@ upper_bound = [10, 10]
 # Creates the space, optimizer and function
 space = SearchSpace(n_agents, n_variables, n_objectives, lower_bound, upper_bound)
 optimizer = PSO()
-function = Function(Sphere())
+function = Function(Sphere(n_variables=n_variables))
 
 # Bundles every piece into Opytimizer class
 opt = Opytimizer(space, optimizer, function, save_agents=False)

@@ -19,8 +19,8 @@ ChoiceFunction(alpha: float = 0.5, beta: float = 0.5) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `alpha` | `float` | `0.5` | — |
-| `beta` | `float` | `0.5` | — |
+| `alpha` | `float` | `0.5` | Weight for recent performance. |
+| `beta` | `float` | `0.5` | Weight for historical performance. |
 
 ## Methods
 

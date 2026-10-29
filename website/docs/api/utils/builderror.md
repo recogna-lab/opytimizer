@@ -19,4 +19,4 @@ BuildError(error: str) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `error` | `str` |  | — |
+| `error` | `str` |  | Error message to be logged. |

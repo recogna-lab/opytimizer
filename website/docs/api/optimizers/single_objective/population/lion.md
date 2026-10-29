@@ -20,10 +20,10 @@ Lion(n_variables: int, n_dimensions: int, n_objectives: int, lower_bound: Union[
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `n_variables` | `int` |  | — |
-| `n_dimensions` | `int` |  | — |
+| `n_variables` | `int` |  | Number of decision variables. |
+| `n_dimensions` | `int` |  | Number of dimensions. |
 | `n_objectives` | `int` |  | — |
-| `lower_bound` | `Union[List, Tuple, numpy.ndarray]` |  | — |
-| `upper_bound` | `Union[List, Tuple, numpy.ndarray]` |  | — |
-| `position` | `numpy.ndarray` |  | — |
-| `fit` | `float` |  | — |
+| `lower_bound` | `Union[List, Tuple, numpy.ndarray]` |  | Minimum possible values. |
+| `upper_bound` | `Union[List, Tuple, numpy.ndarray]` |  | Maximum possible values. |
+| `position` | `numpy.ndarray` |  | Position array. |
+| `fit` | `float` |  | Fitness value. |

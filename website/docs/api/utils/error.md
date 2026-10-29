@@ -21,4 +21,4 @@ Error(cls: str, msg: str) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `msg` | `str` |  | — |
+| `msg` | `str` |  | Message to be logged. |

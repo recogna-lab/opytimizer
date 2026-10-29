@@ -19,7 +19,7 @@ ParameterAdaptation(adaptation_rate: float = 0.1) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `adaptation_rate` | `float` | `0.1` | — |
+| `adaptation_rate` | `float` | `0.1` | Rate of parameter adaptation. |
 
 ## Methods
 

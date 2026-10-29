@@ -20,7 +20,7 @@ DiscreteSearchCallback(allowed_values: List[Union[int, float]] = None) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `allowed_values` | `List[Union[int, float]]` | `None` | — |
+| `allowed_values` | `List[Union[int, float]]` | `None` | Possible values between lower and upper bounds that variables can be mapped. |
 
 ## Methods
 

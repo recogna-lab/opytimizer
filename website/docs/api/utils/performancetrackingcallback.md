@@ -20,7 +20,7 @@ PerformanceTrackingCallback(window_size: int = 10) -> None
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `window_size` | `int` | `10` | — |
+| `window_size` | `int` | `10` | Size of the performance window for analysis. |
 
 ## Methods
 

@@ -19,6 +19,6 @@ PolynomialMutationTensor(env: opytimizer.core.environment.Environment, eta: int 
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `env` | `opytimizer.core.environment.Environment` |  | — |
-| `eta` | `int` | `20` | — |
-| `rate` | `float` | `0.03333333333333333` | — |
+| `env` | `opytimizer.core.environment.Environment` |  | Environment whose array module (numpy / cupy) runs the operator. |
+| `eta` | `int` | `20` | Distribution index (larger values yield smaller perturbations). |
+| `rate` | `float` | `0.03333333333333333` | Probability of mutating each variable (usually 1 / n_variables). |
