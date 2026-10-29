@@ -260,11 +260,12 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         super().__init__()
         logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (Tensor).")
 
+        # The environment of the operators is replaced by the space's in `compile`
         self.crossover_operator = crossover_operator or SBXCrossoverTensor(
-            rate=1.0, gene_rate=1.0
+            env=Environment("numpy", "float32"), rate=1.0, gene_rate=1.0
         )
         self.mutation_operator = mutation_operator or PolynomialMutationTensor(
-            rate=1.0 / 30.0
+            env=Environment("numpy", "float32"), rate=1.0 / 30.0
         )
 
         self.reference_vectors = reference_vectors
@@ -331,6 +332,10 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         self._xp = xp.__wrapped__
         self.dtype = xp.dtype(space.env.dtype)
+
+        # The operators must run on the same backend as the space
+        self.crossover_operator.env = space.env
+        self.mutation_operator.env = space.env
 
         self.reference_vectors = xp.asarray(self.reference_vectors, dtype=self.dtype)
         self.current_reference_vectors = xp.asarray(

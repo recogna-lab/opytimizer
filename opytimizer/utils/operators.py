@@ -54,6 +54,7 @@ class BaseCrossover(ABC):
     def _return_offspring(
         self, children1: Union[Agent, List[Agent]], children2: Union[Agent, List[Agent]]
     ) -> Union[List[Agent], Tuple[List[Agent], List[Agent]]]:
+        """Returns one or both children according to `n_offspring` (single-pair calls)."""
         if self.n_offspring == 1:
             return children1
         else:
@@ -146,6 +147,7 @@ class ArithmeticCrossover(ContinuousCrossover):
         super().__init__(rate, gene_rate, n_offspring)
 
     def _arithmetic_positions(self, P1, P2):
+        """Blends each active gene of the parents with a random weight `alpha`."""
         active = np.random.random(P1.shape) < self.gene_rate
         alpha = np.random.random(P1.shape)
         C1 = np.where(active, alpha * P1 + (1.0 - alpha) * P2, P1)
@@ -155,6 +157,18 @@ class ArithmeticCrossover(ContinuousCrossover):
     def __call__(
         self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]
     ) -> Union[Agent, List[Agent]]:
+        """Applies the crossover to a pair or to a batch of pairs of parents.
+
+        Args:
+            parent1: First parent (or list of first parents).
+            parent2: Second parent (or list of second parents).
+
+        Returns:
+            (Union[Agent, List[Agent]]): For a batch, the list `children1 + children2`
+                (two children per pair); otherwise, see `_return_offspring`.
+
+        """
+
         is_batch = isinstance(parent1, list)
 
         p1_list = parent1 if is_batch else [parent1]
@@ -169,6 +183,7 @@ class ArithmeticCrossover(ContinuousCrossover):
         LB = np.stack([p.lb.ravel() for p in p1_list])
         UB = np.stack([p.ub.ravel() for p in p1_list])
 
+        # Pairs that skip the crossover (probability 1 - rate) copy their parents
         gate = (np.random.random((pop,)) < self.rate)[:, None]
         C1, C2 = self._arithmetic_positions(P1, P2)
 
@@ -194,12 +209,23 @@ class GaussianMutation(BaseMutation):
         self.std = std
 
     def _gaussian_positions(self, X, LB, UB):
+        """Adds clipped Gaussian noise to each gene with probability `rate`."""
         active = (np.random.random(X.shape) < self.rate) & (LB != UB)
         noise = np.random.normal(0.0, self.std, X.shape)
         X_new = np.clip(X + noise, LB, UB)
         return np.where(active, X_new, X)
 
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        """Mutates an agent (returning a copy) or a list of agents (in place).
+
+        Args:
+            agent: Agent or list of agents to be mutated.
+
+        Returns:
+            (Union[Agent, List[Agent]]): The mutated agent(s).
+
+        """
+
         is_batch = isinstance(agent, list)
 
         agents = agent if is_batch else [agent]
@@ -222,19 +248,41 @@ class GaussianMutation(BaseMutation):
 
 
 class SBXCrossover(ContinuousCrossover):
-    """Simulated Binary Crossover (SBX) operating on Agents (CPU)."""
+    """Simulated Binary Crossover (SBX) operating on Agents (CPU).
+
+    Follows the bounded SBX of Deb's NSGA-II reference implementation.
+
+    References:
+        K. Deb and R. B. Agrawal, "Simulated binary crossover for continuous search
+        space," Complex Systems, vol. 9, no. 2, pp. 115-148, 1995.
+
+    """
 
     def __init__(
         self,
         eta: int = 20,
         rate: float = 1.0,
-        gene_rate: float = 1.0,
+        gene_rate: float = 0.5,
         n_offspring: int = 2,
     ):
+        """Initialization method.
+
+        Args:
+            eta: Distribution index (larger values keep children closer to parents).
+            rate: Probability of applying the crossover to a pair of parents.
+            gene_rate: Probability of recombining each variable of a pair. The
+                standard value (0.5) preserves building blocks; recombining every
+                variable (1.0) severely slows down convergence.
+            n_offspring: Number of children returned by a single-pair call.
+
+        """
+
         super().__init__(rate, gene_rate, n_offspring)
         self.eta = eta
 
     def _sbx_positions(self, p1, p2, lb, ub):
+        """Computes the SBX children of two parent matrices of shape (pop, n_vars)."""
+        # Identical genes and fixed variables (lb == ub) are left untouched
         active = (
             (np.random.random(p1.shape) < self.gene_rate)
             & (np.abs(p1 - p2) > 1e-14)
@@ -246,6 +294,7 @@ class SBXCrossover(ContinuousCrossover):
         rand = np.random.random(p1.shape)
         exp = 1.0 / (self.eta + 1.0)
 
+        # Spread factor of the child near y1, bounded by the distance to `lb`
         beta1 = 1.0 + 2.0 * (y1 - lb) / delta
         alpha1 = 2.0 - np.power(beta1, -(self.eta + 1.0))
         betaq1 = np.where(
@@ -255,6 +304,7 @@ class SBXCrossover(ContinuousCrossover):
         )
         c1 = np.clip(0.5 * ((y1 + y2) - betaq1 * delta), lb, ub)
 
+        # Spread factor of the child near y2, bounded by the distance to `ub`
         beta2 = 1.0 + 2.0 * (ub - y2) / delta
         alpha2 = 2.0 - np.power(beta2, -(self.eta + 1.0))
         betaq2 = np.where(
@@ -264,6 +314,7 @@ class SBXCrossover(ContinuousCrossover):
         )
         c2 = np.clip(0.5 * ((y1 + y2) + betaq2 * delta), lb, ub)
 
+        # Randomly assigns each recombined gene to one of the two children
         swap = np.random.random(p1.shape) <= 0.5
         final1 = np.where(swap, c2, c1)
         final2 = np.where(swap, c1, c2)
@@ -273,6 +324,18 @@ class SBXCrossover(ContinuousCrossover):
     def __call__(
         self, parent1: Union[Agent, List[Agent]], parent2: Union[Agent, List[Agent]]
     ) -> Union[Agent, List[Agent]]:
+        """Applies the SBX to a pair or to a batch of pairs of parents.
+
+        Args:
+            parent1: First parent (or list of first parents).
+            parent2: Second parent (or list of second parents).
+
+        Returns:
+            (Union[Agent, List[Agent]]): For a batch, the list `children1 + children2`
+                (two children per pair); otherwise, see `_return_offspring`.
+
+        """
+
         is_batch = isinstance(parent1, list)
 
         p1_list = parent1 if is_batch else [parent1]
@@ -287,6 +350,7 @@ class SBXCrossover(ContinuousCrossover):
         LB = np.stack([p.lb.ravel() for p in p1_list])
         UB = np.stack([p.ub.ravel() for p in p1_list])
 
+        # Pairs that skip the crossover (probability 1 - rate) copy their parents
         gate = (np.random.random((pop,)) < self.rate)[:, None]
         C1, C2 = self._sbx_positions(P1, P2, LB, UB)
 
@@ -311,6 +375,7 @@ class OnePointCrossover(BaseCrossover):
         super().__init__(rate, n_offspring)
 
     def _one_point_positions(self, P1, P2, LB, UB):
+        """Swaps the tails of each pair after a random cut point in [1, n_vars)."""
         pop, n_vars = P1.shape
         points = np.random.randint(1, n_vars, size=(pop, 1))
         idx = np.arange(n_vars)[None, :]
@@ -340,6 +405,7 @@ class OnePointCrossover(BaseCrossover):
         n_vars = P1.shape[1]
         gate = (np.random.random((pop,)) < self.rate)[:, None]
 
+        # A single variable has no cut point, so the parents are copied
         if n_vars > 1:
             C1, C2 = self._one_point_positions(P1, P2, LB, UB)
         else:
@@ -367,6 +433,7 @@ class BitFlipMutation(BaseMutation):
         super().__init__(rate)
 
     def _bitflip_positions(self, X):
+        """Flips each bit with probability `rate`."""
         active = np.random.random(X.shape) < self.rate
         return np.where(active, 1 - X, X)
 
@@ -389,9 +456,20 @@ class BitFlipMutation(BaseMutation):
 
 
 class PolynomialMutation(BaseMutation):
-    """Polynomial mutation for real-valued vectors operating on Agents (CPU)."""
+    """Polynomial mutation for real-valued vectors operating on Agents (CPU).
+
+    Follows the bounded polynomial mutation of Deb's NSGA-II reference implementation.
+
+    """
 
     def __init__(self, eta: int = 20, rate: float = 1 / 30):
+        """Initialization method.
+
+        Args:
+            eta: Distribution index (larger values yield smaller perturbations).
+            rate: Probability of mutating each variable (usually 1 / n_variables).
+
+        """
 
         super().__init__(rate)
         self.eta = eta
@@ -409,7 +487,9 @@ class PolynomialMutation(BaseMutation):
         self._eta = eta
 
     def _pm_positions(self, x, lb, ub):
+        """Applies the polynomial mutation to a matrix of shape (pop, n_vars)."""
         active = (np.random.random(x.shape) < self.rate) & (lb != ub)
+        # Normalized distances to the lower / upper bounds, which bound the step
         delta1 = (x - lb) / np.maximum(ub - lb, 1e-14)
         delta2 = (ub - x) / np.maximum(ub - lb, 1e-14)
         rand = np.random.random(x.shape)
@@ -425,11 +505,22 @@ class PolynomialMutation(BaseMutation):
         )
         dq_hi = 1.0 - np.power(np.maximum(val_hi, 1e-14), exp)
 
+        # rand <= 0.5 moves towards the lower bound, otherwise towards the upper one
         deltaq = np.where(rand <= 0.5, dq_lo, dq_hi)
         x_new = np.clip(x + deltaq * (ub - lb), lb, ub)
         return np.where(active, x_new, x)
 
     def __call__(self, agent: Union[Agent, List[Agent]]) -> Union[Agent, List[Agent]]:
+        """Mutates an agent (returning a copy) or a list of agents (in place).
+
+        Args:
+            agent: Agent or list of agents to be mutated.
+
+        Returns:
+            (Union[Agent, List[Agent]]): The mutated agent(s).
+
+        """
+
         is_batch = isinstance(agent, list)
 
         agents = agent if is_batch else [agent]
@@ -524,8 +615,20 @@ class SBXCrossoverTensor:
     """
 
     def __init__(
-        self, env: Environment, eta: int = 20, rate: float = 1.0, gene_rate: float = 1.0
+        self, env: Environment, eta: int = 20, rate: float = 1.0, gene_rate: float = 0.5
     ):
+        """Initialization method.
+
+        Args:
+            env: Environment whose array module (numpy / cupy) runs the operator.
+            eta: Distribution index (larger values keep children closer to parents).
+            rate: Probability of applying the crossover to a pair of parents.
+            gene_rate: Probability of recombining each variable of a pair. The
+                standard value (0.5) preserves building blocks; recombining every
+                variable (1.0) severely slows down convergence.
+
+        """
+
         self.env = env
         self.eta = eta
         self.rate = rate
@@ -657,6 +760,15 @@ class PolynomialMutationTensor:
     """
 
     def __init__(self, env: Environment, eta: int = 20, rate: float = 1 / 30):
+        """Initialization method.
+
+        Args:
+            env: Environment whose array module (numpy / cupy) runs the operator.
+            eta: Distribution index (larger values yield smaller perturbations).
+            rate: Probability of mutating each variable (usually 1 / n_variables).
+
+        """
+
         self.env = env
         self.eta = eta
         self.rate = rate
