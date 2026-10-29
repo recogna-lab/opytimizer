@@ -50,4 +50,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     packages=find_packages(),
+    # Shift vectors, rotation matrices and shuffles of the CEC benchmark suites
+    package_data={"opytimizer.benchmarks": ["data/cec2022/*.txt"]},
+    include_package_data=True,
 )
