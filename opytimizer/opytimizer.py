@@ -43,31 +43,54 @@ class _BaseRunner:
         function: Function,
         save_agents: bool = False,
         save_history: bool = False,
+        enable_logging: bool = True,
+        show_progress: bool = True,
     ) -> None:
+        """Initialization method.
 
-        logger.info("Creating class: %s.", self.__class__.__name__)
-        self._ensure_space(space, optimizer)
+        Args:
+            space: Space object that holds the agents.
+            optimizer: Optimizer object that updates the agents.
+            function: Function object that evaluates the agents.
+            save_agents: Whether every agent should be stored in the history.
+            save_history: Whether the history should be dumped every iteration.
+            enable_logging: Whether the library logs (console and file) during the
+                creation of the runner and `start`. Disabling it avoids the disk
+                writes of the log file inside the optimization loop.
+            show_progress: Whether progress bars are drawn during `start`. Disabling
+                it also avoids the device -> host copies made to draw the postfix.
 
-        self.space = space
-        self.optimizer = optimizer
-        sync_method = getattr(optimizer, "sync", None)
-        self.sync_optimizer = (
-            sync_method if callable(sync_method) else (lambda *args, **kwargs: None)
-        )
-        self.optimizer.compile(space=space)
-        self.function = function
-        self.save_history = save_history
-        self.history = History(save_agents=save_agents)
-        self.iteration = 0
-        self.total_iterations = 0
+        """
 
-        logger.debug(
-            "Space: %s | Optimizer: %s | Function: %s.",
-            self.space,
-            self.optimizer,
-            self.function,
-        )
-        logger.info("Class created.")
+        self.enable_logging = enable_logging
+        self.show_progress = show_progress
+
+        with logging.disabled(not enable_logging):
+            logger.info("Creating class: %s.", self.__class__.__name__)
+            self._ensure_space(space, optimizer)
+
+            self.space = space
+            self.optimizer = optimizer
+            sync_method = getattr(optimizer, "sync", None)
+            self.sync_optimizer = (
+                sync_method
+                if callable(sync_method)
+                else (lambda *args, **kwargs: None)
+            )
+            self.optimizer.compile(space=space)
+            self.function = function
+            self.save_history = save_history
+            self.history = History(save_agents=save_agents)
+            self.iteration = 0
+            self.total_iterations = 0
+
+            logger.debug(
+                "Space: %s | Optimizer: %s | Function: %s.",
+                self.space,
+                self.optimizer,
+                self.function,
+            )
+            logger.info("Class created.")
 
     @property
     def space(
@@ -220,6 +243,7 @@ class _BaseRunner:
             raise TypeError(msg)
 
     def evaluate(self, callbacks: CallbackVessel) -> None:
+        """Runs the optimizer's `evaluate` surrounded by the callback hooks."""
         # Arguments are resolved once per phase (they used to be re-resolved for
         # the before-hook, the call itself and the after-hook).
         args = self.evaluate_args
@@ -228,6 +252,7 @@ class _BaseRunner:
         callbacks.on_evaluate_after(*args)
 
     def update(self, callbacks: CallbackVessel) -> None:
+        """Runs the optimizer's `update` (with hooks) and clips agents to the bounds."""
         args = self.update_args
         callbacks.on_update_before(*args)
         self.optimizer.update(*args)
@@ -241,6 +266,7 @@ class _BaseRunner:
             env.xp.cuda.Device().synchronize()
 
     def _compute_metrics(self) -> Optional[Dict]:
+        """Computes the iteration metrics (None means nothing was refreshed)."""
         pass
 
     def _finalize_after_loop(self) -> None:
@@ -277,6 +303,19 @@ class _BaseRunner:
                 behaviour is unchanged. The final front is always computed at the end.
         """
 
+        # `getattr` keeps runners pickled before these flags existed loadable
+        with logging.disabled(not getattr(self, "enable_logging", True)):
+            self._start(stopping_criteria, callbacks, metrics, metrics_every)
+
+    def _start(
+        self,
+        stopping_criteria,
+        callbacks: Optional[List[Callback]],
+        metrics: Optional[Union[List[_BaseMetric], _BaseMetric]],
+        metrics_every: int,
+    ) -> None:
+        """Runs the optimization task (see `start` for the arguments)."""
+
         logger.info("Starting optimization task.")
         self.n_iterations = getattr(stopping_criteria, "n", None)
 
@@ -292,7 +331,10 @@ class _BaseRunner:
         start = time.time()
         callbacks.on_task_begin(self)
         self.evaluate(callbacks)
-        stopping_vessel.init_pbars()
+        # Without progress bars, `set_postfix` / `update_pbars` become no-ops, so
+        # the displayed values are never copied back from the device
+        if getattr(self, "show_progress", True):
+            stopping_vessel.init_pbars()
         self.function.n_calls = 0
         try:
             while not stopping_vessel.should_stop(self):
@@ -336,11 +378,13 @@ class _BaseRunner:
         logger.info("It took %s seconds.", opt_time)
 
     def save(self, file_path: str) -> None:
+        """Serializes the whole runner (space, optimizer, history) with dill."""
         with open(file_path, "wb") as f:
             dill.dump(self, f)
 
     @classmethod
     def load(cls, file_path: str) -> "_BaseRunner":
+        """Loads a runner previously saved with `save`."""
         with open(file_path, "rb") as f:
             return dill.load(f)
 
@@ -380,6 +424,7 @@ class _MultiObjectiveRunner(_BaseRunner):
     """Pipeline for problems with multiple objective functions."""
 
     def _refresh_pareto_front(self) -> None:
+        """Recomputes the Pareto front and records the iteration it refers to."""
         self.space.update_pareto_front(_xp=self.space.env.xp)
         self._front_iteration = self.total_iterations
 
@@ -390,6 +435,14 @@ class _MultiObjectiveRunner(_BaseRunner):
         return len(front[0]) if isinstance(front, tuple) else len(front)
 
     def _compute_metrics(self) -> Optional[Dict]:
+        """Refreshes the front and computes the metrics every `metrics_every` iterations.
+
+        Returns:
+            (Optional[Dict]): Metric values ({} without metrics), or None when the
+                front was not refreshed in this iteration.
+
+        """
+
         needs_front = bool(self.metrics) or self.save_history
         if not needs_front or self.total_iterations % self.metrics_every:
             return None
@@ -418,6 +471,11 @@ class _MultiObjectiveRunner(_BaseRunner):
                 pareto_front=self.space.pareto_front,
                 **metric_values,
             )
+        # Formatting a metric held on the GPU forces a device -> host copy, so it
+        # is skipped altogether when the logging system is disabled
+        if logger.disabled:
+            return
+
         logger.to_file(f"Pareto front size: {self._pareto_front_size()}")
 
         for name, value in metric_values.items():
@@ -438,6 +496,8 @@ class _MultiObjectiveRunner(_BaseRunner):
 
 
 class Opytimizer:
+    """Factory that builds the runner matching the number of objectives."""
+
     def __new__(
         cls,
         space: Union[_SingleObjectiveSpace, _MultiObjectiveSpace],
@@ -445,13 +505,41 @@ class Opytimizer:
         function: Function,
         save_agents: bool = False,
         save_history: bool = False,
+        enable_logging: bool = True,
+        show_progress: bool = True,
     ) -> _BaseRunner:
+        """Creates a single- or multi-objective runner.
+
+        Args:
+            space: Space object that holds the agents.
+            optimizer: Optimizer object that updates the agents.
+            function: Function object that evaluates the agents.
+            save_agents: Whether every agent should be stored in the history.
+            save_history: Whether the history should be dumped every iteration.
+            enable_logging: Whether the library logs (console and file) while the
+                runner is created and during `start`.
+            show_progress: Whether progress bars are drawn during `start`.
+
+        Returns:
+            (_BaseRunner): The runner that executes the optimization task.
+
+        """
+
         runner_cls = (
             _SingleObjectiveRunner if space.n_objectives == 1 else _MultiObjectiveRunner
         )
-        return runner_cls(space, optimizer, function, save_agents, save_history)
+        return runner_cls(
+            space,
+            optimizer,
+            function,
+            save_agents,
+            save_history,
+            enable_logging,
+            show_progress,
+        )
 
     @classmethod
     def load(cls, file_path: str) -> _BaseRunner:
+        """Loads a runner previously saved with `save`."""
         with open(file_path, "rb") as f:
             return dill.load(f)

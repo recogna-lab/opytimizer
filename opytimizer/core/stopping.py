@@ -54,6 +54,8 @@ class _StoppingCriterion(ABC):
 
 
 class MaxIterations(_StoppingCriterion):
+    """Stops after `n` iterations of the optimization loop."""
+
     def __init__(self, n: int) -> None:
         super().__init__()
         self.n = n
@@ -181,7 +183,11 @@ class NoImprovement(_StoppingCriterion):
 
 
 class _StoppingVessel:
-    """Criteria aggregation."""
+    """Criteria aggregation: the loop stops as soon as any criterion is satisfied.
+
+    Progress bars only exist after `init_pbars`; until then (or when it is never
+    called), every progress-bar method is a no-op.
+    """
 
     def __init__(
         self,

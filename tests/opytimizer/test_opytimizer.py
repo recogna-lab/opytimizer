@@ -3,7 +3,7 @@ from opytimizer.core import function
 from opytimizer.core.stopping import MaxIterations
 from opytimizer.optimizers.single_objective.swarm import pso
 from opytimizer.spaces import search
-from opytimizer.utils import callback, history
+from opytimizer.utils import callback, history, logging
 
 
 def test_opytimizer_space():
@@ -227,6 +227,43 @@ def test_opytimizer_start():
     new_opytimizer = opytimizer.Opytimizer(space, optimizer, func)
 
     new_opytimizer.start(MaxIterations(1))
+
+
+def test_opytimizer_start_without_logging(monkeypatch):
+    space = search.SearchSpace(1, 1, 1, 0, 1)
+    func = function.Function(callable)
+    optimizer = pso.PSO()
+
+    new_opytimizer = opytimizer.Opytimizer(space, optimizer, func, enable_logging=False)
+
+    states = []
+    monkeypatch.setattr(
+        new_opytimizer,
+        "_start",
+        lambda *args: states.append(logging.is_logging_enabled()),
+    )
+    new_opytimizer.start(MaxIterations(1))
+
+    assert new_opytimizer.enable_logging is False
+    assert states == [False]
+    assert logging.is_logging_enabled() is True
+
+
+def test_opytimizer_start_without_progress(monkeypatch):
+    space = search.SearchSpace(1, 1, 1, 0, 1)
+    func = function.Function(callable)
+    optimizer = pso.PSO()
+
+    new_opytimizer = opytimizer.Opytimizer(space, optimizer, func, show_progress=False)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("progress bars should not be created")
+
+    monkeypatch.setattr(MaxIterations, "init_pbar", fail)
+    new_opytimizer.start(MaxIterations(2))
+
+    assert new_opytimizer.show_progress is False
+    assert new_opytimizer.total_iterations == 2
 
 
 def test_opytimizer_save():
