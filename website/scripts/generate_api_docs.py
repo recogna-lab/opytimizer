@@ -413,9 +413,7 @@ def escape_mdx(line: str) -> str:
     # Odd-indexed parts are the contents of inline code spans
     parts = line.split("`")
     for i in range(0, len(parts), 2):
-        parts[i] = (
-            parts[i].replace("{", "\\{").replace("}", "\\}").replace("<", "\\<")
-        )
+        parts[i] = parts[i].replace("{", "\\{").replace("}", "\\}").replace("<", "\\<")
 
     return "`".join(parts)
 

@@ -30,7 +30,9 @@ def test_zcat_invalid_arguments():
     assert benchmarks.ZCAT14(n_variables=1, n_objectives=5).n_variables == 1
 
 
-@pytest.mark.parametrize("cls", [c for c in ZCAT if c._problem_id not in (19, 20)], ids=lambda c: c.__name__)
+@pytest.mark.parametrize(
+    "cls", [c for c in ZCAT if c._problem_id not in (19, 20)], ids=lambda c: c.__name__
+)
 @pytest.mark.parametrize("complicated", [False, True])
 def test_zcat_pareto_set_has_no_distance(cls, complicated):
     m, n = 3, 12
@@ -63,7 +65,16 @@ def test_zcat_pareto_front(cls, m):
 @pytest.mark.parametrize("cls", ZCAT, ids=lambda c: c.__name__)
 def test_zcat_features_are_finite(cls):
     X = np.random.default_rng(1).random((20, 10)) - 0.5
-    for level, bias, imbalance, complicated in itertools.product(range(1, 7), [False, True], [False, True], [False, True]):
-        p = cls(10, 3, level=level, bias=bias, imbalance=imbalance, complicated_pareto_set=complicated)
+    for level, bias, imbalance, complicated in itertools.product(
+        range(1, 7), [False, True], [False, True], [False, True]
+    ):
+        p = cls(
+            10,
+            3,
+            level=level,
+            bias=bias,
+            imbalance=imbalance,
+            complicated_pareto_set=complicated,
+        )
 
         assert np.all(np.isfinite(p(X * np.array(p.upper_bound) * 2)))

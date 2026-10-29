@@ -37,7 +37,9 @@ def test_zdt_pareto_set_maps_to_front(cls):
     distance = np.min(np.linalg.norm(F[:, None, :] - front[None], axis=2), axis=1)
 
     # Every optimal solution is on (or, for ZDT3, dominated by) the front
-    assert np.all((distance < 1e-2) | np.array([np.any(np.all(front <= f, axis=1)) for f in F]))
+    assert np.all(
+        (distance < 1e-2) | np.array([np.any(np.all(front <= f, axis=1)) for f in F])
+    )
 
 
 @pytest.mark.parametrize("cls", ZDT, ids=lambda c: c.__name__)

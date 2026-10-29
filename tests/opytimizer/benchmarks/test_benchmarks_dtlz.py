@@ -39,7 +39,9 @@ def test_dtlz_linear_and_spherical_fronts(m):
         assert np.allclose(np.linalg.norm(p(_pareto_set(p)), axis=1), 1.0)
 
     assert np.allclose(DTLZ1(n_objectives=m).pareto_front(200).sum(axis=1), 0.5)
-    assert np.allclose(np.linalg.norm(DTLZ2(n_objectives=m).pareto_front(200), axis=1), 1.0)
+    assert np.allclose(
+        np.linalg.norm(DTLZ2(n_objectives=m).pareto_front(200), axis=1), 1.0
+    )
 
 
 @pytest.mark.parametrize("cls", DTLZ, ids=lambda c: c.__name__)

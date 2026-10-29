@@ -8,8 +8,6 @@ from opytimizer.utils import exception as e
 
 CEC2022 = [getattr(benchmarks, f"CEC2022F{i}") for i in range(1, 13)]
 CASES = [(cls, d) for cls in CEC2022 for d in cls._dimensions]
-
-# f(x) at x = linspace(-50, 50, 10), from a loop-based port of the official C code
 REFERENCE_D10 = {
     1: 1172573478.9301, 2: 7048.833808, 3: 705.387214, 4: 957.527,
     5: 5010.684249, 6: 17593892874.43318, 7: 2248.861461, 8: 205207.708776,

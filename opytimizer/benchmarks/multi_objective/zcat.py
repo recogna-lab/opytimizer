@@ -23,7 +23,6 @@ from opytimizer.benchmarks._base import _MultiObjectiveBenchmark
 from opytimizer.benchmarks._utils import _filtered_front, _product_shape, _unit_grid
 from opytimizer.core.environment import Environment
 
-# g function that defines the complicated Pareto set of each problem
 _COMPLICATED_G = {
     1: 4, 2: 5, 3: 2, 4: 7, 5: 9, 6: 4, 7: 5, 8: 2, 9: 7, 10: 9,
     11: 3, 12: 10, 13: 1, 14: 6, 15: 8, 16: 10, 17: 1, 18: 8, 19: 6, 20: 3,
@@ -93,19 +92,28 @@ def _shape(problem_id, y, m, eps, xp):
     if problem_id == 6:
         k, r = 40.0, 0.05
         mu = xp.mean(Y, axis=1)
-        num = 1.0 / (1.0 + xp.exp(2.0 * k * mu - k)) - r * mu - 1.0 / (1.0 + math.exp(k)) + r
+        num = (
+            1.0 / (1.0 + xp.exp(2.0 * k * mu - k))
+            - r * mu
+            - 1.0 / (1.0 + math.exp(k))
+            + r
+        )
         den = 1.0 / (1.0 + math.exp(-k)) - 1.0 / (1.0 + math.exp(k)) + r
         return _with_last(Y, num / den, xp)
     if problem_id == 7:
         last = xp.sum((0.5 - Y) ** 5, axis=1) / (2.0 * (m - 1) * 0.5**5) + 0.5
         return _with_last(Y, last, xp)
     if problem_id == 8:
-        return 1.0 - _product_shape(1.0 - xp.sin(half_pi * Y), 1.0 - xp.cos(half_pi * Y), xp)
+        return 1.0 - _product_shape(
+            1.0 - xp.sin(half_pi * Y), 1.0 - xp.cos(half_pi * Y), xp
+        )
     if problem_id == 9:
         return _sum_shape(xp.sin(half_pi * Y), xp.cos(half_pi * Y), xp)
     if problem_id == 10:
         r = 0.02
-        last = (1.0 / r - 1.0 / (xp.mean(1.0 - Y, axis=1) + r)) / (1.0 / r - 1.0 / (1.0 + r))
+        last = (1.0 / r - 1.0 / (xp.mean(1.0 - Y, axis=1) + r)) / (
+            1.0 / r - 1.0 / (1.0 + r)
+        )
         return _with_last(Y, last, xp)
     if problem_id == 11:
         F = _sum_shape(Y, 1.0 - Y, xp)
@@ -127,7 +135,9 @@ def _shape(problem_id, y, m, eps, xp):
         columns += [s ** (base + (j - 1.0) / (m - 2.0)) for j in range(2, m - 1)]
         if m > 2:
             columns.append(0.5 * (1.0 + xp.sin(freq * math.pi * y1 - half_pi)))
-        columns.append(xp.cos(half_pi * y1) if problem_id == 14 else _deform(y1, 5.0, xp))
+        columns.append(
+            xp.cos(half_pi * y1) if problem_id == 14 else _deform(y1, 5.0, xp)
+        )
         return xp.stack(columns, axis=1)
     if problem_id == 15:
         columns = [y1 ** (1.0 + (j - 1.0) / (4.0 * m)) for j in range(1, m)]
@@ -193,13 +203,19 @@ def _g(g_id, Y, n, xp):
     if g_id == 1:
         return xp.sum(xp.sin(1.5 * math.pi * Yi + theta), axis=1) / (2.0 * d) + 0.5
     if g_id == 2:
-        return xp.sum(Yi**2 * xp.sin(4.5 * math.pi * Yi + theta), axis=1) / (2.0 * d) + 0.5
+        return (
+            xp.sum(Yi**2 * xp.sin(4.5 * math.pi * Yi + theta), axis=1) / (2.0 * d)
+            + 0.5
+        )
     if g_id == 3:
         return xp.sum(xp.cos(math.pi * Yi + theta) ** 2, axis=1) / d
     if g_id == 4:
         return 0.5 * mu * xp.cos(4.0 * math.pi * mu + theta) + 0.5
     if g_id == 5:
-        return xp.sum(xp.sin(2.0 * math.pi * Yi - 1.0 + theta) ** 3, axis=1) / (2.0 * d) + 0.5
+        return (
+            xp.sum(xp.sin(2.0 * math.pi * Yi - 1.0 + theta) ** 3, axis=1) / (2.0 * d)
+            + 0.5
+        )
     if g_id == 6:
         s1 = xp.mean(Y**2, axis=1, keepdims=True)
         s2 = xp.mean(xp.cos(11.0 * math.pi * Yi + theta) ** 3, axis=1)
@@ -207,12 +223,18 @@ def _g(g_id, Y, n, xp):
         den = -10.0 * math.exp(-0.4) - math.exp(-1.0) + 10.0 + math.e
         return num / den
     if g_id == 7:
-        num = mu + xp.exp(xp.sin(7.0 * math.pi * mu - 0.5 * math.pi + theta)) - math.exp(-1.0)
+        num = (
+            mu
+            + xp.exp(xp.sin(7.0 * math.pi * mu - 0.5 * math.pi + theta))
+            - math.exp(-1.0)
+        )
         return num / (1.0 + math.e - math.exp(-1.0))
     if g_id == 8:
         return xp.sum(xp.abs(xp.sin(2.5 * math.pi * (Yi - 0.5) + theta)), axis=1) / d
     if g_id == 9:
-        total = xp.sum(xp.abs(xp.sin(2.5 * math.pi * Yi - 0.5 * math.pi + theta)), axis=1)
+        total = xp.sum(
+            xp.abs(xp.sin(2.5 * math.pi * Yi - 0.5 * math.pi + theta)), axis=1
+        )
         return 0.5 * mu - total / (2.0 * d) + 0.5
     if g_id == 10:
         total = xp.sum(xp.sin((4.0 * Yi - 2.0) * math.pi + theta), axis=1)
@@ -286,7 +308,9 @@ class _ZCAT(_MultiObjectiveBenchmark):
 
         m = int(n_objectives)
         min_n = 1 if self._problem_id in _ONE_DIMENSIONAL_PS else m - 1
-        if not isinstance(n_variables, (int, np.integer)) or n_variables < max(1, min_n):
+        if not isinstance(n_variables, (int, np.integer)) or n_variables < max(
+            1, min_n
+        ):
             raise e.ValueError(f"{self.name} requires `n_variables` >= {max(1, min_n)}")
 
         self.level = int(level)

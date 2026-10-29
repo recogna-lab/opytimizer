@@ -54,7 +54,13 @@ def test_wfg3_linear_degenerate_front(m):
 
     if m == 2:
         assert np.allclose(front.sum(axis=1), 1.0)
-    assert np.allclose(np.min(np.abs(p(_pareto_set(p))[:, None] / scale - front[None]).sum(axis=2), axis=1), 0.0, atol=0.05)
+    assert np.allclose(
+        np.min(
+            np.abs(p(_pareto_set(p))[:, None] / scale - front[None]).sum(axis=2), axis=1
+        ),
+        0.0,
+        atol=0.05,
+    )
 
 
 @pytest.mark.parametrize("cls", WFG, ids=lambda c: c.__name__)
@@ -66,4 +72,11 @@ def test_wfg_pareto_front(cls, m):
     assert front.shape[1] == m
     assert 0 < len(front) <= 300
     assert len(_non_dominated(front)) == len(front)
-    assert np.all(np.isfinite(p(np.random.default_rng(1).random((50, p.n_variables)) * np.array(p.upper_bound))))
+    assert np.all(
+        np.isfinite(
+            p(
+                np.random.default_rng(1).random((50, p.n_variables))
+                * np.array(p.upper_bound)
+            )
+        )
+    )

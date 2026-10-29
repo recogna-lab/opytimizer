@@ -140,7 +140,9 @@ def _mixed(x1, A, alpha, xp):
     """Mixed convex / concave shape with `A` segments."""
     aux = 2.0 * A * math.pi
 
-    return xp.clip((1.0 - x1 - xp.cos(aux * x1 + 0.5 * math.pi) / aux) ** alpha, 0.0, 1.0)
+    return xp.clip(
+        (1.0 - x1 - xp.cos(aux * x1 + 0.5 * math.pi) / aux) ** alpha, 0.0, 1.0
+    )
 
 
 def _disconnected(x1, A, alpha, beta, xp):
@@ -177,7 +179,9 @@ class _WFG(_MultiObjectiveBenchmark):
         if k is None:
             k = 4 if m == 2 else 2 * (m - 1)
         if not isinstance(k, (int, np.integer)) or k <= 0 or k % (m - 1):
-            raise e.ValueError("`k` should be a positive multiple of `n_objectives` - 1")
+            raise e.ValueError(
+                "`k` should be a positive multiple of `n_objectives` - 1"
+            )
 
         n = k + _DEFAULT_L if n_variables is None else n_variables
         if not isinstance(n, (int, np.integer)) or n <= k:
@@ -293,7 +297,9 @@ class WFG2(_WFG):
 
     def _validate_l(self):
         if self.l % 2:
-            raise e.ValueError(f"{self.name} requires an even number of distance variables")
+            raise e.ValueError(
+                f"{self.name} requires an even number of distance variables"
+            )
 
     def _transform(self, y, xp):
         k = self.k

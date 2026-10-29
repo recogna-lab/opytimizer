@@ -489,12 +489,10 @@ class MonteCarloHV(_BaseMetric):
 
         """
 
-        
-
         self.lower_bound = np.array(_to_host(lower_bound), dtype=float)
         self.upper_bound = np.array(_to_host(upper_bound), dtype=float)
         self.n_samples = int(n_samples)
-    
+
         # Scalar bounds are expanded to the number of objectives on the first call
         self.samples = None
         if self.lower_bound.ndim > 0 or self.upper_bound.ndim > 0:

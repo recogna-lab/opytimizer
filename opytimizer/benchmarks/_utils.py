@@ -159,7 +159,9 @@ def _non_dominated(F: np.ndarray) -> np.ndarray:
     start = 0
     while start < n:
         # Block size keeps the (block, archive, M) temporaries bounded
-        size = max(1, min(1024, _DOMINANCE_BLOCK_ELEMENTS // max(1, archive.shape[0] * m)))
+        size = max(
+            1, min(1024, _DOMINANCE_BLOCK_ELEMENTS // max(1, archive.shape[0] * m))
+        )
         C = F[start : start + size]
         dominated = _dominated_by(archive, C) | _dominated_by(C, C)
         archive = np.concatenate((archive, C[~dominated]), axis=0)

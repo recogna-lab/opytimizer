@@ -53,7 +53,9 @@ class _Benchmark(ABC):
         lb = np.broadcast_to(np.asarray(lower_bound, dtype=float), (self.n_variables,))
         ub = np.broadcast_to(np.asarray(upper_bound, dtype=float), (self.n_variables,))
         if np.any(lb > ub):
-            raise e.ValueError("`lower_bound` should be lower or equal to `upper_bound`")
+            raise e.ValueError(
+                "`lower_bound` should be lower or equal to `upper_bound`"
+            )
 
         # Host copies feed `SearchSpace`; device copies are used by `_evaluate`
         self.lower_bound: List[float] = lb.tolist()

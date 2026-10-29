@@ -73,9 +73,7 @@ class _BaseRunner:
             self.optimizer = optimizer
             sync_method = getattr(optimizer, "sync", None)
             self.sync_optimizer = (
-                sync_method
-                if callable(sync_method)
-                else (lambda *args, **kwargs: None)
+                sync_method if callable(sync_method) else (lambda *args, **kwargs: None)
             )
             self.optimizer.compile(space=space)
             self.function = function

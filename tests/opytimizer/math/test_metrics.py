@@ -231,8 +231,12 @@ def test_metrics_accept_gpu_references(perfect_front, shifted_front):
         HV(reference_point=[5.0, 5.0])(shifted_front),
     )
     assert np.isclose(
-        R2(cp.eye(2), ideal_point=cp.zeros(2), nadir_point=cp.full(2, 5.0))(shifted_front),
-        R2(np.eye(2), ideal_point=np.zeros(2), nadir_point=np.full(2, 5.0))(shifted_front),
+        R2(cp.eye(2), ideal_point=cp.zeros(2), nadir_point=cp.full(2, 5.0))(
+            shifted_front
+        ),
+        R2(np.eye(2), ideal_point=np.zeros(2), nadir_point=np.full(2, 5.0))(
+            shifted_front
+        ),
     )
 
 
@@ -298,7 +302,6 @@ def test_monte_carlo_hv_is_unbiased_with_scalar_bounds():
     estimate = MonteCarloHV(n_samples=200000, lower_bound=0.0, upper_bound=1.0)(front)
 
     assert estimate == pytest.approx(_hv_inclusion_exclusion(front, ref), rel=0.02)
-
 
 
 def test_distance_metrics_are_exact_for_coincident_fronts():
