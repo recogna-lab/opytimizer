@@ -21,7 +21,7 @@ Opytimizer organizes algorithms into distinct categories based on their underlyi
 Each category maps to a sub-package of `opytimizer.optimizers`:
 
 * **`single_objective.swarm`**: `ABC`, `ABO`, `ACO`, `AF`, `BA`, `BOA`, `BWO`, `CS`, `CSA`, `EHO`, `FA`, `FFOA`, `FPA`, `FSO`, `GOA`, `JS`, `KH`, `MFO`, `MRFO`, `PIO`, `PSO`, `SBO`, `SCA`, `SFO`, `SOS`, `SSA`, `SSO`, `STOA`, `WAOA`, `WOA`, and variants.
-* **`single_objective.evolutionary`**: `AGGEA`, `BSA`, `CE`, `CMAES`, `DE`, `EP`, `ES`, `FOA`, `GA`, `GP`, `HS`, `IWO`, `LSHADE`, `RRA`, and variants.
+* **`single_objective.evolutionary`**: `AGGEA`, `BEA`, `BSA`, `CE`, `CMAES`, `DE`, `EP`, `ES`, `FOA`, `GA`, `GP`, `HS`, `IWO`, `LSHADE`, `RRA`, and variants.
 * **`single_objective.science`**: `AIG`, `ASO`, `BH`, `CDO`, `EFO`, `EO`, `ESA`, `GSA`, `HGSO`, `LSA`, `MOA`, `MVO`, `SA`, `SMA`, `TEO`, `TWO`, `WCA`, `WDO`, `WEO`, `WWO`.
 * **`single_objective.population`**: `AEO`, `AO`, `COA`, `EPO`, `GCO`, `GWO`, `HHO`, `LOA`, `OSA`, `PPA`, `PVS`, `RFO`.
 * **`single_objective.social`**: `BSO`, `CI`, `ISA`, `LEO`, `MVPA`, `QSA`, `SSD`.

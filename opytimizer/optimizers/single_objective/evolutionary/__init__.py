@@ -3,6 +3,7 @@ It contains implementations of evolutionary-based optimizers.
 """
 
 from opytimizer.optimizers.single_objective.evolutionary.aggea import AGGEA, AGGEATensor
+from opytimizer.optimizers.single_objective.evolutionary.bea import BEA, BEATensor
 from opytimizer.optimizers.single_objective.evolutionary.bsa import BSA
 from opytimizer.optimizers.single_objective.evolutionary.ce import CE, OBCE
 from opytimizer.optimizers.single_objective.evolutionary.cmaes import (

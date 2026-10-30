@@ -12,29 +12,14 @@ import numpy as np
 import opytimizer.utils.exception as e
 from opytimizer.core import Function, Optimizer, TensorizedOptimizer
 from opytimizer.core.space import _SingleObjectiveSpace, _SingleObjectiveTensorSpace
+from opytimizer.optimizers.single_objective.evolutionary._blocks import (
+    _categorical,
+    _regroup,
+    _tournament,
+)
 from opytimizer.utils import logging
 
 logger = logging.get_logger(__name__)
-
-
-def _categorical(probabilities: Any, shape: tuple, xp: Any) -> Any:
-    """Samples categories from per-block probabilities.
-
-    Args:
-        probabilities: Normalized probabilities of shape (B, K).
-        shape: Sample shape (B, ...), whose leading axis indexes the blocks.
-        xp: Array module (numpy / cupy).
-
-    Returns:
-        (Any): Integer categories in [0, K) of shape `shape`.
-
-    """
-
-    cdf = xp.cumsum(probabilities, axis=1)
-    cdf = cdf.reshape((cdf.shape[0],) + (1,) * (len(shape) - 1) + (cdf.shape[1],))
-    u = xp.random.random(shape + (1,))
-
-    return xp.minimum((u > cdf).sum(axis=-1), probabilities.shape[1] - 1)
 
 
 def _partners(X: Any, n_partners: int, xp: Any) -> Any:
@@ -57,28 +42,6 @@ def _partners(X: Any, n_partners: int, xp: Any) -> Any:
     return xp.concatenate((X[:, :, None, :], others), axis=2)
 
 
-def _regroup(X: Any, n_blocks: int) -> Any:
-    """Equally divides every block among `n_blocks` next blocks.
-
-    Block j of the output receives the j-th chunk of every input block, so each
-    next block mixes solutions coming from all previous blocks.
-
-    Args:
-        X: Solutions of shape (B, S, D), with S divisible by `n_blocks`.
-        n_blocks: Number of next blocks.
-
-    Returns:
-        (Any): Solutions of shape (n_blocks, B * S / n_blocks, D).
-
-    """
-
-    B, S, D = X.shape
-    chunk = S // n_blocks
-    X = X.reshape(B, n_blocks, chunk, D).transpose(1, 0, 2, 3)
-
-    return X.reshape(n_blocks, B * chunk, D)
-
-
 def _aggea_offspring(X: Any, F: Any, lb: Any, ub: Any, cfg: Dict, xp: Any) -> Any:
     """Creates the offspring of one AG-GEA generation (Algorithm 1, lines 3-11).
 
@@ -99,11 +62,9 @@ def _aggea_offspring(X: Any, F: Any, lb: Any, ub: Any, cfg: Dict, xp: Any) -> An
 
     # Tournament blocks: each one selects `n_parents` parents from the whole
     # (duplicated) population by m-tournament, m differing among blocks
-    B_t, n_parents, m_max = cfg["n_tournaments"], cfg["n_parents"], cfg["m_max"]
-    candidates = xp.random.randint(0, N, size=(B_t, n_parents, m_max))
-    fit = xp.where(cfg["tournament_mask"], F[candidates], xp.inf)
-    winners = xp.take_along_axis(candidates, fit.argmin(axis=2)[..., None], axis=2)
-    P = X[winners[..., 0]]  # (B_t, n_parents, D)
+    P = X[
+        _tournament(F, cfg["tournament_mask"], cfg["n_parents"], xp)
+    ]  # (B_t, n_parents, D)
 
     # Exchange blocks: each variable is copied from one of n_e parents
     E = _regroup(P, cfg["n_exchanges"])
@@ -180,9 +141,15 @@ class _AGGEABase:
         self.n_offspring = n_offspring
 
         # Tournament: m in [1, 10] per block (binary tournaments by default)
-        m = np.full(self.n_tournaments, 2) if tournament_sizes is None else np.asarray(tournament_sizes)
+        m = (
+            np.full(self.n_tournaments, 2)
+            if tournament_sizes is None
+            else np.asarray(tournament_sizes)
+        )
         if m.shape != (self.n_tournaments,) or np.any(m < 1) or np.any(m > 10):
-            raise e.ValueError("`tournament_sizes` should have one value in [1, 10] per tournament block")
+            raise e.ValueError(
+                "`tournament_sizes` should have one value in [1, 10] per tournament block"
+            )
         self.tournament_sizes = m.astype(int)
 
         # Exchange: probabilities (p_1, ..., p_ne) per block (uniform by default)
@@ -209,16 +176,26 @@ class _AGGEABase:
         # Number of mixture components: the component axis of any 2-D+ argument
         n_comp = max(
             [a.shape[-2] for a in (means, stds_arr) if a.ndim >= 2]
-            + ([np.asarray(crossover_weights).shape[-1]] if crossover_weights is not None else [])
+            + (
+                [np.asarray(crossover_weights).shape[-1]]
+                if crossover_weights is not None
+                else []
+            )
             + [1]
         )
         if crossover_weights is None:
-            crossover_weights = [[0.9, 0.1], [0.5, 0.5]][: self.n_crossovers] if n_comp == 2 else np.ones(n_comp)
+            crossover_weights = (
+                [[0.9, 0.1], [0.5, 0.5]][: self.n_crossovers]
+                if n_comp == 2
+                else np.ones(n_comp)
+            )
         shape = (self.n_crossovers, n_comp, n_w)
         try:
             self.crossover_means = np.broadcast_to(means, shape).copy()
             self.crossover_stds = np.broadcast_to(stds_arr, shape).copy()
-            weights = np.broadcast_to(np.asarray(crossover_weights, dtype=float), (self.n_crossovers, n_comp))
+            weights = np.broadcast_to(
+                np.asarray(crossover_weights, dtype=float), (self.n_crossovers, n_comp)
+            )
         except ValueError as ex:
             raise e.ValueError(f"Inconsistent crossover parameters: {ex}") from ex
         if np.any(self.crossover_stds < 0):
@@ -232,17 +209,23 @@ class _AGGEABase:
         stds = (
             np.array([[0.0, 0.01], [0.0, 0.1]])[: self.n_mutations]
             if mutation_stds is None and self.n_mutations <= 2
-            else np.asarray(mutation_stds if mutation_stds is not None else [0.0, 0.1], dtype=float)
+            else np.asarray(
+                mutation_stds if mutation_stds is not None else [0.0, 0.1], dtype=float
+            )
         )
         stds = np.atleast_1d(stds)
-        self.mutation_stds = np.broadcast_to(stds, (self.n_mutations, stds.shape[-1])).copy()
+        self.mutation_stds = np.broadcast_to(
+            stds, (self.n_mutations, stds.shape[-1])
+        ).copy()
         if np.any(self.mutation_stds < 0):
             raise e.ValueError("`mutation_stds` should be non-negative")
         self.mutation_weights = (
             None
             if mutation_weights is None
             else self._normalize(
-                np.broadcast_to(np.asarray(mutation_weights, dtype=float), self.mutation_stds.shape),
+                np.broadcast_to(
+                    np.asarray(mutation_weights, dtype=float), self.mutation_stds.shape
+                ),
                 "mutation_weights",
             )
         )
@@ -251,7 +234,12 @@ class _AGGEABase:
         split = (
             np.array([0.4, 0.6])[: self.n_mutations]
             if crossover_split is None and self.n_mutations <= 2
-            else np.asarray(crossover_split if crossover_split is not None else np.ones(self.n_mutations), dtype=float)
+            else np.asarray(
+                crossover_split
+                if crossover_split is not None
+                else np.ones(self.n_mutations),
+                dtype=float,
+            )
         )
         split = np.broadcast_to(split, (self.n_crossovers, self.n_mutations))
         self.crossover_split = self._normalize(split, "crossover_split")
@@ -261,7 +249,9 @@ class _AGGEABase:
         """Normalizes non-negative rows so that each one sums to one."""
         values = np.asarray(values, dtype=float)
         if np.any(values < 0) or np.any(values.sum(axis=-1) <= 0):
-            raise e.ValueError(f"`{name}` should be non-negative with a positive sum per block")
+            raise e.ValueError(
+                f"`{name}` should be non-negative with a positive sum per block"
+            )
 
         return values / values.sum(axis=-1, keepdims=True)
 
@@ -276,8 +266,12 @@ class _AGGEABase:
         target = n_agents if self.n_offspring is None else int(self.n_offspring)
         # Parents per tournament block must split equally among the exchange
         # blocks, and the exchange offspring equally among the crossover blocks
-        per_tournament = self.n_exchanges * math.ceil(target / (self.n_tournaments * self.n_exchanges))
-        while (self.n_tournaments * per_tournament // self.n_exchanges) % self.n_crossovers:
+        per_tournament = self.n_exchanges * math.ceil(
+            target / (self.n_tournaments * self.n_exchanges)
+        )
+        while (
+            self.n_tournaments * per_tournament // self.n_exchanges
+        ) % self.n_crossovers:
             per_tournament += self.n_exchanges
 
         return per_tournament, self.n_tournaments * per_tournament
@@ -289,7 +283,9 @@ class _AGGEABase:
         if self._default_mutation_weights:
             rate = 1.0 / n_variables
             weights = np.zeros_like(self.mutation_stds)
-            weights[:, 0], weights[:, 1:] = 1.0 - rate, rate / max(1, weights.shape[1] - 1)
+            weights[:, 0], weights[:, 1:] = 1.0 - rate, rate / max(
+                1, weights.shape[1] - 1
+            )
             self.mutation_weights = weights
 
         # Tournament sizes as a mask over the largest tournament
@@ -298,7 +294,13 @@ class _AGGEABase:
 
         # Mutation block of every row of each crossover block (first rows to the
         # first mutation block, and so on, following `crossover_split`)
-        rows = self.n_tournaments * n_parents // self.n_exchanges * self.n_exchanges // self.n_crossovers
+        rows = (
+            self.n_tournaments
+            * n_parents
+            // self.n_exchanges
+            * self.n_exchanges
+            // self.n_crossovers
+        )
         bounds = np.round(np.cumsum(self.crossover_split, axis=1) * rows).astype(int)
         routing = (np.arange(rows)[None, :, None] >= bounds[:, None, :]).sum(axis=2)
         routing = np.minimum(routing, self.n_mutations - 1)
@@ -312,7 +314,9 @@ class _AGGEABase:
             "tournament_mask": xp.asarray(mask),
             "n_exchanges": self.n_exchanges,
             "exchange_size": self.exchange_size,
-            "exchange_probabilities": xp.asarray(self.exchange_probabilities, dtype=dtype),
+            "exchange_probabilities": xp.asarray(
+                self.exchange_probabilities, dtype=dtype
+            ),
             "n_crossovers": self.n_crossovers,
             "crossover_size": self.crossover_size,
             "crossover_means": xp.asarray(self.crossover_means, dtype=dtype),
@@ -392,7 +396,6 @@ class AGGEA(_AGGEABase, Optimizer):
         logger.info("Overriding class: Optimizer -> AGGEA (Default).")
 
         super().__init__()
-
         self._set_blocks(
             n_tournaments, n_exchanges, n_crossovers, n_mutations, exchange_size,
             crossover_size, tournament_sizes, exchange_probabilities, crossover_means,
@@ -442,7 +445,9 @@ class AGGEA(_AGGEABase, Optimizer):
         F = np.array([float(np.asarray(a.fit).reshape(-1)[0]) for a in agents])
 
         O = _aggea_offspring(X, F, self._lb, self._ub, self._cfg, np)
-        F_O = np.array([float(np.asarray(function(o.reshape(shape))).reshape(-1)[0]) for o in O])
+        F_O = np.array(
+            [float(np.asarray(function(o.reshape(shape))).reshape(-1)[0]) for o in O]
+        )
 
         # Selection: the N best of the parents and the offspring
         F_all = np.concatenate((F, F_O))
@@ -488,7 +493,6 @@ class AGGEATensor(_AGGEABase, Optimizer, TensorizedOptimizer):
         logger.info("Overriding class: Optimizer -> AGGEA (Tensor).")
 
         super().__init__()
-
         self._set_blocks(
             n_tournaments, n_exchanges, n_crossovers, n_mutations, exchange_size,
             crossover_size, tournament_sizes, exchange_probabilities, crossover_means,
@@ -555,8 +559,14 @@ class AGGEATensor(_AGGEABase, Optimizer, TensorizedOptimizer):
         feat_shape = space.X.shape[1:]
 
         X = space.X.reshape(N, -1)
-        O = _aggea_offspring(X, space.F, self._lb, self._ub, self._cfg, xp).astype(self.dtype)
-        F_O = function(O.reshape((O.shape[0],) + feat_shape), xp=xp).reshape(-1).astype(self.dtype)
+        O = _aggea_offspring(X, space.F, self._lb, self._ub, self._cfg, xp).astype(
+            self.dtype
+        )
+        F_O = (
+            function(O.reshape((O.shape[0],) + feat_shape), xp=xp)
+            .reshape(-1)
+            .astype(self.dtype)
+        )
 
         # Selection: the N best of the parents and the offspring, sorted
         F_all = xp.concatenate((space.F, F_O))

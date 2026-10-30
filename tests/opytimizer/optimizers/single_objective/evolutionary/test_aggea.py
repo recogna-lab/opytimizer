@@ -13,7 +13,12 @@ from opytimizer.utils import exception as e
 def test_aggea_default_graph():
     opt = aggea.AGGEA()
 
-    assert (opt.n_tournaments, opt.n_exchanges, opt.n_crossovers, opt.n_mutations) == (10, 10, 2, 2)
+    assert (opt.n_tournaments, opt.n_exchanges, opt.n_crossovers, opt.n_mutations) == (
+        10,
+        10,
+        2,
+        2,
+    )
     assert np.all(opt.tournament_sizes == 2)
     assert np.allclose(opt.exchange_probabilities, 0.5)
     assert np.allclose(opt.crossover_split, [[0.4, 0.6], [0.4, 0.6]])
@@ -118,9 +123,13 @@ def test_aggea_is_elitist_and_converges(tensorized):
             return lambda *args, **kwargs: None
 
         def on_iteration_end(self, iteration, runner):
-            history.append(float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0]))
+            history.append(
+                float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0])
+            )
 
-    runner = Opytimizer(space, opt, Function(problem), enable_logging=False, show_progress=False)
+    runner = Opytimizer(
+        space, opt, Function(problem), enable_logging=False, show_progress=False
+    )
     runner.start(MaxEvaluations(20000), callbacks=[Track()])
 
     assert all(b <= a for a, b in zip(history, history[1:]))
@@ -137,9 +146,17 @@ def test_aggea_gpu():
     cp.random.seed(0)
     env = Environment("cupy", "float32")
     problem = Rastrigin(n_variables=5, env=env)
-    space = SearchSpace(100, 5, 1, problem.lower_bound, problem.upper_bound, env=env, tensorized=True)
+    space = SearchSpace(
+        100, 5, 1, problem.lower_bound, problem.upper_bound, env=env, tensorized=True
+    )
 
-    runner = Opytimizer(space, aggea.AGGEATensor(), Function(problem), enable_logging=False, show_progress=False)
+    runner = Opytimizer(
+        space,
+        aggea.AGGEATensor(),
+        Function(problem),
+        enable_logging=False,
+        show_progress=False,
+    )
     runner.start(MaxEvaluations(20000))
 
     assert float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0]) < 1.0
