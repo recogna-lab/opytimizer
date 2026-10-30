@@ -43,16 +43,33 @@ class RVEA(MultiObjectiveOptimizer):
         fr: float = 0.1,
         **kwargs,
     ):
+        """Initialization method.
+
+        Args:
+            params: Contains key-value parameters to the meta-heuristics.
+            crossover_operator: Crossover operator. Defaults to SBX with eta = 30
+                and crossover probability 1.0, as in Cheng et al. (2016).
+            mutation_operator: Mutation operator. Defaults to the polynomial
+                mutation with eta = 20 and rate 1 / n_variables.
+            reference_vectors: Reference vectors, one per agent.
+            max_generations: Number of generations t_max of the run, used by the
+                penalty function and the adaptation frequency. It should match
+                the stopping criterion.
+            alpha: Rate of change of the penalty function.
+            fr: Frequency of the reference vector adaptation (fraction of t_max).
+
+        """
+
         super().__init__()
 
         logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (Default).")
 
         self.crossover_operator = crossover_operator or SBXCrossover(
-            rate=1.0, gene_rate=1.0, n_offspring=2
+            eta=30, rate=1.0, n_offspring=2
         )
-        self.mutation_operator = mutation_operator or PolynomialMutation(
-            rate=1.0 / 30.0
-        )
+        # The default mutation rate (1 / n_variables) is only known in `compile`
+        self._default_mutation = mutation_operator is None
+        self.mutation_operator = mutation_operator or PolynomialMutation(eta=20)
         self.reference_vectors = reference_vectors
         self.current_reference_vectors = reference_vectors.copy()
         self.max_generations = max_generations
@@ -113,6 +130,9 @@ class RVEA(MultiObjectiveOptimizer):
                 "Error: The number of `reference_vectors` should be equal to the number of agents."
             )
 
+        if self._default_mutation:
+            self.mutation_operator.rate = 1.0 / space.n_variables
+
         rv = np.asarray(self.reference_vectors, dtype=float)
         self.reference_vectors = rv / np.linalg.norm(rv, axis=1, keepdims=True)
         self.current_reference_vectors = self.reference_vectors.copy()
@@ -159,9 +179,19 @@ class RVEA(MultiObjectiveOptimizer):
         self._update_gammas()
 
     def update(self, space: _MultiObjectiveSpace, function: Function):
+        """Performs one generation: offspring creation, selection and adaptation.
+
+        Args:
+            space: A MultiObjectiveSpace object.
+            function: A Function object that will be used as the objective function.
+
+        """
 
         n_target = len(self.reference_vectors)
         n_cur = len(space.agents)
+
+        # N offspring from random pairs, whatever the current population size:
+        # every agent is equally likely to be a parent (Section III-B)
         num_pairs = (n_target + 1) // 2
         p1 = np.random.randint(0, n_cur, size=num_pairs)
 
@@ -172,7 +202,7 @@ class RVEA(MultiObjectiveOptimizer):
 
         parent_indices = np.stack([p1, p2], axis=1)
 
-        current_population = space.agents.copy()
+        current_population = list(space.agents)
 
         for pair in parent_indices:
             offsprings = self.crossover_operator(
@@ -205,6 +235,7 @@ class RVEA(MultiObjectiveOptimizer):
         M = space.n_objectives
 
         fits = np.array([a.fit for a in current_population])
+        # Ideal point of the combined population P_t U Q_t (eq. 5)
         self.z = fits.min(axis=0)
 
         translated = fits - self.z
@@ -229,13 +260,13 @@ class RVEA(MultiObjectiveOptimizer):
 
         apd_values = (1.0 + P) * norms
 
+        # One elitist (lowest APD) per non-empty subpopulation (Algorithm 2)
         order = np.lexsort((apd_values, assignments))
         sorted_assignments = assignments[order]
         is_first = np.ones(len(order), dtype=bool)
         is_first[1:] = sorted_assignments[1:] != sorted_assignments[:-1]
-        new_agents = [current_population[i] for i in order[is_first]]
-
-        space.agents = new_agents
+        # Empty subpopulations select nobody, so the population may shrink
+        space.agents = [current_population[i] for i in order[is_first]]
 
         self._adapt_reference_vectors(space)
 
@@ -245,6 +276,12 @@ class RVEA(MultiObjectiveOptimizer):
 class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
     """
     Backend-agnostic (NumPy/CuPy) tensorized implementation of RVEA.
+
+    It follows the same algorithm as `RVEA`: only the K survivors of the last
+    selection (one per non-empty subpopulation) take part in mating, translation
+    and adaptation. Since tensors have a fixed shape, the population arrays keep
+    N rows: the first K hold the survivors and the remaining ones repeat them,
+    without any device -> host synchronization.
     """
 
     def __init__(
@@ -257,15 +294,34 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         alpha: Union[float, int] = 2.0,
         fr: float = 0.1,
     ):
+        """Initialization method.
+
+        Args:
+            params: Contains key-value parameters to the meta-heuristics.
+            crossover_operator: Tensorized crossover operator. Defaults to SBX with
+                eta = 30 and crossover probability 1.0, as in Cheng et al. (2016).
+            mutation_operator: Tensorized mutation operator. Defaults to the
+                polynomial mutation with eta = 20 and rate 1 / n_variables.
+            reference_vectors: Reference vectors, one per agent.
+            max_generations: Number of generations t_max of the run, used by the
+                penalty function and the adaptation frequency. It should match
+                the stopping criterion.
+            alpha: Rate of change of the penalty function.
+            fr: Frequency of the reference vector adaptation (fraction of t_max).
+
+        """
+
         super().__init__()
         logger.info("Overriding class: MultiObjectiveOptimizer -> RVEA (Tensor).")
 
         # The environment of the operators is replaced by the space's in `compile`
         self.crossover_operator = crossover_operator or SBXCrossoverTensor(
-            env=Environment("numpy", "float32"), rate=1.0, gene_rate=1.0
+            env=Environment("numpy", "float32"), eta=30, rate=1.0
         )
+        # The default mutation rate (1 / n_variables) is only known in `compile`
+        self._default_mutation = mutation_operator is None
         self.mutation_operator = mutation_operator or PolynomialMutationTensor(
-            env=Environment("numpy", "float32"), rate=1.0 / 30.0
+            env=Environment("numpy", "float32"), eta=20
         )
 
         self.reference_vectors = reference_vectors
@@ -281,6 +337,7 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self._V_unit = None  # unit-norm copy of `current_reference_vectors`
         self._xp = None  # concrete array module (numpy / cupy), NOT the proxy
         self.dtype = None
+        self._n_survivors = None  # device scalar K: rows [0, K) are survivors
 
         self.build(params)
 
@@ -336,6 +393,11 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         # The operators must run on the same backend as the space
         self.crossover_operator.env = space.env
         self.mutation_operator.env = space.env
+        if self._default_mutation:
+            self.mutation_operator.rate = 1.0 / space.n_variables
+
+        # Every initial agent is a survivor
+        self._n_survivors = self._xp.asarray(space.n_agents, dtype=self._xp.int64)
 
         self.reference_vectors = xp.asarray(self.reference_vectors, dtype=self.dtype)
         self.current_reference_vectors = xp.asarray(
@@ -398,9 +460,26 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
 
         return best[:N_ref]
 
-    def _apd_selection(self, X_combined: Any, F_combined: Any, xp, X_, F_):
+    def _apd_selection(self, X_combined: Any, F_combined: Any, valid: Any, xp):
+        """Reference vector guided selection (Algorithm 2) over the valid rows.
+
+        Args:
+            X_combined: Decision variables of the parents followed by the offspring.
+            F_combined: Objective values of the same rows.
+            valid: Mask of the rows that belong to P_t U Q_t (padding rows are False).
+            xp: Array module (numpy / cupy).
+
+        Returns:
+            (Tuple[Any, Any]): N rows of decision variables and objective values,
+                the survivors first, followed by copies of them.
+
+        """
+
         N_ref = int(self.current_reference_vectors.shape[0])
         M = int(F_combined.shape[1])
+
+        # Ideal point of the combined population P_t U Q_t (eq. 5)
+        self.z = xp.where(valid[:, None], F_combined, xp.inf).min(axis=0)
 
         F_t = F_combined - self.z
         norms = xp.linalg.norm(F_t, axis=1)
@@ -423,19 +502,24 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
             (self.currentGeneration / self.max_generations) ** self.alpha
         )
         apd = (1.0 + penalty_scale * (asgn_ang / (gamma_i + 1e-10))) * norms
+        # Padding rows never win a subpopulation
+        apd = xp.where(valid, apd, xp.inf)
 
         best_idx = self._grouped_argmin(apd, asgn, N_ref, xp)
-        valid = best_idx >= 0
+        safe_idx = xp.where(best_idx >= 0, best_idx, 0)
+        # A subpopulation is empty when it has no member or only padding rows
+        selected = (best_idx >= 0) & xp.isfinite(apd[safe_idx])
 
-        safe_idx = xp.where(valid, best_idx, 0)
-        X_sel = X_combined[safe_idx]
-        F_sel = F_combined[safe_idx]
+        # Survivors first (one per non-empty subpopulation), then the empty
+        # subpopulations, which are filled with copies of the survivors
+        order = xp.argsort((~selected).astype(xp.int8), kind="stable")
+        survivors = safe_idx[order]
+        n_survivors = xp.maximum(selected.sum(), 1)
+        rows = survivors[xp.arange(N_ref) % n_survivors]
 
-        valid_mask = valid.reshape((valid.shape[0],) + (1,) * (X_combined.ndim - 1))
-        X_new = xp.where(valid_mask, X_sel, X_)
-        F_new = xp.where(valid[:, None], F_sel, F_)
+        self._n_survivors = n_survivors
 
-        return X_new, F_new
+        return X_combined[rows], F_combined[rows]
 
     def _adapt_reference_vectors(self, F_agents: Any, xp):
         fr_period = max(1, int(self.max_generations * self.fr))
@@ -461,16 +545,27 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         self.evaluate = lambda: None
 
     def update(self, space: _MultiObjectiveTensorSpace, function: Function) -> None:
+        """Performs one generation: offspring creation, selection and adaptation.
+
+        Args:
+            space: A tensorized MultiObjectiveSpace object.
+            function: A Function object that will be used as the objective function.
+
+        """
+
         xp = self._xp
         n = space.X.shape[0]
         half = n // 2
 
-        perm = xp.random.permutation(n)
-        idx1 = perm[:half]
-        idx2 = perm[half : 2 * half]
+        # Random pairs among the K survivors (rows [0, K)), every survivor being
+        # equally likely to be a parent (Section III-B). K stays on the device
+        u = xp.random.random(2 * half)
+        parents = xp.minimum(
+            (u * self._n_survivors).astype(xp.int64), self._n_survivors - 1
+        )
 
-        parents1 = space.X[idx1]
-        parents2 = space.X[idx2]
+        parents1 = space.X[parents[:half]]
+        parents2 = space.X[parents[half:]]
 
         X_off = self.crossover_operator(parents1, parents2, space.lb, space.ub)
         X_off = xp.concatenate(X_off, axis=0)
@@ -481,16 +576,20 @@ class RVEATensor(MultiObjectiveOptimizer, TensorizedMultiObjectiveOptimizer):
         if not isinstance(F_off, xp.ndarray):
             F_off = xp.asarray(F_off, dtype=self.dtype)
 
-        self.z = xp.minimum(self.z, F_off.min(axis=0))
-
         X_pool = xp.concatenate([space.X, X_off], axis=0)
         F_pool = xp.concatenate([space.F, F_off], axis=0)
 
-        X_new, F_new = self._apd_selection(X_pool, F_pool, xp, space.X, space.F)
+        # P_t U Q_t: the survivors and every offspring (padding rows excluded)
+        valid = xp.concatenate(
+            [xp.arange(n) < self._n_survivors, xp.ones(X_off.shape[0], dtype=bool)]
+        )
+
+        X_new, F_new = self._apd_selection(X_pool, F_pool, valid, xp)
 
         space.X = X_new
         space.F = F_new
 
+        # Padding rows repeat survivors, so they do not change z_min / z_max
         self._adapt_reference_vectors(space.F, xp)
         self.currentGeneration += 1
 
@@ -513,13 +612,8 @@ class RVEACuda(RVEATensor):
         alpha: Union[float, int] = 2.0,
         fr: float = 0.1,
     ):
-        crossover_operator = crossover_operator or SBXCrossoverTensor(
-            env=Environment("cupy", "float32"), rate=1.0, gene_rate=1.0
-        )
-        mutation_operator = mutation_operator or PolynomialMutationTensor(
-            rate=1.0 / 30.0, env=Environment("cupy", "float32")
-        )
-
+        # Default operators are created by RVEATensor and bound to the space's
+        # environment in `compile`
         super().__init__(
             params,
             crossover_operator,
