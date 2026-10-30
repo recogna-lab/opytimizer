@@ -384,9 +384,7 @@ opt.start(MaxIterations(250),
 
 ### Notes on the evolutionary operators
 
-* `SBXCrossover` / `SBXCrossoverTensor` recombine each variable with probability `gene_rate = 0.5` by default, as in the reference implementation of NSGA-II.
 * Tensorized optimizers (`NSGA2Tensor`, `MOEADTensor`, `RVEATensor`, `RVEACuda`) bind their default operators to the space's environment, so they work on both NumPy and CuPy spaces.
-* `RVEA` follows Cheng et al. (2016): one elitist is kept per non-empty subpopulation, so its population may have fewer than `N` agents in some generations. The tensorized versions keep `N` rows by repeating the survivors.
 
 
 ## Support
