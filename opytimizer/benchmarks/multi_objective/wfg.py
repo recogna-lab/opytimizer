@@ -6,9 +6,9 @@ first k variables are position-related and the remaining l = n - k are
 distance-related.
 
 References:
-    S. Huband, P. Hingston, L. Barone, and L. While, "A review of multiobjective
-    test problems and a scalable test problem toolkit," IEEE Trans. Evol. Comput.,
-    vol. 10, no. 5, pp. 477-506, 2006.
+    Huband, S., Hingston, P., Barone, L., & While, L. (2006). A review of multiobjective
+    test problems and a scalable test problem toolkit. IEEE Transactions on Evolutionary
+    Computation, 10(5), 477–506. doi:10.1109/tevc.2005.861417
 
 """
 

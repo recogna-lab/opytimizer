@@ -4,9 +4,9 @@ The first M - 1 variables define the position on the front and the remaining
 k = n - M + 1 variables (x_M) define the distance g(x_M) to it.
 
 References:
-    K. Deb, L. Thiele, M. Laumanns, and E. Zitzler, "Scalable test problems for
-    evolutionary multiobjective optimization," in Evolutionary Multiobjective
-    Optimization, Springer, 2005, pp. 105-145.
+    Deb, K., Thiele, L., Laumanns, M., & Zitzler, E. (2005). Scalable test problems
+    for evolutionary multiobjective optimization. In Advanced Information and Knowledge
+    Processing (pp. 105-145). doi:10.1007/1-84628-137-7_6
 
 """
 

@@ -7,9 +7,9 @@ features are configurable: level of the distance landscape, bias, imbalance
 and a complicated (curved) Pareto set.
 
 References:
-    S. Zapotecas-Martínez, C. A. Coello Coello, H. E. Aguirre, and K. Tanaka,
-    "Challenging test problems for multi- and many-objective optimization,"
-    Swarm and Evolutionary Computation, vol. 81, art. 101350, 2023.
+    Zapotecas-Martínez, S., Coello Coello, C. A., Aguirre, H. E., & Tanaka, K. (2023).
+    Challenging test problems for multi- and many-objective optimization.
+    Swarm and Evolutionary Computation, 81(101350), 101350. doi:10.1016/j.swevo.2023.101350
 
 """
 

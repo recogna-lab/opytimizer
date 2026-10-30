@@ -3,9 +3,11 @@
 ZDT5 is not included, since it is defined over binary strings.
 
 References:
-    E. Zitzler, K. Deb, and L. Thiele, "Comparison of multiobjective evolutionary
-    algorithms: Empirical results," Evolutionary Computation, vol. 8, no. 2,
-    pp. 173-195, 2000.
+    References
+
+Zitzler, E., Deb, K., & Thiele, L. (2000). Comparison of multiobjective evolutionary
+algorithms: empirical results. Evolutionary Computation, 8(2), 173-195.
+doi:10.1162/106365600568202
 
 """
 
