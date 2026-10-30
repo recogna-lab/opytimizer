@@ -133,3 +133,73 @@ def test_rvea_reference_vectors():
         )
     finally:
         assert search_space.n_agents == len(REFERENCE_VECTORS)
+
+
+def _dtlz2(x):
+    x = np.asarray(x).reshape(-1)
+    g = np.sum((x[2:] - 0.5) ** 2)
+    a, b = x[0] * np.pi / 2, x[1] * np.pi / 2
+    return np.array(
+        [
+            (1 + g) * np.cos(a) * np.cos(b),
+            (1 + g) * np.cos(a) * np.sin(b),
+            (1 + g) * np.sin(a),
+        ]
+    )
+
+
+def test_rvea_default_operators_follow_the_paper():
+    space = SearchSpace(N_AGENTS, 6, 2, [0.0] * 6, [1.0] * 6)
+    new_rvea = rvea.RVEA(reference_vectors=REFERENCE_VECTORS)
+    new_rvea.compile(space)
+
+    assert new_rvea.crossover_operator.eta == 30
+    assert new_rvea.crossover_operator.rate == 1.0
+    assert new_rvea.mutation_operator.eta == 20
+    assert new_rvea.mutation_operator.rate == 1.0 / 6
+
+
+def test_rvea_population_varies_as_in_the_paper():
+    np.random.seed(0)
+    weights, n = das_dennis(3, 6)
+    space = SearchSpace(n, 8, 3, [0.0] * 8, [1.0] * 8)
+    new_rvea = rvea.RVEA(reference_vectors=weights, max_generations=20)
+    new_rvea.compile(space)
+    new_rvea.evaluate(space, _dtlz2)
+
+    sizes = []
+    for _ in range(20):
+        new_rvea.update(space, _dtlz2)
+        sizes.append(len(space.agents))
+
+        # One elitist per non-empty subpopulation, all of them distinct
+        assert 1 <= len(space.agents) <= n
+        assert len({id(a) for a in space.agents}) == len(space.agents)
+
+    # Empty subpopulations do happen, so the population size really varies
+    assert min(sizes) < n
+
+
+def test_rvea_tensor_population_size_is_constant():
+    from opytimizer.core import Environment
+
+    np.random.seed(0)
+    env = Environment("numpy", "float64")
+    weights, n = das_dennis(3, 6)
+    space = SearchSpace(n, 8, 3, [0.0] * 8, [1.0] * 8, env=env, tensorized=True)
+
+    def batch(X, xp=np):
+        return np.stack([_dtlz2(x) for x in X.reshape(X.shape[0], -1)])
+
+    new_rvea = rvea.RVEATensor(reference_vectors=weights, max_generations=20)
+    new_rvea.compile(space)
+    new_rvea.evaluate(space, batch)
+
+    for _ in range(20):
+        new_rvea.update(space, batch)
+        k = int(new_rvea._n_survivors)
+
+        assert space.X.shape[0] == space.F.shape[0] == n
+        # Rows beyond the K survivors repeat survivors
+        survivors = {tuple(f) for f in space.F[:k]}
+        assert all(tuple(f) in survivors for f in space.F[k:])
