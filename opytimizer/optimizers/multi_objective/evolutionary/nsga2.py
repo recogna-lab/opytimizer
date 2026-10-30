@@ -7,7 +7,6 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-import opytimizer.utils.exception as e
 from opytimizer.core import (
     Environment,
     MultiObjectiveOptimizer,
