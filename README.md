@@ -15,13 +15,14 @@ Did you ever reach a bottleneck in your computational experiments? Are you tired
 
 Use Opytimizer if you need a library or wish to:
 * Create your optimization algorithm;
-* Design or use pre-loaded optimization tasks;
+* Design or use pre-loaded optimization tasks, including built-in benchmark suites (classic functions, CEC 2022, ZDT, DTLZ, WFG and ZCAT);
+* Run the same experiments on CPU (NumPy) or GPU (CuPy);
 * Mix-and-match different strategies to solve your problem;
 * Because it is fun to optimize things.
 
 Read the docs at [recogna-lab.github.io](https://recogna-lab.github.io/opytimizer/).
 
-Opytimizer is compatible with: **Python 3.6+**.
+Opytimizer is compatible with: **Python 3.8+**.
 
 ---
 
@@ -62,6 +63,14 @@ Opytimizer is based on the following structure, and you should pay attention to 
 
 ```yaml
 - opytimizer
+    - benchmarks
+        - cec2022
+        - multi_objective
+            - dtlz
+            - wfg
+            - zcat
+            - zdt
+        - single_objective
     - core
         - agent
         - block
@@ -127,6 +136,10 @@ Opytimizer is based on the following structure, and you should pay attention to 
         - surface
 ```
 
+### Benchmarks
+
+Ready-to-use test problems from the literature: classic single-objective functions (Sphere, Rastrigin, Ackley, Rosenbrock, Schwefel, ...), the CEC 2022 suite, and the scalable ZDT, DTLZ, WFG and ZCAT multi- and many-objective families. Each problem chooses its number of variables (and objectives), runs on the NumPy or CuPy backend of its `Environment` and knows its optimum: `optimal_value` / `optimal_solution()` for single-objective problems and `pareto_front()` for multi-objective ones. CuPy is only imported when a CuPy environment is used.
+
 ### Core
 
 Core is the core. Essentially, it is the parent of everything. You should find parent classes defining the basis of our structure. They should provide variables and methods that will help to construct other modules.
@@ -141,7 +154,7 @@ An adaptive framework designed to automate the selection and generation of optim
 
 ### Math
 
-Just because we are computing stuff does not means that we do not need math. Math is the mathematical package containing low-level math implementations. From random numbers to distribution generation, you can find your needs on this module.
+Just because we are computing stuff does not means that we do not need math. Math is the mathematical package containing low-level math implementations. From random numbers to distribution generation, you can find your needs on this module. It also provides multi-objective performance metrics (`HV`, `MonteCarloHV`, `IGD`, `GD`, `Spread`, `ErrorRatio`, `R2` and `MaximumSpread`), which accept fronts from any backend; `HV` is exact for any number of objectives.
 
 ### Optimizers
 
@@ -228,49 +241,58 @@ stopping = MaxIterations(1000)
 opt.start(stopping_criteria=stopping)
 ```
 
-## How-To-Use: Minimal Multi-Objective Example
-
-Here's a simple example of multi-objective optimization using the ZDT1 benchmark function and NSGA-II algorithm:
+The same task can use a built-in benchmark, which also provides its standard domain and its optimum:
 
 ```Python
-import numpy as np
 from opytimizer import Opytimizer
+from opytimizer.benchmarks import Rastrigin
 from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.optimizers.single_objective.swarm import PSO
+from opytimizer.spaces import SearchSpace
+
+problem = Rastrigin(n_variables=10)
+
+space = SearchSpace(30, problem.n_variables, 1, problem.lower_bound, problem.upper_bound)
+opt = Opytimizer(space, PSO(), Function(problem))
+opt.start(MaxIterations(500))
+
+print(f"Error: {float(opt.space.best_agent.fit) - problem.optimal_value}")
+```
+
+## How-To-Use: Minimal Multi-Objective Example
+
+Here's a simple example of multi-objective optimization using the built-in ZDT1 benchmark and the NSGA-II algorithm, tracking the IGD against the true Pareto front:
+
+```Python
+from opytimizer import Opytimizer
+from opytimizer.benchmarks import ZDT1
+from opytimizer.core import Function
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.math.metrics import IGD
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
-from opytimizer.utils.operators import SBXCrossover, PolynomialMutation
-from opytimizer.core.stopping import MaxIterations
+from opytimizer.utils.operators import PolynomialMutation
 
-def zdt1(x):
-    f1 = x[0]
-    g = 1 + 9 * np.sum(x[1:]) / (len(x) - 1)
-    f2 = g * (1 - np.sqrt(f1/g)) if f1 != 0 else g
-    return np.array([f1, f2])
-
-n_agents = 100
-n_variables = 30
-n_objectives = 2
+problem = ZDT1(n_variables=30)
 
 space = SearchSpace(
-    n_agents=n_agents,
-    n_variables=n_variables,
-    n_objectives=n_objectives,
-    lower_bound=[0] * n_variables,
-    upper_bound=[1] * n_variables
+    n_agents=100,
+    n_variables=problem.n_variables,
+    n_objectives=problem.n_objectives,
+    lower_bound=problem.lower_bound,
+    upper_bound=problem.upper_bound,
 )
 
-optimizer = NSGA2(
-    crossover_operator=SBXCrossover(rate=1.0, eta=20, n_offspring=2),
-    mutation_operator=PolynomialMutation(rate=1/30, eta=20)
-)
-function = Function(zdt1)
+# SBX (eta = 20, gene_rate = 0.5) is the default crossover
+optimizer = NSGA2(mutation_operator=PolynomialMutation(rate=1 / problem.n_variables))
+function = Function(problem)
 
+opt = Opytimizer(space, optimizer, function, save_history=True)
 
-opt = Opytimizer(space, optimizer, function)
+opt.start(MaxIterations(250), metrics=[IGD(problem.pareto_front(500))])
 
-stopping = MaxIterations(100)
-
-opt.start(stopping_criteria=stopping)
+print(f"IGD: {opt.history.igd[-1]:.4f}")
 ```
 
 The optimization process will generate a Pareto front, which can be visualized as follows:
@@ -325,6 +347,46 @@ plot_convergence(opt.history.best_agent,
                 labels=['PSO (CuPy - Raw Kernels)']
                 ).show()
 ```
+
+## How-To-Use: GPU-based Multi-Objective Example
+
+Benchmarks run on the backend of their `Environment`, so a whole population is evaluated on the GPU at once. Metrics accept GPU fronts directly:
+
+```Python
+from opytimizer import Opytimizer
+from opytimizer.benchmarks import DTLZ2
+from opytimizer.core import Environment, Function
+from opytimizer.core.stopping import MaxIterations
+from opytimizer.math.metrics import HV, IGD
+from opytimizer.optimizers.multi_objective.evolutionary import NSGA2Tensor
+from opytimizer.spaces import SearchSpace
+
+env = Environment("cupy", "float32")
+problem = DTLZ2(n_objectives=3, env=env)
+
+space = SearchSpace(300, problem.n_variables, problem.n_objectives,
+                    problem.lower_bound, problem.upper_bound, env=env, tensorized=True)
+
+opt = Opytimizer(space, NSGA2Tensor(), Function(problem), save_history=True,
+                 enable_logging=False, show_progress=False)
+
+opt.start(MaxIterations(250),
+          metrics=[IGD(problem.pareto_front(1000)), HV(reference_point=[1.1] * 3)],
+          metrics_every=25)
+```
+
+### Runner options
+
+`Opytimizer` also accepts:
+
+* `enable_logging=False`: silences the library logs (console and `opytimizer.log`) while the runner is created and during `start()`;
+* `show_progress=False`: disables the progress bars (useful for long benchmark studies).
+
+### Notes on the evolutionary operators
+
+* `SBXCrossover` / `SBXCrossoverTensor` recombine each variable with probability `gene_rate = 0.5` by default, as in the reference implementation of NSGA-II.
+* Tensorized optimizers (`NSGA2Tensor`, `MOEADTensor`, `RVEATensor`, `RVEACuda`) bind their default operators to the space's environment, so they work on both NumPy and CuPy spaces.
+* `RVEA` follows Cheng et al. (2016): one elitist is kept per non-empty subpopulation, so its population may have fewer than `N` agents in some generations. The tensorized versions keep `N` rows by repeating the survivors.
 
 
 ## Support
