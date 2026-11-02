@@ -42,7 +42,12 @@ def _g_sphere(XM, xp):
 
 def _spherical(theta, g, xp):
     """Spherical front of radius 1 + g parameterized by the angles `theta`."""
-    return (1.0 + g)[:, None] * _product_shape(xp.cos(theta), xp.sin(theta), xp)
+    # theta lies in [0, pi / 2], where cos and sin are non-negative; clamping removes the
+    # rounding error (e.g. cos(pi / 2) = -4.4e-8 in float32) that would otherwise give
+    # slightly negative objectives, which Pareto-dominance based optimizers exploit
+    cos, sin = xp.maximum(xp.cos(theta), 0.0), xp.maximum(xp.sin(theta), 0.0)
+
+    return (1.0 + g)[:, None] * _product_shape(cos, sin, xp)
 
 
 class _DTLZ(_MultiObjectiveBenchmark):
