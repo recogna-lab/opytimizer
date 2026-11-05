@@ -60,7 +60,9 @@ def _tournament(F: Any, mask: Any, n_select: int, xp: Any) -> Any:
 
     """
 
-    candidates = xp.random.randint(0, F.shape[0], size=(mask.shape[0], n_select, mask.shape[2]))
+    candidates = xp.random.randint(
+        0, F.shape[0], size=(mask.shape[0], n_select, mask.shape[2])
+    )
     fit = xp.where(mask, F[candidates], xp.inf)
     winners = xp.take_along_axis(candidates, fit.argmin(axis=2)[..., None], axis=2)
 

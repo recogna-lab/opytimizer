@@ -4,9 +4,11 @@ Classic n-dimensional functions widely adopted in the literature (and as base
 functions of the CEC suites), all in their standard, non-shifted form.
 
 References:
-    M. Jamil and X.-S. Yang, "A literature survey of benchmark functions for
-    global optimization problems," Int. J. Math. Model. Numer. Optim., vol. 4,
-    no. 2, pp. 150-194, 2013.
+    References
+
+    Jamil, M., & Yang, X. S. (2013). A literature survey of benchmark functions
+    for global optimisation problems. International Journal of Mathematical
+    Modelling and Numerical Optimisation, 4(2), 150. doi:10.1504/ijmmno.2013.055204
 
     S. Surjanovic and D. Bingham, "Virtual Library of Simulation Experiments:
     Test Functions and Datasets," Simon Fraser University, 2013.
@@ -304,6 +306,18 @@ class Salomon(_SingleObjectiveBenchmark):
         return 1.0 - xp.cos(2.0 * math.pi * norm) + 0.1 * norm
 
 
+def _weierstrass(X, xp):
+    """Weierstrass function, evaluated row-wise on a batch of shape (N, n)."""
+    k = xp.arange(21, dtype=X.dtype)
+    a_k, b_k = 0.5**k, 3.0**k
+
+    # (N, n, k_max + 1) terms a^k cos(2 pi b^k (x_i + 0.5))
+    terms = a_k * xp.cos(2.0 * math.pi * b_k * (X[:, :, None] + 0.5))
+    offset = X.shape[1] * xp.sum(a_k * xp.cos(math.pi * b_k))
+
+    return xp.sum(terms, axis=(1, 2)) - offset
+
+
 class Weierstrass(_SingleObjectiveBenchmark):
     """Weierstrass (a = 0.5, b = 3, k_max = 20). Continuous, nowhere differentiable.
 
@@ -313,14 +327,7 @@ class Weierstrass(_SingleObjectiveBenchmark):
     _default_bounds = (-0.5, 0.5)
 
     def _evaluate(self, X, xp):
-        k = xp.arange(21, dtype=X.dtype)
-        a_k, b_k = 0.5**k, 3.0**k
-
-        # (N, n, k_max + 1) terms a^k cos(2 pi b^k (x_i + 0.5))
-        terms = a_k * xp.cos(2.0 * math.pi * b_k * (X[:, :, None] + 0.5))
-        offset = X.shape[1] * xp.sum(a_k * xp.cos(math.pi * b_k))
-
-        return xp.sum(terms, axis=(1, 2)) - offset
+        return _weierstrass(X, xp)
 
 
 def _expanded_schaffer_f6(X, xp):

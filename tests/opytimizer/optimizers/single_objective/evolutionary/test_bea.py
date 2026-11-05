@@ -53,7 +53,9 @@ def test_bea_offspring_shape_and_bounds():
     cfg = opt._prepare(60, np, float)
     X = np.random.uniform(-2, 2, (60, 4))
 
-    O = bea._bea_offspring(X, np.sum(X**2, axis=1), np.full(4, -2.0), np.full(4, 2.0), cfg, np)
+    O = bea._bea_offspring(
+        X, np.sum(X**2, axis=1), np.full(4, -2.0), np.full(4, 2.0), cfg, np
+    )
 
     assert O.shape == (opt.n_offspring_per_generation, 4)
     assert np.all((O >= -2.0) & (O <= 2.0))
@@ -82,7 +84,9 @@ def test_bea_late_stage_de():
 
     np.random.seed(0)
     X = np.random.uniform(-1, 1, (20, 3))
-    V = bea._de_offspring(X, np.sum(X**2, axis=1), -np.ones(3), np.ones(3), 0.5, 0.9, np)
+    V = bea._de_offspring(
+        X, np.sum(X**2, axis=1), -np.ones(3), np.ones(3), 0.5, 0.9, np
+    )
     assert V.shape == X.shape and np.all(np.abs(V) <= 1.0)
 
 
@@ -102,9 +106,13 @@ def test_bea_is_elitist_and_converges(tensorized):
             return lambda *args, **kwargs: None
 
         def on_iteration_end(self, iteration, runner):
-            history.append(float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0]))
+            history.append(
+                float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0])
+            )
 
-    runner = Opytimizer(space, opt, Function(problem), enable_logging=False, show_progress=False)
+    runner = Opytimizer(
+        space, opt, Function(problem), enable_logging=False, show_progress=False
+    )
     runner.start(MaxEvaluations(20000), callbacks=[Track()])
 
     assert all(b <= a for a, b in zip(history, history[1:]))
@@ -116,7 +124,9 @@ def test_bea_counts_de_evaluations():
     problem = Sphere(n_variables=3)
     space = SearchSpace(30, 3, 1, problem.lower_bound, problem.upper_bound)
     opt = bea.BEA(max_generations=10, de_start=0.5)
-    runner = Opytimizer(space, opt, Function(problem), enable_logging=False, show_progress=False)
+    runner = Opytimizer(
+        space, opt, Function(problem), enable_logging=False, show_progress=False
+    )
     runner.start(MaxIterations(10))
 
     # 10 generations of offspring plus 5 generations of DE trial vectors
@@ -133,9 +143,17 @@ def test_bea_gpu():
     cp.random.seed(0)
     env = Environment("cupy", "float32")
     problem = Rastrigin(n_variables=5, env=env)
-    space = SearchSpace(100, 5, 1, problem.lower_bound, problem.upper_bound, env=env, tensorized=True)
+    space = SearchSpace(
+        100, 5, 1, problem.lower_bound, problem.upper_bound, env=env, tensorized=True
+    )
 
-    runner = Opytimizer(space, bea.BEATensor(max_generations=100), Function(problem), enable_logging=False, show_progress=False)
+    runner = Opytimizer(
+        space,
+        bea.BEATensor(max_generations=100),
+        Function(problem),
+        enable_logging=False,
+        show_progress=False,
+    )
     runner.start(MaxIterations(100))
 
     assert float(np.asarray(runner.space.best_agent.fit).reshape(-1)[0]) < 5.0

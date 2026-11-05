@@ -73,7 +73,9 @@ def _bea_offspring(X: Any, F: Any, lb: Any, ub: Any, cfg: Dict, xp: Any) -> Any:
     return xp.clip(O.reshape(-1, D), lb, ub)
 
 
-def _de_offspring(X: Any, F: Any, lb: Any, ub: Any, scale: float, rate: float, xp: Any) -> Any:
+def _de_offspring(
+    X: Any, F: Any, lb: Any, ub: Any, scale: float, rate: float, xp: Any
+) -> Any:
     """DE/current-to-best/1/bin trial vectors of the whole population.
 
     Args:
@@ -127,7 +129,9 @@ class _BEABase:
             raise e.ValueError("`exchange_size` should be an integer >= 1")
         if not isinstance(crossover_size, (int, np.integer)) or crossover_size < 2:
             raise e.ValueError("`crossover_size` should be an integer >= 2")
-        if max_generations is not None and (not isinstance(max_generations, (int, np.integer)) or max_generations <= 0):
+        if max_generations is not None and (
+            not isinstance(max_generations, (int, np.integer)) or max_generations <= 0
+        ):
             raise e.ValueError("`max_generations` should be a positive integer")
         if not 0.0 <= de_start <= 1.0:
             raise e.ValueError("`de_start` should be in [0, 1]")
@@ -142,22 +146,42 @@ class _BEABase:
         self.de_scale = float(de_scale)
         self.de_rate = float(de_rate)
 
-        m = np.full(_N_TOURNAMENTS, 2) if tournament_sizes is None else np.asarray(tournament_sizes)
+        m = (
+            np.full(_N_TOURNAMENTS, 2)
+            if tournament_sizes is None
+            else np.asarray(tournament_sizes)
+        )
         if m.shape != (_N_TOURNAMENTS,) or np.any(m < 1) or np.any(m > 10):
-            raise e.ValueError("`tournament_sizes` should have one value in [1, 10] per tournament block")
+            raise e.ValueError(
+                "`tournament_sizes` should have one value in [1, 10] per tournament block"
+            )
         self.tournament_sizes = m.astype(int)
 
-        p = np.ones(self.exchange_size) if exchange_probabilities is None else exchange_probabilities
-        p = np.broadcast_to(np.asarray(p, dtype=float), (_N_EXCHANGES, self.exchange_size))
+        p = (
+            np.ones(self.exchange_size)
+            if exchange_probabilities is None
+            else exchange_probabilities
+        )
+        p = np.broadcast_to(
+            np.asarray(p, dtype=float), (_N_EXCHANGES, self.exchange_size)
+        )
         if np.any(p < 0) or np.any(p.sum(axis=1) <= 0):
-            raise e.ValueError("`exchange_probabilities` should be non-negative with a positive sum")
+            raise e.ValueError(
+                "`exchange_probabilities` should be non-negative with a positive sum"
+            )
         self.exchange_probabilities = p / p.sum(axis=1, keepdims=True)
 
         # w1 (spread) and w2 (center) of the crossover weights of each block
         scales = np.array([0.5, 0.25]) if crossover_scales is None else crossover_scales
-        shifts = np.zeros(_N_CROSSOVERS) if crossover_shifts is None else crossover_shifts
-        self.crossover_scales = np.broadcast_to(np.asarray(scales, dtype=float), (_N_CROSSOVERS,)).copy()
-        self.crossover_shifts = np.broadcast_to(np.asarray(shifts, dtype=float), (_N_CROSSOVERS,)).copy()
+        shifts = (
+            np.zeros(_N_CROSSOVERS) if crossover_shifts is None else crossover_shifts
+        )
+        self.crossover_scales = np.broadcast_to(
+            np.asarray(scales, dtype=float), (_N_CROSSOVERS,)
+        ).copy()
+        self.crossover_shifts = np.broadcast_to(
+            np.asarray(shifts, dtype=float), (_N_CROSSOVERS,)
+        ).copy()
 
         self._generation = 0
 
@@ -175,7 +199,9 @@ class _BEABase:
         def valid(t):
             # 3 equal parts, groups of n_e, halves of the exchange output and
             # groups of n_c in both crossover blocks
-            return t % _N_EXCHANGES == 0 and t % n_e == 0 and (t // n_e) % (2 * n_c) == 0
+            return (
+                t % _N_EXCHANGES == 0 and t % n_e == 0 and (t // n_e) % (2 * n_c) == 0
+            )
 
         t = _N_EXCHANGES
         while not (valid(t) and 2 * t // (n_e * n_c) >= target):
@@ -195,10 +221,16 @@ class _BEABase:
             "n_parents": n_parents,
             "tournament_mask": xp.asarray(mask),
             "exchange_size": self.exchange_size,
-            "exchange_probabilities": xp.asarray(self.exchange_probabilities, dtype=dtype),
+            "exchange_probabilities": xp.asarray(
+                self.exchange_probabilities, dtype=dtype
+            ),
             "crossover_size": self.crossover_size,
-            "crossover_scales": xp.asarray(self.crossover_scales, dtype=dtype).reshape(-1, 1, 1, 1),
-            "crossover_shifts": xp.asarray(self.crossover_shifts, dtype=dtype).reshape(-1, 1, 1, 1),
+            "crossover_scales": xp.asarray(self.crossover_scales, dtype=dtype).reshape(
+                -1, 1, 1, 1
+            ),
+            "crossover_shifts": xp.asarray(self.crossover_shifts, dtype=dtype).reshape(
+                -1, 1, 1, 1
+            ),
         }
 
     def _de_active(self) -> bool:
@@ -268,7 +300,6 @@ class BEA(_BEABase, Optimizer):
         logger.info("Overriding class: Optimizer -> BEA (Default).")
 
         super().__init__()
-
         self._set_blocks(
             exchange_size, crossover_size, tournament_sizes, exchange_probabilities,
             crossover_scales, crossover_shifts, n_offspring, max_generations,
@@ -317,10 +348,14 @@ class BEA(_BEABase, Optimizer):
 
         O = _bea_offspring(X, F, self._lb, self._ub, self._cfg, np)
         if self._de_active():
-            de = _de_offspring(X, F, self._lb, self._ub, self.de_scale, self.de_rate, np)
+            de = _de_offspring(
+                X, F, self._lb, self._ub, self.de_scale, self.de_rate, np
+            )
             O = np.concatenate((O, de))
 
-        F_O = np.array([float(np.asarray(function(o.reshape(shape))).reshape(-1)[0]) for o in O])
+        F_O = np.array(
+            [float(np.asarray(function(o.reshape(shape))).reshape(-1)[0]) for o in O]
+        )
 
         # Environmental selection: the N best of the population and the offspring
         F_all = np.concatenate((F, F_O))
@@ -360,7 +395,6 @@ class BEATensor(_BEABase, Optimizer, TensorizedOptimizer):
         logger.info("Overriding class: Optimizer -> BEA (Tensor).")
 
         super().__init__()
-
         self._set_blocks(
             exchange_size, crossover_size, tournament_sizes, exchange_probabilities,
             crossover_scales, crossover_shifts, n_offspring, max_generations,
@@ -427,11 +461,17 @@ class BEATensor(_BEABase, Optimizer, TensorizedOptimizer):
         X = space.X.reshape(N, -1)
         O = _bea_offspring(X, space.F, self._lb, self._ub, self._cfg, xp)
         if self._de_active():
-            de = _de_offspring(X, space.F, self._lb, self._ub, self.de_scale, self.de_rate, xp)
+            de = _de_offspring(
+                X, space.F, self._lb, self._ub, self.de_scale, self.de_rate, xp
+            )
             O = xp.concatenate((O, de))
         O = O.astype(self.dtype)
 
-        F_O = function(O.reshape((O.shape[0],) + feat_shape), xp=xp).reshape(-1).astype(self.dtype)
+        F_O = (
+            function(O.reshape((O.shape[0],) + feat_shape), xp=xp)
+            .reshape(-1)
+            .astype(self.dtype)
+        )
 
         # Environmental selection: the N best of the population and the offspring
         F_all = xp.concatenate((space.F, F_O))

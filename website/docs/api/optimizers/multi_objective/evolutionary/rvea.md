@@ -9,11 +9,6 @@ description: API reference for RVEA.
 
 RVEA class, inherited from MultiObjectiveOptimizer.
 
-The reference vector guided selection keeps one elitist per reference vector
-that has at least one associated solution (Algorithm 2), so the population
-may have fewer than N agents in some generations, as in the original paper.
-Every generation still creates N offspring.
-
 References:
     R. Cheng, Y. Jin, M. Olhofer and B. Sendhoff, "A Reference Vector Guided Evolutionary Algorithm for Many-Objective Optimization,"
     in IEEE Transactions on Evolutionary Computation, vol. 20, no. 5, pp. 773-791, Oct. 2016, doi: 10.1109/TEVC.2016.2519378.
