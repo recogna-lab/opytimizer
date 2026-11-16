@@ -7,7 +7,7 @@ const config = {
   title: "Opytimizer",
   tagline: "Optimization library for Python",
 
-  favicon: "img/logo.png",
+  favicon: "img/favicon.ico",
 
   url: "https://recogna-lab.github.io",
   baseUrl: "/opytimizer/",

@@ -1,7 +1,7 @@
 # Opytimizer: A Nature-Inspired Python Optimizer
 
 <div align="center">
-    <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/logo.png" width="300">
+    <img src="assets/logo.png" width="300">
 </div>
 
 [![Latest release](https://img.shields.io/github/release/recogna-lab/opytimizer.svg)](https://github.com/recogna-lab/opytimizer/releases)
@@ -64,6 +64,7 @@ Opytimizer is based on the following structure, and you should pay attention to 
 ```yaml
 - opytimizer
     - benchmarks
+        - cec2017
         - cec2022
         - multi_objective
             - dtlz
@@ -273,6 +274,7 @@ from opytimizer.math.metrics import IGD
 from opytimizer.optimizers.multi_objective.evolutionary import NSGA2
 from opytimizer.spaces import SearchSpace
 from opytimizer.utils.operators import PolynomialMutation
+from opytimizer.visualization import plot_agents, plot_pareto_front_evolution
 
 problem = ZDT1(n_variables=30)
 
@@ -293,12 +295,18 @@ opt = Opytimizer(space, optimizer, function, save_history=True)
 opt.start(MaxIterations(250), metrics=[IGD(problem.pareto_front(500))])
 
 print(f"IGD: {opt.history.igd[-1]:.4f}")
+
+plot_agents(opt.space.pareto_front, title='NSGA-II: ZDT1 Pareto Front').show()
+
+plot_pareto_front_evolution(opt.history.pareto_front,
+                            title='NSGA-II: ZDT1 Pareto Front Evolution through generations',
+                            iterations=[50, 100, 150, 200, 250]).show()
 ```
 
 The optimization process will generate a Pareto front, which can be visualized as follows:
 
-<div align="center"> <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/pareto_front.png" width="400"> <p>Final Pareto Front</p> </div>
-<div align="center"> <img src="https://raw.githubusercontent.com/recogna-lab/opytimizer/main/assets/pareto_front_evolution.png" width="400"> <p>Pareto Front Evolution</p> </div>
+<div align="center"> <img src="assets/pareto_front.png" width="400"> <p>Final Pareto Front</p> </div>
+<div align="center"> <img src="assets/pareto_front_evolution.png" width="400"> <p>Pareto Front Evolution</p> </div>
 
 ---
 
